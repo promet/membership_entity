@@ -1,0 +1,124 @@
+<?php
+
+/**
+ * @file
+ * Install, update, and uninstall functions for the membership_entity module.
+ */
+
+/**
+ * Implements hook_schema().
+ */
+function membership_entity_schema() {
+  $schema['membership_entity'] = array(
+    'description' => 'The base table for memberships.',
+    'fields' => array(
+      'mid' => array(
+        'description' => 'The primary identifier for a membership.',
+        'type' => 'serial',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ),
+      'type' => array(
+        'description' => 'The type (bundle) of this membership.',
+        'type' => 'varchar',
+        'length' => 32,
+        'not null' => TRUE,
+        'default' => '',
+      ),
+      'member_id' => array(
+        'description' => 'A user enterable unique member id.',
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+        'default' => '',
+      ),
+      'status' => array(
+        'description' => 'Boolean indicating whether the membership is active or disabled.',
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 1,
+      ),
+      'created' => array(
+        'description' => 'The Unix timestamp when the membership was created.',
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'expires' => array(
+        'description' => 'The Unix timestamp when the membership expires.',
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'changed' => array(
+        'description' => 'The Unix timestamp when the membership was most recently saved.',
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+    ),
+    'indexes' => array(
+      'membership_changed' => array('changed'),
+      'membership_created' => array('created'),
+      'membership_expires' => array('expires'),
+      'membership_status_type' => array('status', 'type', 'nid'),
+      'membership_member_id_type' => array('title', array('type', 4)),
+      'membership_type' => array(array('type', 4)),
+    ),
+    'unique keys' => array(
+      'member_id' => array('member_id'),
+    ),
+    'primary key' => array('mid'),
+  );
+
+  $schema['membership_type'] = array(
+    'description' => 'Stores information about all defined membership types (bundles).',
+    'fields' => array(
+      'type' => array(
+        'description' => 'The machine-readable name of this type.',
+        'type' => 'varchar',
+        'length' => 32,
+        'not null' => TRUE,
+      ),
+      'name' => array(
+        'description' => 'The human-readable name of this type.',
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+        'default' => '',
+        'translatable' => TRUE,
+      ),
+      'description' => array(
+        'description' => 'A brief description of this type.',
+        'type' => 'text',
+        'not null' => TRUE,
+        'size' => 'medium',
+        'translatable' => TRUE,
+      ),
+      'help' => array(
+        'description' => 'Help information shown to the user when creating a membership of this type.',
+        'type' => 'text',
+        'not null' => TRUE,
+        'size' => 'medium',
+        'translatable' => TRUE,
+      ),
+    ),
+    'primary key' => array('type'),
+  );
+
+  return $schema;
+}
+
+/**
+ * Implements hook_install().
+ */
+function membership_entity_install() {
+  // @TODO: Install tasks.
+}
+
+/**
+ * Implements hook_uninstall().
+ */
+function membership_entity_uninstall() {
+  // @TODO: Uninstall tasks.
+}

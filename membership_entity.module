@@ -1,0 +1,131 @@
+<?php
+
+/**
+ * @file
+ * Allows users to create membership entities.
+ */
+
+/**
+ * Membership is disabled.
+ */
+define('MEMBERSHIP_ENTITY_DISABLED', 0);
+
+/**
+ * Membership is active.
+ */
+define('MEMBERSHIP_ENTITY_ACTIVE', 1);
+
+/**
+ * Implements hook_help().
+ */
+function membership_entity_help($path, $arg) {
+  switch ($path) {
+    case 'admin/config/meberships/settings':
+      return '<p>' . t('This page provides general settings for memberships on your website.') . '</p>';
+  }
+}
+
+/**
+ * Implements hook_permission().
+ */
+function membership_entity_permission() {
+  return array(
+    'adminster memberships' => array(
+      'title' => t('Administer Memberships'),
+      'description' => t('Perform administration tasks for memberships.'),
+    ),
+  );
+}
+
+/**
+ * Implements hook_menu().
+ */
+function membership_entity_menu() {
+  $items = array();
+
+  $items['admin/config/membership-entity/settings'] = array(
+    'title' => 'Membership settings',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('membership_entity_admin_settings_form'),
+    'access arguments' => array('administer memberships'),
+    'type' => MENU_NORMAL_ITEM,
+    'file' => 'membership_entity.admin.inc',
+  );
+
+  return $items;
+}
+
+/**
+ * Implements hook_admin_paths().
+ */
+function membership_entity_admin_paths() {
+  return array(
+    'admin/config/membership-entity/*' => TRUE,
+  );
+}
+
+/**
+ * Implements hook_theme().
+ */
+function membership_entity_theme() {
+  return array(
+    // @TODO: Theme a membership
+  );
+}
+
+/**
+ * Implements hook_entity_info().
+ */
+function membership_entity_entity_info() {
+  $info = array(
+    'membership' => array(
+      'label' => t('Membership'),
+      'controller class' => 'MembershipController',
+      'base table' => 'membership_entity',
+      'uri callback' => 'membership_entity_uri',
+      'fieldable' => TRUE,
+      'entity keys' => array(
+        'id' => 'mid',
+        'bundle' => 'type',
+        'label' => 'member_id',
+      ),
+      'bundle keys' => array(
+        'bundle' => 'type',
+      ),
+      'bundles' => array(),
+      'view modes' => array(
+        'full' => array(
+          'label' => t('Full membership'),
+          'custom settings' => FALSE,
+        ),
+      ),
+    ),
+  );
+
+/** @TODO
+  // Bundles must provide a human readable name so we can create help and error
+  // messages, and the path to attach Field admin pages to.
+  foreach (node_type_get_names() as $type => $name) {
+    $return['node']['bundles'][$type] = array(
+      'label' => $name,
+      'admin' => array(
+        'path' => 'admin/structure/types/manage/%node_type',
+        'real path' => 'admin/structure/types/manage/' . str_replace('_', '-', $type),
+        'bundle argument' => 4,
+        'access arguments' => array('administer content types'),
+      ),
+    );
+  }
+*/
+
+  return $info;
+}
+
+/**
+ * Entity URI callback.
+ */
+function membership_entity_uri($membership) {
+  return array(
+    'path' => 'membership/' . $membership->mid,
+  );
+}
