@@ -1,9 +1,0 @@
-name = Memberships
-description = Allows users to create membership entities and attach user accounts to a membership.
-package = Memberships
-version = 7.x-1.x-dev
-core = 7.x
-
-files[] = memberships.admin.inc
-
-configure = admin/config/memberships/settings
