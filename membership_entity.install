@@ -61,8 +61,8 @@ function membership_entity_schema() {
       'membership_changed' => array('changed'),
       'membership_created' => array('created'),
       'membership_expires' => array('expires'),
-      'membership_status_type' => array('status', 'type', 'nid'),
-      'membership_member_id_type' => array('title', array('type', 4)),
+      'membership_status_type' => array('status', 'type', 'mid'),
+      'membership_member_id_type' => array('member_id', array('type', 4)),
       'membership_type' => array(array('type', 4)),
     ),
     'unique keys' => array(
@@ -102,6 +102,9 @@ function membership_entity_schema() {
         'size' => 'medium',
         'translatable' => TRUE,
       ),
+    ),
+    'unique keys' => array(
+      'name' => array('name'),
     ),
     'primary key' => array('type'),
   );

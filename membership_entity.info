@@ -6,5 +6,8 @@ core = 7.x
 
 files[] = membership_entity.install
 files[] = membership_entity.admin.inc
+files[] = membership_entity.types.inc
+
+dependencies[] = date_api
 
 configure = admin/config/membership-entity/settings
