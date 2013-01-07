@@ -9,6 +9,37 @@
  * Implements hook_schema().
  */
 function membership_entity_schema() {
+  $schema['membership_entity_type'] = array(
+    'description' => 'Stores information about all defined membership types (bundles).',
+    'fields' => array(
+      'type' => array(
+        'description' => 'The machine-readable name of this type.',
+        'type' => 'varchar',
+        'length' => 32,
+        'not null' => TRUE,
+      ),
+      'name' => array(
+        'description' => 'The human-readable name of this type.',
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+        'default' => '',
+        'translatable' => TRUE,
+      ),
+      'description' => array(
+        'description' => 'A brief description of this type.',
+        'type' => 'text',
+        'not null' => TRUE,
+        'size' => 'medium',
+        'translatable' => TRUE,
+      ),
+    ),
+    'unique keys' => array(
+      'name' => array('name'),
+    ),
+    'primary key' => array('type'),
+  );
+
   $schema['membership_entity'] = array(
     'description' => 'The base table for memberships.',
     'fields' => array(
@@ -69,44 +100,6 @@ function membership_entity_schema() {
       'member_id' => array('member_id'),
     ),
     'primary key' => array('mid'),
-  );
-
-  $schema['membership_type'] = array(
-    'description' => 'Stores information about all defined membership types (bundles).',
-    'fields' => array(
-      'type' => array(
-        'description' => 'The machine-readable name of this type.',
-        'type' => 'varchar',
-        'length' => 32,
-        'not null' => TRUE,
-      ),
-      'name' => array(
-        'description' => 'The human-readable name of this type.',
-        'type' => 'varchar',
-        'length' => 255,
-        'not null' => TRUE,
-        'default' => '',
-        'translatable' => TRUE,
-      ),
-      'description' => array(
-        'description' => 'A brief description of this type.',
-        'type' => 'text',
-        'not null' => TRUE,
-        'size' => 'medium',
-        'translatable' => TRUE,
-      ),
-      'help' => array(
-        'description' => 'Help information shown to the user when creating a membership of this type.',
-        'type' => 'text',
-        'not null' => TRUE,
-        'size' => 'medium',
-        'translatable' => TRUE,
-      ),
-    ),
-    'unique keys' => array(
-      'name' => array('name'),
-    ),
-    'primary key' => array('type'),
   );
 
   return $schema;
