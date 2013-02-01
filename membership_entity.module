@@ -8,7 +8,7 @@
 /**
  * Membership is disabled.
  */
-define('MEMBERSHIP_ENTITY_DISABLED', 0);
+define('MEMBERSHIP_ENTITY_EXPIRED', 0);
 
 /**
  * Membership is active.
@@ -34,6 +34,19 @@ function membership_entity_permission() {
       'title' => t('Administer Memberships'),
       'description' => t('Perform administration tasks for memberships.'),
     ),
+    'manage memberships' => array(
+      'title' => t('Create/manage Memberships'),
+      'description' => t('Create and manage any membership.'),
+    ),
+    'delete memberships' => array(
+      'title' => t('Delete Memberships'),
+      'description' => t('Delete any membership.'),
+      'restrict access' => TRUE,
+    ),
+    'view memberships' => array(
+      'title' => t('View Memberships'),
+      'description' => t('View any membership page.'),
+    ),
   );
 }
 
@@ -41,8 +54,7 @@ function membership_entity_permission() {
  * Implements hook_menu().
  */
 function membership_entity_menu() {
-  $items = array();
-
+  // Membership entity type pages.
   $items['admin/structure/membership-types'] = array(
     'title' => 'Membership types',
     'description' => 'Manage membership types.',
@@ -82,15 +94,66 @@ function membership_entity_menu() {
     'access arguments' => array('administer memberships'),
     'file' => 'membership_entity.types.inc',
   );
-  $items['admin/config/membership-entity/settings'] = array(
-    'title' => 'Membership settings',
+  // Membership entity pages.
+  $items['admin/memberships'] = array(
+    'title' => 'Memberships',
     'page callback' => 'drupal_get_form',
-    'page arguments' => array('membership_entity_admin_settings_form'),
-    'access arguments' => array('administer memberships'),
-    'type' => MENU_NORMAL_ITEM,
-    'file' => 'membership_entity.admin.inc',
+    'page arguments' => array('membership_entity_admin_memberships'),
+    'access arguments' => array('manage memberships'),
+    'file' => 'membership_entity.pages.inc',
   );
-
+  $items['admin/memberships/add'] = array(
+    'title' => 'Add a membership',
+    'type' => MENU_LOCAL_ACTION,
+    'page callback' => 'membership_entity_add_page',
+    'access arguments' => array('manage memberships'),
+    'file' => 'membership_entity.pages.inc',
+  );
+  foreach (membership_entity_get_types(TRUE) as $type) {
+    $type_url_str = str_replace('_', '-', $type->type);
+    $items['admin/memberships/add/' . $type_url_str] = array(
+      'title' => $type->name,
+      'title callback' => 'check_plain',
+      'page callback' => 'membership_entity_add',
+      'page arguments' => array($type->type),
+      'access arguments' => array('manage memberships'),
+      'description' => $type->description,
+      'file' => 'membership_entity.pages.inc',
+    );
+  }
+  $items['membership/%membership_entity'] = array(
+    'title callback' => 'membership_entity_page_title',
+    'title arguments' => array(1),
+    'page callback' => 'membership_entity_view',
+    'page arguments' => array(1),
+    'access arguments' => array('view memberships'),
+    'file' => 'membership_entity.pages.inc',
+  );
+  $items['membership/%membership_entity/view'] = array(
+    'title' => 'View',
+    'type' => MENU_DEFAULT_LOCAL_TASK,
+    'weight' => -10,
+  );
+  $items['membership/%membership_entity/edit'] = array(
+    'title' => 'Edit',
+    'page callback' => 'membership_entity_edit',
+    'page arguments' => array(1),
+    'access arguments' => array('manage memberships'),
+    'weight' => 0,
+    'type' => MENU_LOCAL_TASK,
+    'context' => MENU_CONTEXT_PAGE | MENU_CONTEXT_INLINE,
+    'file' => 'membership_entity.pages.inc',
+  );
+  $items['membership/%membership_entity/delete'] = array(
+    'title' => 'Delete',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('membership_entity_delete_confirm', 1),
+    'access arguments' => array('administer memberships'),
+    'weight' => 1,
+    'type' => MENU_LOCAL_TASK,
+    'context' => MENU_CONTEXT_INLINE,
+    'file' => 'membership_entity.pages.inc',
+  );
   return $items;
 }
 
@@ -99,7 +162,6 @@ function membership_entity_menu() {
  */
 function membership_entity_admin_paths() {
   return array(
-    'admin/config/membership-entity/*' => TRUE,
     // @TODO.
   );
 }
@@ -117,7 +179,7 @@ function membership_entity_theme() {
  * Menu argument loader: loads a membership type by machine name.
  *
  * @param $name
- *   The machine name name of a node type to load, '_' is replaced with '-'.
+ *   The machine name name of a membership type to load, '_' is replaced with '-'.
  *
  * @return
  *   A membership type object or FALSE if $name does not exist.
@@ -179,6 +241,17 @@ function membership_entity_get_type_names() {
 }
 
 /**
+ * Returns the human readable name of a membership object type.
+ *
+ * @param $membership
+ *  The membership object to get the type name.
+ */
+function membership_entity_type_get_name($membership) {
+  $names = membership_entity_get_type_names();
+  return isset($names[$membership->type]) ? $names[$membership->type] : '';
+}
+
+/**
  * Rebuilds membership type information.
  */
 function membership_entity_types_rebuild() {
@@ -235,14 +308,15 @@ function membership_entity_type_save($type) {
  * Deletes a membership type from the database.
  *
  * @param $type
- *   The type object type to be deleted.
+ *   The membership type object to be deleted.
  */
 function membership_entity_type_delete($type) {
   db_delete('membership_entity_type')
     ->condition('type', $type->type)
     ->execute();
 
-  // @TODO: field_attach_delete_bundle('membership_entity', $type);
+  // Delete the field instances,
+  field_attach_delete_bundle('membership_entity', $type->type);
 
   // Allow other modules to act on a membership type deletion.
   module_invoke_all('membership_entity_type_delete', $type);
@@ -253,7 +327,7 @@ function membership_entity_type_delete($type) {
 }
 
 /**
- * Implements hook_membership_enitty_type_delete.
+ * Implements hook_membership_entity_type_delete.
  */
 function membership_entity_membership_entity_type_delete($type) {
   // Remove membership type variables. We can't use variable_del() because
@@ -263,65 +337,6 @@ function membership_entity_membership_entity_type_delete($type) {
     ->execute();
   cache_clear_all('variables', 'cache_bootstrap');
 }
-
-/**
- * Implements hook_entity_info().
- */
-/*
-function membership_entity_entity_info() {
-  $info = array(
-    'membership' => array(
-      'label' => t('Membership'),
-      //'controller class' => 'MembershipController',
-      'base table' => 'membership_entity',
-      'uri callback' => 'membership_entity_uri',
-      'fieldable' => TRUE,
-      'entity keys' => array(
-        'id' => 'mid',
-        'bundle' => 'type',
-        'label' => 'member_id',
-      ),
-      'bundle keys' => array(
-        'bundle' => 'type',
-      ),
-      'bundles' => array(),
-      'view modes' => array(
-        'full' => array(
-          'label' => t('Full membership'),
-          'custom settings' => FALSE,
-        ),
-      ),
-    ),
-  );
-
-  // Bundles must provide a human readable name so we can create help and error
-  // messages, and the path to attach Field admin pages to.
-  foreach (node_type_get_names() as $type => $name) {
-    $return['node']['bundles'][$type] = array(
-      'label' => $name,
-      'admin' => array(
-        'path' => 'admin/structure/types/manage/%node_type',
-        'real path' => 'admin/structure/types/manage/' . str_replace('_', '-', $type),
-        'bundle argument' => 4,
-        'access arguments' => array('administer content types'),
-      ),
-    );
-  }
-
-  return $info;
-}
-*/
-
-/**
- * Entity URI callback.
- */
-/*
-function membership_entity_uri($membership) {
-  return array(
-    'path' => 'membership/' . $membership->mid,
-  );
-}
-*/
 
 /**
  * Implements hook_cron().
@@ -335,4 +350,261 @@ function membership_entity_cron() {
  */
 function membership_entity_type_page_title($type) {
   return $type->name;
+}
+
+/**
+ * Implements hook_forms().
+ */
+function membership_entity_forms() {
+  $forms = array();
+  if ($types = membership_entity_get_types()) {
+    foreach ($types as $type) {
+      $forms[$type->type . '_membership_entity_form']['callback'] = 'membership_entity_form';
+    }
+  }
+  return $forms;
+}
+
+/**
+ * Implements hook_field_extra_fields().
+ */
+function membership_entity_field_extra_fields() {
+  $extra = array();
+
+  foreach (membership_entity_get_types() as $type) {
+    $extra['membership_entity'][$type->type] = array(
+      'form' => array(
+        'member_id' => array(
+          'label' => t('Member ID'),
+          'description' => t('A unique member id for this membership.'),
+          'weight' => 0,
+        ),
+      ),
+    );
+  }
+
+  return $extra;
+}
+
+/**
+ * Add default fields to a membership entity type.
+ *
+ * @param $type
+ *   A membership entity type object.
+ */
+function membership_entity_add_fields($type) {
+  $fields = array(
+    'membership_entity_members' => array(
+      'type' => 'entityreference',
+      // We will validate the membership type cardinality elsewhere.
+      'cardinality' => FIELD_CARDINALITY_UNLIMITED,
+      'settings' => array(
+        'target_type' => 'user',
+      ),
+    ),
+    'membership_entity_join' => array(
+      'type' => 'datetime',
+      'cardinality' => 1,
+      'settings' => array(
+        'granularity' => drupal_map_assoc(array('year', 'month', 'day')),
+      ),
+    ),
+    'membership_entity_expire' => array(
+      'type' => 'datetime',
+      'cardinality' => 1,
+      'settings' => array(
+        'granularity' => drupal_map_assoc(array('year', 'month', 'day')),
+      ),
+    ),
+  );
+
+  $instances = array(
+    'membership_entity_join' => array(
+      'label' => t('Join Date'),
+      'widget' => array(
+        'type' => 'date_text',
+        'weight' => 97,
+        'settings' => array(
+          'year_range' => '-29:+1',
+        ),
+      ),
+      'display' => array(
+        'full' => array(
+          'label' => 'above',
+          'type' => 'date_default',
+          'settings' => array(
+            'format_type' => 'short',
+           ),
+        ),
+      ),
+    ),
+    'membership_entity_expire' => array(
+      'label' => t('Expiration Date'),
+      'widget' => array(
+        'type' => 'date_text',
+        'weight' => 98,
+        'settings' => array(
+          'year_range' => '0:+30',
+        ),
+      ),
+      'display' => array(
+        'full' => array(
+          'label' => 'above',
+          'type' => 'date_default',
+          'settings' => array(
+            'format_type' => 'short',
+          ),
+        ),
+      ),
+    ),
+    'membership_entity_members' => array(
+      'label' => t('Members'),
+      'widget' => array(
+        'type' => 'entityreference_autocomplete',
+        'weight' => 99,
+      ),
+      'display' => array(
+        'full' => array(
+          'label' => 'above',
+          'type' => 'entityreference_entity_id',
+        ),
+      ),
+    ),
+  );
+
+  // Create the fields.
+  foreach ($fields as $field_name => $settings) {
+    $field = field_info_field($field_name);
+    if (empty($field)) {
+      $field = array_merge(array(
+        'field_name' => $field_name,
+        'entity_types' => array('membership_entity'),
+        'locked' => TRUE, // No editing allowed!
+      ), $settings);
+      $field = field_create_field($field);
+    }
+  }
+
+  // Create the instances.
+  foreach ($instances as $field_name => $settings) {
+    $instance = field_info_instance('membership_entity', $field_name, $type->type);
+    if (empty($instance)) {
+      $instance = array_merge(array(
+        'field_name' => $field_name,
+        'entity_type' => 'membership_entity',
+        'bundle' => $type->type,
+      ), $settings);
+      $instance = field_create_instance($instance);
+    }
+  }
+}
+
+/**
+ * Implements hook_membership_entity_operations().
+ */
+function membership_entity_membership_entity_operations() {
+  return array(
+    'delete' => array(
+      'label' => t('Delete selected memberships'),
+      'callback' => NULL,
+    ),
+  );
+}
+
+/**
+ * Implements hook_entity_info().
+ */
+function membership_entity_entity_info() {
+  $info['membership_entity'] = array(
+    'label' => t('Membership'),
+    'controller class' => 'MembershipEntityController',
+    'base table' => 'membership_entity',
+    'uri callback' => 'membership_entity_uri',
+    'fieldable' => TRUE,
+    'entity keys' => array(
+      'id' => 'mid' ,
+      'bundle' => 'type',
+    ),
+    'bundle keys' => array(
+      'bundle' => 'type',
+    ),
+    'static cache' => TRUE,
+    'bundles' => array(),
+    'view modes' => array(
+      'full' => array(
+        'label' => t('Full Membership'),
+        'custom settings' =>  FALSE,
+      ),
+    )
+  );
+
+  // Add user defined bundles.
+  foreach (membership_entity_get_types() as $bundle => $type) {
+    $info['membership_entity']['bundles'][$bundle] = array(
+      'label' => $type->name,
+      'admin' => array(
+        'path' => 'admin/structure/membership-types/manage/%membership_entity_type',
+        'real path' => 'admin/structure/membership-types/manage/' . str_replace('_', '-', $type->type),
+        'bundle argument' => 4,
+        'access arguments' => array('administer memberships'),
+      ),
+    );
+  }
+
+  return $info;
+}
+
+/**
+ * Load a membership object.
+ *
+ * @param $mid
+ *   Integer specifying the membership entity id.
+ * @param $reset
+ *   A boolean indicating that the internal cache should be reset.
+ * @return
+ *   A fully-loaded membership object or FALSE if it cannot be loaded.
+ */
+function membership_entity_load($mid = NULL, $reset = FALSE) {
+  $mids = isset($mid) ? array($mid) : array();
+  $membership = membership_entity_load_multiple($mids, array(), $reset);
+  return $membership ? reset($membership) : FALSE;
+}
+
+/**
+ * Loads multiple membership objects.
+ */
+function membership_entity_load_multiple($mids = FALSE, $conditions = array(), $reset = FALSE) {
+  return entity_load('membership_entity', $mids, $conditions, $reset);
+}
+
+/**
+ * Entity uri callback.
+ */
+function membership_entity_uri($membership) {
+  return array(
+    'path' => 'membership/' . $membership->mid,
+  );
+}
+
+/**
+ * Save a membership entity.
+ */
+function membership_entity_save(&$membership) {
+  return entity_get_controller('membership_entity')
+    ->save($membership);
+}
+
+/**
+ * Delete a membership entity.
+ */
+function membership_entity_delete($mid) {
+  membership_entity_delete_multiple(array($mid));
+}
+
+/**
+ * Delete multiple membership entities.
+ */
+function membership_entity_delete_multiple($mids) {
+  entity_get_controller('membership_entity')
+    ->delete_multiple($mids);
 }

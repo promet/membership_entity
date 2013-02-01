@@ -10,14 +10,24 @@
  */
 function membership_entity_types() {
   $types = membership_entity_get_types();
+  $field_ui = module_exists('field_ui');
 
-  $header = array(t('Name'), array('data' => t('Operations'), 'colspan' => '2'));
+  $header = array(t('Name'), array('data' => t('Operations'), 'colspan' => $field_ui ? '4' : '2'));
   $rows = array();
   foreach ($types as $type) {
     $type_url_str = str_replace('_', '-', $type->type);
     $row = array(check_plain($type->name) . ' <small>(Machine name: ' . $type->type . ')</small><div class="description">' . $type->description . '</div>');
     // Set the edit column.
     $row[] = l(t('edit'), 'admin/structure/membership-types/manage/' . $type_url_str);
+
+    if ($field_ui) {
+      // Manage fields.
+      $row[] = array('data' => l(t('manage fields'), 'admin/structure/membership-types/manage/' . $type_url_str . '/fields'));
+
+      // Display fields.
+      $row[] = array('data' => l(t('manage display'), 'admin/structure/membership-types/manage/' . $type_url_str . '/display'));
+    }
+
     // Set the delete column.
     $row[] = l(t('delete'), 'admin/structure/membership-types/manage/' . $type_url_str . '/delete');
     $rows[] = $row;
@@ -89,15 +99,6 @@ function membership_entity_type_form($form, &$form_state, $type = NULL) {
     '#title' => t('Membership settings'),
     '#collapsible' => TRUE,
     '#group' => 'additional_settings',
-  );
-
-  $form['membership_settings']['expires'] = array(
-    '#title' => t('Membership expiration date'),
-    '#type' => 'textfield',
-    '#default_value' => variable_get('membership_entity_expires_' . $type->type, ''),
-    '#size' => 30,
-    '#required' => TRUE,
-    '#description' => t('Enter the date this type of membership will expire. You can enter a relative dates such as \'+1 year\''),
   );
 
   $form['membership_settings']['active_role'] = array(
@@ -235,6 +236,7 @@ function membership_entity_type_form_submit($form, &$form_state) {
   switch ($status) {
     case SAVED_NEW:
       drupal_set_message(t('The membership type %name has been created.', $t_args));
+      membership_entity_add_fields($type);
       break;
 
     case SAVED_UPDATED:

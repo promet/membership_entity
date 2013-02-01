@@ -75,12 +75,6 @@ function membership_entity_schema() {
         'not null' => TRUE,
         'default' => 0,
       ),
-      'expires' => array(
-        'description' => 'The Unix timestamp when the membership expires.',
-        'type' => 'int',
-        'not null' => TRUE,
-        'default' => 0,
-      ),
       'changed' => array(
         'description' => 'The Unix timestamp when the membership was most recently saved.',
         'type' => 'int',
@@ -91,7 +85,6 @@ function membership_entity_schema() {
     'indexes' => array(
       'membership_changed' => array('changed'),
       'membership_created' => array('created'),
-      'membership_expires' => array('expires'),
       'membership_status_type' => array('status', 'type', 'mid'),
       'membership_member_id_type' => array('member_id', array('type', 4)),
       'membership_type' => array(array('type', 4)),
