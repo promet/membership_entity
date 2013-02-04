@@ -6,15 +6,15 @@
  */
 
 /**
- * Menue callback: Display a membership.
+ * Menu callback: Display a membership.
+ *
+ * Invokes a number of hooks to prepare the membershp for display.
+ *
+ * @see hook_entity_prepare_view()
+ * @see hook_entity_view()
+ * @see hook_entity_view_alter()
  */
 function membership_entity_view($membership, $view_mode = 'full') {
- // As we load the entity for display, we're responsible for invoking a number
- // of hooks in their proper order.
- // @see hook_entity_prepare_view()
- // @see hook_entity_view()
- // @see hook_entity_view_alter()
-
   $entity_type = 'membership_entity';
   $membership->content = array(
     '#view_mode' => $view_mode,
@@ -49,7 +49,7 @@ function membership_entity_view($membership, $view_mode = 'full') {
  */
 function membership_entity_edit($membership) {
   drupal_set_title(t('Edit membership: @id', array('@id' => $membership->member_id)));
-  return drupal_get_form($membership->type . '_membership_entity_form', $membership);
+  return drupal_get_form($membership->type . '_membership_entity_edit_form', $membership);
 }
 
 /**
@@ -60,7 +60,8 @@ function membership_entity_add_page() {
 
   $build = array();
   if (!empty($types)) {
-    // If there is only one membership type, go thier directly.
+    // Only one membership type. Go directly there (do not pass go,
+    // do not collect $200)
     if (count($types) == 1) {
       $type = current($types);
       drupal_goto('admin/memberships/add/' . str_replace('_', '-', $type->type));
@@ -96,7 +97,7 @@ function membership_entity_add($type) {
   // Create a generic membership entity.
   $membership = entity_get_controller('membership_entity')
     ->create($type);
-  return drupal_get_form($type . '_membership_entity_form', $membership);
+  return drupal_get_form($type . '_membership_entity_edit_form', $membership);
 }
 
 /**
@@ -105,12 +106,12 @@ function membership_entity_add($type) {
  * @see membership_entity_form_validate()
  * @see membership_entity_form_submit()
  */
-function membership_entity_form($form, &$form_state, $membership) {
+function membership_entity_edit_form($form, &$form_state, $membership) {
   $is_new = empty($membership->mid);
 
-  $form['#attributes']['class'][] = 'membership-entity-form';
+  $form['#attributes']['class'][] = 'membership-entity-edit-form';
   if (!empty($membership->type)) {
-    $form['#attributes']['class'][] = 'membership-entity-' . $membership->type . '-form';
+    $form['#attributes']['class'][] = 'membership-entity-' . $membership->type . '-edit-form';
   }
 
   // Add the membership and entity info for future reference.
@@ -156,7 +157,7 @@ function membership_entity_form($form, &$form_state, $membership) {
     'submit' => array(
       '#type' => 'submit',
       '#value' => t('Save'),
-      '#submit' => array('membership_entity_form_submit'),
+      '#submit' => array('membership_entity_edit_form_submit'),
     ),
   );
 
@@ -164,14 +165,14 @@ function membership_entity_form($form, &$form_state, $membership) {
     $form['actions']['delete'] = array(
       '#type' => 'submit',
       '#value' => t('Delete'),
-      '#submit' => array('membership_entity_form_delete'),
+      '#submit' => array('membership_entity_edit_form_delete'),
     );
   }
 
-  $form['#validate'][] = 'membership_entity_form_validate';
+  $form['#validate'][] = 'membership_entity_edit_form_validate';
   $form['#submit'] = array();
-  if (function_exists($membership->type . '_membership_entity_form_submit')) {
-    $form['#submit'][] = $membership->type . '_membership_entity_form_submit';
+  if (function_exists($membership->type . '_membership_entity_edit_form_submit')) {
+    $form['#submit'][] = $membership->type . '_membership_entity_edit_form_submit';
   }
 
   return $form;
@@ -180,7 +181,7 @@ function membership_entity_form($form, &$form_state, $membership) {
 /**
  * Submit handler to delete a membership.
  */
-function membership_entity_form_delete($form, &$form_state) {
+function membership_entity_edit_form_delete($form, &$form_state) {
   $destination = array();
   if (isset($_GET['destination'])) {
     $destination = drupal_get_destination();
@@ -193,20 +194,19 @@ function membership_entity_form_delete($form, &$form_state) {
   );
 }
 
-
 /**
  * Validate the membership entity form.
  *
  * @see membership_entity_form()
  * @see membership_entity_form_submit()
  */
-function membership_entity_form_validate($form, &$form_state) {
+function membership_entity_edit_form_validate($form, &$form_state) {
   $values = $form_state['values'];
   $membership = $form_state['membership_entity'];
 
   // Member ID must be unique.
   $query = db_select('membership_entity', 'me')
-    ->fields('me');
+    ->fields('me', array('mid'));
   if (!empty($membership->mid)) {
     $query->condition('mid', $membership->mid, '<>');
   }
@@ -241,7 +241,7 @@ function membership_entity_date_validate_future(&$element) {
  * @see membership_entity_form()
  * @see membership_entity_form_validate()
  */
-function membership_entity_form_submit($form, &$form_state) {
+function membership_entity_edit_form_submit($form, &$form_state) {
   $membership = $form_state['membership_entity'];
   entity_form_submit_build_entity('membership_entity', $membership, $form, $form_state);
 

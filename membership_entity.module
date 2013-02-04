@@ -20,8 +20,7 @@ define('MEMBERSHIP_ENTITY_ACTIVE', 1);
  */
 function membership_entity_help($path, $arg) {
   switch ($path) {
-    case 'admin/config/meberships/settings':
-      return '<p>' . t('This page provides general settings for memberships on your website.') . '</p>';
+    // @TODO add help documentation
   }
 }
 
@@ -162,7 +161,7 @@ function membership_entity_menu() {
  */
 function membership_entity_admin_paths() {
   return array(
-    // @TODO.
+    // @TODO add admin paths.
   );
 }
 
@@ -291,7 +290,8 @@ function membership_entity_type_save($type) {
       ->fields($fields)
       ->execute();
 
-    // @TODO: field_attach_create_bundle('membership_entity', $type->type);
+    // Notify field api of the new bundle.
+    field_attach_create_bundle('membership_entity', $type->type);
 
     // Allow other modules to act on a new membership type insert.
     module_invoke_all('membership_entity_type_insert', $type);
@@ -359,7 +359,7 @@ function membership_entity_forms() {
   $forms = array();
   if ($types = membership_entity_get_types()) {
     foreach ($types as $type) {
-      $forms[$type->type . '_membership_entity_form']['callback'] = 'membership_entity_form';
+      $forms[$type->type . '_membership_entity_edit_form']['callback'] = 'membership_entity_edit_form';
     }
   }
   return $forms;

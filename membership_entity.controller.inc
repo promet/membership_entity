@@ -82,7 +82,7 @@ class MembershipEntityController
       return;
     }
 
-    $memberships = node_load_multiple($mids, array());
+    $memberships = membership_entity_load_multiple($mids);
     $transaction = db_transaction();
     try {
       foreach ($memberships as $mid => $membership) {
