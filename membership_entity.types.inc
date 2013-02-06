@@ -101,6 +101,13 @@ function membership_entity_type_form($form, &$form_state, $type = NULL) {
     '#group' => 'additional_settings',
   );
 
+  $form['membership_settings']['lifetime'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Lifetime membership'),
+    '#default_value' => variable_get('membership_entity_lifetime_' . $type->type, ''),
+    '#description' => t('Lifetime memberships will never expire.'),
+  );
+
   $form['membership_settings']['active_role'] = array(
     '#title' => t('Member active role'),
     '#type' => 'select',
@@ -115,8 +122,15 @@ function membership_entity_type_form($form, &$form_state, $type = NULL) {
     '#type' => 'select',
     '#options' => $roles,
     '#default_value' => variable_get('membership_entity_expired_role_' . $type->type, ''),
-    '#required' => TRUE,
     '#description' => t('Select the role that will be assigned to users when the membership expires.'),
+    '#states' => array(
+      'visible' => array(
+        ':input[name="lifetime"]' => array('checked' => FALSE),
+      ),
+      'required' => array(
+        ':input[name="lifetime"]' => array('checked' => FALSE),
+      ),
+    ),
   );
 
   $form['user_settings'] = array(

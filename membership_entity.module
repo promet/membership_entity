@@ -29,13 +29,13 @@ function membership_entity_help($path, $arg) {
  */
 function membership_entity_permission() {
   return array(
-    'adminster memberships' => array(
-      'title' => t('Administer Memberships'),
-      'description' => t('Perform administration tasks for memberships.'),
+    'manage membership types' => array(
+      'title' => t('Manage Memberships Types'),
+      'description' => t('Create and edit any membership types.'),
     ),
     'manage memberships' => array(
-      'title' => t('Create/manage Memberships'),
-      'description' => t('Create and manage any membership.'),
+      'title' => t('Manage Any Membership'),
+      'description' => t('Create and edit any membership.'),
     ),
     'delete memberships' => array(
       'title' => t('Delete Memberships'),
@@ -58,7 +58,7 @@ function membership_entity_menu() {
     'title' => 'Membership types',
     'description' => 'Manage membership types.',
     'page callback' => 'membership_entity_types',
-    'access arguments' => array('administer memberships'),
+    'access arguments' => array('manage membership types'),
     'file' => 'membership_entity.types.inc',
   );
   $items['admin/structure/membership-types/list'] = array(
@@ -70,7 +70,7 @@ function membership_entity_menu() {
     'title' => 'Add a membership type',
     'page callback' => 'drupal_get_form',
     'page arguments' => array('membership_entity_type_form'),
-    'access arguments' => array('administer memberships'),
+    'access arguments' => array('manage membership types'),
     'type' => MENU_LOCAL_ACTION,
     'file' => 'membership_entity.types.inc',
   );
@@ -80,18 +80,21 @@ function membership_entity_menu() {
     'title arguments' => array(4),
     'page callback' => 'drupal_get_form',
     'page arguments' => array('membership_entity_type_form', 4),
-    'access arguments' => array('administer memberships'),
+    'access arguments' => array('manage membership types'),
     'file' => 'membership_entity.types.inc',
   );
   $items['admin/structure/membership-types/manage/%membership_entity_type/edit'] = array(
     'title' => 'Edit',
     'type' => MENU_DEFAULT_LOCAL_TASK,
+    'weight' => 0,
   );
   $items['admin/structure/membership-types/manage/%membership_entity_type/delete'] = array(
     'title' => 'Delete',
     'page arguments' => array('membership_entity_type_confirm_delete', 4),
-    'access arguments' => array('administer memberships'),
+    'access arguments' => array('manage membership types'),
     'file' => 'membership_entity.types.inc',
+    'type' => MENU_LOCAL_TASK,
+    'weight' => 99,
   );
   // Membership entity pages.
   $items['admin/memberships'] = array(
@@ -147,7 +150,7 @@ function membership_entity_menu() {
     'title' => 'Delete',
     'page callback' => 'drupal_get_form',
     'page arguments' => array('membership_entity_delete_confirm', 1),
-    'access arguments' => array('administer memberships'),
+    'access arguments' => array('delete memberships'),
     'weight' => 1,
     'type' => MENU_LOCAL_TASK,
     'context' => MENU_CONTEXT_INLINE,
@@ -409,16 +412,22 @@ function membership_entity_add_fields($type) {
         'granularity' => drupal_map_assoc(array('year', 'month', 'day')),
       ),
     ),
-    'membership_entity_expire' => array(
-      'type' => 'datetime',
-      'cardinality' => 1,
-      'settings' => array(
-        'granularity' => drupal_map_assoc(array('year', 'month', 'day')),
-      ),
-    ),
   );
 
   $instances = array(
+    'membership_entity_members' => array(
+      'label' => t('Members'),
+      'widget' => array(
+        'type' => 'entityreference_autocomplete',
+        'weight' => 99,
+      ),
+      'display' => array(
+        'full' => array(
+          'label' => 'above',
+          'type' => 'entityreference_entity_id',
+        ),
+      ),
+    ),
     'membership_entity_join' => array(
       'label' => t('Join Date'),
       'widget' => array(
@@ -438,7 +447,19 @@ function membership_entity_add_fields($type) {
         ),
       ),
     ),
-    'membership_entity_expire' => array(
+  );
+
+  // Only add an expiration date if this is not a lifetime membership.
+  if (!variable_get('membership_entity_lifetime_' . $type->type, FALSE)) {
+    $fields['membership_entity_expire'] = array(
+      'type' => 'datetime',
+      'cardinality' => 1,
+      'settings' => array(
+        'granularity' => drupal_map_assoc(array('year', 'month', 'day')),
+      ),
+    );
+
+    $instances['membership_entity_expire'] = array(
       'label' => t('Expiration Date'),
       'widget' => array(
         'type' => 'date_text',
@@ -456,21 +477,8 @@ function membership_entity_add_fields($type) {
           ),
         ),
       ),
-    ),
-    'membership_entity_members' => array(
-      'label' => t('Members'),
-      'widget' => array(
-        'type' => 'entityreference_autocomplete',
-        'weight' => 99,
-      ),
-      'display' => array(
-        'full' => array(
-          'label' => 'above',
-          'type' => 'entityreference_entity_id',
-        ),
-      ),
-    ),
-  );
+    );
+  }
 
   // Create the fields.
   foreach ($fields as $field_name => $settings) {
@@ -546,7 +554,7 @@ function membership_entity_entity_info() {
         'path' => 'admin/structure/membership-types/manage/%membership_entity_type',
         'real path' => 'admin/structure/membership-types/manage/' . str_replace('_', '-', $type->type),
         'bundle argument' => 4,
-        'access arguments' => array('administer memberships'),
+        'access arguments' => array('manage membership types'),
       ),
     );
   }

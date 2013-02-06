@@ -267,7 +267,12 @@ function membership_entity_edit_form_submit($form, &$form_state) {
  */
 function membership_entity_admin_memberships($form, &$form_state) {
   if (isset($form_state['values']['operation']) && $form_state['values']['operation'] == 'delete') {
-    return membership_entity_multiple_delete_confirm($form, $form_state, array_filter($form_state['values']['memberships']));
+    if (user_access('delete memberships')) {
+      return membership_entity_multiple_delete_confirm($form, $form_state, array_filter($form_state['values']['memberships']));
+    }
+    else {
+      drupal_set_message(t('You do not have permission to delete memberships.'), 'error');
+    }
   }
   $form['filter'] = membership_entity_filter_form();
   $form['#submit'][] = 'membership_entity_filter_form_submit';
@@ -318,7 +323,7 @@ function membership_entity_admin_list_submit($form, &$form_state) {
  * Build the membership administration overview.
  */
 function membership_entity_admin_list() {
-  $admin = user_access('administer memberships');
+  $admin_delete = user_access('delete memberships');
 
   // Build the 'Update options' form.
   $form['options'] = array(
@@ -386,7 +391,7 @@ function membership_entity_admin_list() {
       'query' => $destination,
     );
 
-    if ($admin) {
+    if ($admin_delete) {
       $operations['delete'] = array(
         'title' => t('delete'),
         'href' => 'membership/' . $membership->mid . '/delete',
