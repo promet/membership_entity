@@ -29,9 +29,12 @@ class MembershipEntityController
    *  The membership type for the new membership entity.
    */
   public function create($type) {
+    $user = $GLOBALS['user'];
+
     return (object) array(
       'entity_type' => 'membership_entity',
       'mid' => 0,
+      'uid' => $user->uid,
       'type' => $type,
       'created' => REQUEST_TIME,
     );

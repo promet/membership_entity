@@ -6,42 +6,46 @@
  */
 
 /**
- * Menu callback: Display a membership.
+ * Menu callback: Autocomplete suggestions for existing users by role.
  *
- * Invokes a number of hooks to prepare the membershp for display.
- *
- * @see hook_entity_prepare_view()
- * @see hook_entity_view()
- * @see hook_entity_view_alter()
+ * @param $type
+ *  The mebmership type.
  */
-function membership_entity_view($membership, $view_mode = 'full') {
-  $entity_type = 'membership_entity';
-  $membership->content = array(
-    '#view_mode' => $view_mode,
-  );
+function membership_entity_user_autocomplete($type, $string = '') {
+  $matches = &drupal_static(__FUNCTION__, array());
 
-  if ($view_mode == 'full') {
-    drupal_set_title(t('Membership: @id', array('@id' => $membership->member_id)));
+  // Create unique id for static cache.
+  if (!isset($matches[$type])) {
+    $roles = array_filter(variable_get('membership_entity_roles_' . $type, array()));
+
+    // Build the query.
+    $query = db_select('users', 'u')
+      // Select the whole record, so that format_username() has enough
+      // information.
+      ->fields('u', array('uid', 'name'))
+      ->addMetaData('id', 'membership_entity_user_autocomplete')
+      ->condition('u.name', '%' . check_plain($string) . '%', 'LIKE');
+
+    // No role filter if authenticated user is selected.
+    if (!empty($roles) && !in_array(DRUPAL_AUTHENTICATED_RID, $roles)) {
+      $query->join('users_roles', 'r', 'u.uid = r.uid');
+      $query->condition('r.rid', $roles, 'IN');
+    }
+
+    // Explicitly exclude the anonymous user.
+    $result = $query->condition('u.uid', 0, '<>')
+      ->orderBy('u.name')
+      ->execute()
+      ->fetchAll();
+
+    foreach ($result as $account) {
+      $name = check_plain(format_username($account));
+      // Remove hyperlinks.
+      $matches[$type][$account->name . " [uid:$account->uid]"] = preg_replace('/<a href="([^<]*)">([^<]*)<\/a>/', '$2', $name);
+    }
   }
 
-  // Membership fields.
-  $membership->content['member_id'] = array(
-    '#type' => 'item',
-    '#title' => t('Member ID'),
-    '#markup' => check_plain($membership->member_id),
-  );
-
-  // Build custom field content.
-  field_attach_prepare_view($entity_type, array($membership->mid => $membership), $view_mode);
-  entity_prepare_view($entity_type, array($membership->mid => $membership));
-  $membership->content += field_attach_view($entity_type, $membership, $view_mode);
-
-  // Invoke hook_entity_view() and hook_entity_view_alter().
-  $langcode = $GLOBALS['language']->language ;
-  module_invoke_all('entity_view', $membership, $entity_type, $view_mode, $langcode);
-  drupal_alter(array('entity_membership_entity_view', 'entity_view'), $membership->content, $entity_type);
-
-  return $membership->content;
+  drupal_json_output($matches[$type]);
 }
 
 /**
@@ -141,19 +145,51 @@ function membership_entity_edit_form($form, &$form_state, $membership) {
     '#required' => TRUE,
   );
 
+  $form['uid'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Primary Member'),
+    '#default_value' => !empty($membership->uid) ? $membership->uid : NULL,
+    '#required' => TRUE,
+    '#autocomplete_path' => 'membership-entity/' . $membership->mid . '/user/autocomplete/' . $membership->type,
+    '#value_callback' => 'membership_entity_user_autocomplete_value',
+  );
+
   // Add field UI items.
   field_attach_form('membership_entity', $membership, $form, $form_state);
 
   // If this is a new membership, the expiration date must be in the future.
-  if ($is_new) {
+  if ($is_new && isset($form['membership_entity_expire'])) {
     foreach (element_children($form['membership_entity_expire'][LANGUAGE_NONE]) as $key) {
       $form['membership_entity_expire'][LANGUAGE_NONE][$key]['#element_validate'][] = 'membership_entity_date_validate_future';
     }
   }
 
+  // Admin fields access.
+  $fields = array(
+    'member_id',
+    'uid',
+    'membership_entity_join',
+    'membership_entity_expire',
+  );
+  foreach ($fields as $field) {
+    if (isset($form[$field])) {
+      if (!isset($form[$field]['#access'])) {
+        $form[$field]['#access'] = TRUE;
+      }
+      $form[$field]['#access'] = user_access('administer memberships') && $form[$field]['#access'];
+    }
+  }
+
+  // Additional members access.
+  if (!isset($form[$membership->type . '_members']['#access'])) {
+    $form[$membership->type . '_members']['#access'] = TRUE;
+  }
+  $form[$membership->type . '_members']['#access'] = membership_entity_access('manage', $membership) && $form[$membership->type . '_members']['#access'];
+
   // Add the buttons.
   $form['actions'] = array(
     '#type' => 'actions',
+    '#weight' => 9999,
     'submit' => array(
       '#type' => 'submit',
       '#value' => t('Save'),
@@ -179,19 +215,23 @@ function membership_entity_edit_form($form, &$form_state, $membership) {
 }
 
 /**
- * Submit handler to delete a membership.
+ * Value callback for a membership_entity user autocomplete element.
  */
-function membership_entity_edit_form_delete($form, &$form_state) {
-  $destination = array();
-  if (isset($_GET['destination'])) {
-    $destination = drupal_get_destination();
-    unset($_GET['destination']);
+function membership_entity_user_autocomplete_value($element, $input = FALSE, $form_state) {
+  if ($input === FALSE) {
+    // Expand the raw uid into 'username [uid:n]'.
+    $uid = $element['#default_value'];
+    if (!empty($uid)) {
+      $query = db_select('users', 'u');
+      $query->addField('u', 'name');
+      $result = $query->condition('u.uid', $uid)
+        ->range(0, 1)
+        ->execute();
+      $value = $result->fetchField();
+      $value .= " [uid:$uid]";
+      return $value;
+    }
   }
-  $membership = $form_state['membership_entity'];
-  $form_state['redirect'] = array(
-    'membership/' . $membership->mid . '/delete',
-    array('query' => $destination),
-  );
 }
 
 /**
@@ -201,7 +241,7 @@ function membership_entity_edit_form_delete($form, &$form_state) {
  * @see membership_entity_form_submit()
  */
 function membership_entity_edit_form_validate($form, &$form_state) {
-  $values = $form_state['values'];
+  $values = &$form_state['values'];
   $membership = $form_state['membership_entity'];
 
   // Member ID must be unique.
@@ -218,6 +258,30 @@ function membership_entity_edit_form_validate($form, &$form_state) {
     form_set_error('member_id', t('The member ID %member_id already exists.', array(
       '%member_id' => $values['member_id'],
     )));
+  }
+
+  // Extract the uid.
+  preg_match('/^(?:\s*|(.*) )?\[\s*uid\s*:\s*(\d+)\s*\]$/', $values['uid'], $matches);
+  array_shift($matches);
+  if (!empty($matches)) {
+    // Check that name matches the uid.
+    list($name, $uid) = $matches;
+    $result = db_select('users', 'u')
+      ->fields('u', array('uid'))
+      ->condition('u.uid', $uid)
+      ->condition('u.name', $name)
+      ->countQuery()
+      ->execute()
+      ->fetchField();
+    if (!empty($result)) {
+      $values['uid'] = $uid;
+    }
+    else {
+      form_set_error('uid', t('Primary member name mismatch. Please check your selection.'));
+    }
+  }
+  else {
+    form_set_error('uid', t('Invalid selection for Priamry member.'));
   }
 
   // Validate custom fields.
@@ -245,7 +309,7 @@ function membership_entity_edit_form_submit($form, &$form_state) {
   $membership = $form_state['membership_entity'];
   entity_form_submit_build_entity('membership_entity', $membership, $form, $form_state);
 
-  $is_new = empty($membershp->mid);
+  $is_new = empty($membership->mid);
   membership_entity_save($membership);
 
   $t_args = array(
@@ -260,6 +324,22 @@ function membership_entity_edit_form_submit($form, &$form_state) {
   }
 
   $form_state['redirect'] = 'membership/' . $membership->mid;
+}
+
+/**
+ * Submit handler to delete a membership.
+ */
+function membership_entity_edit_form_delete($form, &$form_state) {
+  $destination = array();
+  if (isset($_GET['destination'])) {
+    $destination = drupal_get_destination();
+    unset($_GET['destination']);
+  }
+  $membership = $form_state['membership_entity'];
+  $form_state['redirect'] = array(
+    'membership/' . $membership->mid . '/delete',
+    array('query' => $destination),
+  );
 }
 
 /**
@@ -323,6 +403,7 @@ function membership_entity_admin_list_submit($form, &$form_state) {
  * Build the membership administration overview.
  */
 function membership_entity_admin_list() {
+  $admin = user_access('manage memberships');
   $admin_delete = user_access('delete memberships');
 
   // Build the 'Update options' form.
@@ -540,6 +621,7 @@ function membership_entity_filters() {
       '[any]' => t('any'),
       MEMBERSHIP_ENTITY_ACTIVE => t('Active'),
       MEMBERSHIP_ENTITY_EXPIRED => t('Expired'),
+      MEMBERSHIP_ENTITY_CANCELLED => t('Cancelled'),
     ),
   );
 

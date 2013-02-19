@@ -56,6 +56,13 @@ function membership_entity_schema() {
         'not null' => TRUE,
         'default' => '',
       ),
+      'uid' => array(
+        'description' => 'The user id of the primary member.',
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+      ),
       'member_id' => array(
         'description' => 'A user enterable unique member id.',
         'type' => 'varchar',
@@ -83,16 +90,23 @@ function membership_entity_schema() {
       ),
     ),
     'indexes' => array(
-      'membership_changed' => array('changed'),
-      'membership_created' => array('created'),
-      'membership_status_type' => array('status', 'type', 'mid'),
-      'membership_member_id_type' => array('member_id', array('type', 4)),
-      'membership_type' => array(array('type', 4)),
+      'membership_entity_uid' => array('uid'),
+      'membership_entity_changed' => array('changed'),
+      'membership_entity_created' => array('created'),
+      'membership_entity_status_type' => array('status', 'type', 'mid'),
+      'membership_entity_member_id_type' => array('member_id', array('type', 4)),
+      'membership_entity_type' => array(array('type', 4)),
     ),
     'unique keys' => array(
       'member_id' => array('member_id'),
     ),
     'primary key' => array('mid'),
+    'foreign keys' => array(
+      'membership_entity_primary_member' => array(
+        'table' => 'users',
+        'columns' => array('uid' => 'uid'),
+      ),
+    ),
   );
 
   return $schema;
@@ -109,5 +123,34 @@ function membership_entity_install() {
  * Implements hook_uninstall().
  */
 function membership_entity_uninstall() {
-  // @TODO: Uninstall tasks.
+  // Remove variables.
+  db_delete('variable')
+    ->condition('name', 'membership_entity_%', 'LIKE')
+    ->execute();
+  cache_clear_all('variables', 'cache_bootstrap');
+}
+
+/**
+ * Add primary member uid field.
+ */
+function membership_entity_update_7000() {
+  $field = array(
+    'description' => 'The user id of the primary member.',
+    'type' => 'int',
+    'unsigned' => TRUE,
+    'not null' => TRUE,
+    'default' => 0,
+  );
+  $keys = array(
+    'indexes' => array(
+      'membership_entity_uid' => array('uid'),
+    ),
+    'foreign keys' => array(
+      'membership_entity_primary_member' => array(
+        'table' => 'users',
+        'columns' => array('uid' => 'uid'),
+      ),
+    ),
+  );
+  db_add_field('membership_entity', 'uid', $field, $keys);
 }

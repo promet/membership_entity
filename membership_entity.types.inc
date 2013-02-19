@@ -145,20 +145,33 @@ function membership_entity_type_form($form, &$form_state, $type = NULL) {
     '#type' => 'select',
     '#title' => t('Number of users per membership'),
     '#options' => array(
-      '0' => t('Unlimited'),
+      FIELD_CARDINALITY_UNLIMITED => t('Unlimited'),
       '1' => t('1'),
       '2' => t('2'),
       '3' => t('3'),
       '4' => t('4'),
       '5' => t('5'),
       '6' => t('6'),
-      '7' => t('9'),
+      '7' => t('7'),
       '8' => t('8'),
       '9' => t('9'),
       '10' => t('10'),
     ),
     '#default_value' => variable_get('membership_entity_cardinality_' . $type->type, ''),
-    '#description' => t('Select the number of users that may belong to a single membership of this type.'),
+    '#description' => t('Select the number of users that may belong to a single membership of this type. (Including the primary member.)'),
+  );
+
+   $form['user_settings']['show_on_profile'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Display membership information on the user profile.'),
+    '#default_value' => variable_get('membership_entity_show_on_profile_' . $type->type, 1),
+  );
+
+  $form['user_settings']['all_edit'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Allow all members to edit the memberships.'),
+    '#default_value' => variable_get('membership_entity_all_edit_' . $type->type, 0),
+    '#description' => t('If not checked, only the primary member will be able to edit membership fields.'),
   );
 
   $form['user_settings']['roles'] = array(
