@@ -101,13 +101,6 @@ function membership_entity_type_form($form, &$form_state, $type = NULL) {
     '#group' => 'additional_settings',
   );
 
-  $form['membership_settings']['lifetime'] = array(
-    '#type' => 'checkbox',
-    '#title' => t('Lifetime membership'),
-    '#default_value' => variable_get('membership_entity_lifetime_' . $type->type, ''),
-    '#description' => t('Lifetime memberships will never expire.'),
-  );
-
   $form['membership_settings']['active_role'] = array(
     '#title' => t('Member active role'),
     '#type' => 'select',
@@ -123,13 +116,106 @@ function membership_entity_type_form($form, &$form_state, $type = NULL) {
     '#options' => $roles,
     '#default_value' => variable_get('membership_entity_expired_role_' . $type->type, ''),
     '#description' => t('Select the role that will be assigned to users when the membership expires.'),
+  );
+
+  $wrapper_id = 'available-term-lengths-wrapper';
+  $form['membership_settings']['term_lengths'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('Membership Term Lengths'),
+    '#tree' => TRUE,
+    '#prefix' => '<div id="'. $wrapper_id . '">',
+    '#suffix' => '</div>',
+    '#description' => t('Select the term lengths that will be available for this membership type.'),
+    '#states' => array(
+
+    ),
+  );
+
+  $form['membership_settings']['term_lengths']['available_term_lengths'] = array(
+    '#theme' => 'membership_entity_type_available_term_lengths',
+    '#id' => 'membership-entity-term-lengths',
+  );
+
+  if (!isset($form_state['available_term_lengths'])) {
+    $form_state['available_term_lengths'] = variable_get('membership_entity_term_lengths_' . $type->type, array());
+  }
+  foreach ($form_state['available_term_lengths'] as $weight => $term_length) {
+    $form['membership_settings']['term_lengths']['available_term_lengths'][$weight] = array(
+      'term_length' => array(
+        '#type' => 'value',
+        '#value' => $term_length,
+      ),
+      'example' => array(
+        '#markup' => ($term_length == 'lifetime') ? t('N/A') : format_date(strtotime($term_length), 'custom', 'Y-m-d H:i:s O'),
+      ),
+      'weight' => array(
+        '#type' => 'weight',
+        '#title' => t('Weight for term length @term_length', array('@term_lenght' => $term_length)),
+        '#title_display' => 'invisible',
+        '#default_value' => $weight,
+      ),
+      'remove' => array(
+        '#type' => 'submit',
+        '#value' => t('Remove'),
+        '#name' => 'remove_' . $weight,
+        '#membership_entity_term_length_weight' => $weight,
+        '#submit' => array('membership_entity_types_remove_term_length'),
+        '#limit_validation_errors' => array(),
+        '#ajax' => array(
+          'callback' => 'membership_entity_types_term_length_callback',
+          'wrapper' => $wrapper_id,
+          'effect' => 'fade',
+        ),
+      ),
+    );
+  }
+
+  $form['membership_settings']['term_lengths']['term_length_options'] = array(
+    '#type' => 'select',
+    '#title' => t('Term length'),
+    '#required' => TRUE,
+    '#options' => array(
+      '1 day' => t('1 day'),
+      '1 week' => t('1 week'),
+      '1 month' => t('1 month'),
+      '3 months' => t('3 months'),
+      '6 months' => t('6 months'),
+      '1 year' => t('1 year'),
+      '2 years' => t('2 years'),
+      '3 years' => t('3 years'),
+      '4 years' => t('4 years'),
+      '5 years' => t('5 years'),
+      '10 years' => t('10 years'),
+      'lifetime' => t('Lifetime'),
+      'other' => t('Other'),
+    ),
+  );
+
+  $form['membership_settings']['term_lengths']['custom_term_length'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Other term length'),
+    '#size' => 32,
+    '#description' => t('Enter a term length including number and unit (eg. 15 years).'),
     '#states' => array(
       'visible' => array(
-        ':input[name="lifetime"]' => array('checked' => FALSE),
+        ':input[name="term_lengths[term_length_options]"]' => array('value' => 'other'),
       ),
       'required' => array(
-        ':input[name="lifetime"]' => array('checked' => FALSE),
+        ':input[name="term_lengths[term_length_options]"]' => array('value' => 'other'),
       ),
+    ),
+  );
+
+  $form['membership_settings']['term_lengths']['add_term_length'] = array(
+    '#type' => 'submit',
+    '#value' => t('Add term length'),
+    '#validate' => array('membership_entity_types_add_term_length_validate'),
+    '#submit' => array('membership_entity_types_add_term_length'),
+    '#limit_validation_errors' => array(array('term_lengths')),
+    '#ajax' => array(
+      'callback' => 'membership_entity_types_term_length_callback',
+      'wrapper' => $wrapper_id,
+      'effect' => 'fade',
     ),
   );
 
@@ -161,7 +247,7 @@ function membership_entity_type_form($form, &$form_state, $type = NULL) {
     '#description' => t('Select the number of users that may belong to a single membership of this type. (Including the primary member.)'),
   );
 
-   $form['user_settings']['show_on_profile'] = array(
+  $form['user_settings']['show_on_profile'] = array(
     '#type' => 'checkbox',
     '#title' => t('Display membership information on the user profile.'),
     '#default_value' => variable_get('membership_entity_show_on_profile_' . $type->type, 1),
@@ -186,16 +272,144 @@ function membership_entity_type_form($form, &$form_state, $type = NULL) {
   $form['actions']['submit'] = array(
     '#type' => 'submit',
     '#value' => t('Save membership type'),
+    '#submit' => array('membership_entity_type_form_submit'),
+    '#limit_validation_errors' => array(
+      array('name'),
+      array('type'),
+      array('description'),
+      array('active_role'),
+      array('expired_role'),
+      array('term_lengths', 'available_term_lengths'),
+      array('cardinality'),
+      array('show_on_profile'),
+      array('all_edit'),
+      array('roles'),
+    ),
   );
 
   if (!empty($type->type)) {
     $form['actions']['delete'] = array(
       '#type' => 'submit',
       '#value' => t('Delete membership type'),
+      '#submit' => array('membership_entity_type_form_submit'),
+      '#limit_validation_errors' => array(),
     );
   }
 
   return $form;
+}
+
+/**
+ * Returns HTML for the available term lengths form element.
+ *
+ * @param $variables
+ *   An associative array containing:
+ *   - element: A render element representing the form element.
+ */
+function theme_membership_entity_type_available_term_lengths($variables) {
+  $element = $variables['element'];
+  $order_class = $element['#id'] . '-term-weight';
+
+  // Sort items according to weight.
+  $items = array();
+  foreach (element_children($element) as $key) {
+    $items[] = &$element[$key];
+  }
+
+  if (!empty($items)) {
+    usort($items, '_membership_entity_sort_items_by_weight');
+  }
+
+  $table_id = 'available-term-lengths';
+  $header = array(t('Available Term Lengths'), t('Example (relative to now)'), '');
+  $rows = array();
+
+  if (!empty($items)) {
+    $header[] = t('Order');
+
+    // Add the items as table rows.
+    foreach ($items as $key => $item) {
+      $item['weight']['#attributes']['class'][] = $order_class;
+      $rows[] = array(
+        'data' => array(
+          // We use #type => value instead of markup so that term_length will
+          // be included in $form_state['values'].
+          array('data' => $item['term_length']['#value']),
+          array('data' => drupal_render($item['example'])),
+          array('data' => drupal_render($item['remove'])),
+          array('data' => drupal_render($item['weight']), 'class' => array('term-weight')),
+        ),
+        'class' => array('draggable'),
+      );
+    }
+    drupal_add_tabledrag($table_id, 'order', 'sibling', $order_class);
+  }
+  else {
+    $rows[]['data'] = array(
+      array(
+        'data' => t('Select a term length and click "Add term length" to add it to the list of available term lengths.'),
+        'colspan' => 3,
+      ),
+    );
+  }
+
+  return theme('table', array(
+    'header' => $header,
+    'rows' => $rows,
+    'attributes' => array('id' => $table_id),
+  ));
+}
+
+/**
+ * Ajax callback to update term lengths.
+ */
+function membership_entity_types_term_length_callback($form, $form_state) {
+  return $form['membership_settings']['term_lengths'];
+}
+
+/**
+ * Validate handler to add a term length.
+ */
+function membership_entity_types_add_term_length_validate($form, &$form_state) {
+  $values = &$form_state['values']['term_lengths'];
+
+  // Validate a custom term length.
+  if ($values['term_length_options'] == 'other') {
+    if (empty($values['custom_term_length'])) {
+      form_set_error('term_lengths][custom_term_length', t('<em>Other term length</em> is required.'));
+    }
+
+    $term_length = trim($values['custom_term_length']);
+    $regex = '/^((\d+ (sec|second|min|minute|hour|day|week|month|year)s?)\s?)+$/i';
+    if (!preg_match($regex, $term_length)) {// || strtotime($term_length) === FALSE) {
+      form_set_error('term_lengths][custom_term_length', t('%term_length is not a valid term length. Please enter term lengths as a number and unit (eg. 15 years)', array(
+        '%term_length' => $term_length,
+      )));
+    }
+  }
+}
+
+/**
+ * Submit handler to add a term length.
+ */
+function membership_entity_types_add_term_length($form, &$form_state) {
+  $values = $form_state['values']['term_lengths'];
+  $term = ($values['term_length_options'] != 'other') ? $values['term_length_options'] : $term = $values['custom_term_length'];
+  $weight = isset($form_state['available_term_lengths']) ? count($form_state['available_term_lengths']) : 0;
+  $form_state['available_term_lengths'][$weight] = check_plain($term);
+  $form_state['rebuild'] = TRUE;
+}
+
+/**
+ * Submit handler to remove a term length.
+ */
+function membership_entity_types_remove_term_length($form, &$form_state) {
+  $button = $form_state['triggering_element'];
+  if (isset($button['#membership_entity_term_length_weight'])) {
+    $weight = $button['#membership_entity_term_length_weight'];
+    unset($form_state['available_term_lengths'][$weight]);
+  }
+  $form_state['rebuild'] = TRUE;
 }
 
 /**
@@ -204,7 +418,8 @@ function membership_entity_type_form($form, &$form_state, $type = NULL) {
  * @see membership_type_form_submit()
  */
 function membership_entity_type_form_validate($form, &$form_state) {
-  $values = $form_state['values'];
+  $values = &$form_state['values'];
+
   $type = trim($values['type']);
   $name = trim($values['name']);
 
@@ -242,9 +457,18 @@ function membership_entity_type_form_submit($form, &$form_state) {
   }
 
   // Remove extra fields.
-  foreach (array('additional_settings__active_tab', 'submit', 'delete', 'form_build_id', 'form_token', 'form_id', 'op') as $key) {
+  foreach (array('submit', 'op') as $key) {
     unset($values[$key]);
   }
+
+  // Save term lengths.
+  $term_data = array();
+  foreach ($values['term_lengths']['available_term_lengths'] as $item) {
+    $term_data[$item['weight']] = $item['term_length'];
+  }
+  ksort($term_data);
+  variable_set('membership_entity_term_lengths_' . $type->type, $term_data);
+  unset($values['term_lengths']);
 
   // Save the variables.
   foreach ($values as $key => $value) {
@@ -282,10 +506,8 @@ function membership_entity_type_form_submit($form, &$form_state) {
  */
 function membership_entity_type_confirm_delete($form, &$form_state, $type) {
   $form['#membership_type'] = $type;
-
   $message = t('Are you sure you want to delete the membership type %type?', array('%type' => $type->name));
   $caption = '<p>' . t('This action cannot be undone.') . '</p>';
-
   return confirm_form($form, $message, 'admin/structure/membership-types', $caption, t('Delete'));
 }
 
@@ -294,10 +516,17 @@ function membership_entity_type_confirm_delete($form, &$form_state, $type) {
  */
 function membership_entity_type_confirm_delete_submit($form, &$form_state) {
   $type = $form_state['complete form']['#membership_type'];
-
   membership_entity_type_delete($type);
   drupal_set_message(t('The membership type %name has been deleted.', array('%name' => $type->name)));
-
   $form_state['redirect'] = 'admin/structure/membership-types';
   return;
+}
+
+/**
+ * Sort callback to sort by weight.
+ */
+function _membership_entity_sort_items_by_weight($a, $b) {
+  $a_weight = (is_array($a) && isset($a['weight']['#value']) ? $a['weight']['#value'] : 0);
+  $b_weight = (is_array($b) && isset($b['weight']['#value']) ? $b['weight']['#value'] : 0);
+  return $a_weight - $b_weight;
 }

@@ -277,6 +277,10 @@ function membership_entity_admin_paths() {
  */
 function membership_entity_theme() {
   return array(
+    'membership_entity_type_available_term_lengths' => array(
+      'render element' => 'element',
+      'file' => 'membership_entity.types.inc',
+    ),
     // @TODO: Theme a membership
   );
 }
