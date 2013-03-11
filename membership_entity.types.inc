@@ -126,9 +126,6 @@ function membership_entity_type_form($form, &$form_state, $type = NULL) {
     '#prefix' => '<div id="'. $wrapper_id . '">',
     '#suffix' => '</div>',
     '#description' => t('Select the term lengths that will be available for this membership type.'),
-    '#states' => array(
-
-    ),
   );
 
   $form['membership_settings']['term_lengths']['available_term_lengths'] = array(

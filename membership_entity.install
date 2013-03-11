@@ -70,6 +70,13 @@ function membership_entity_schema() {
         'not null' => TRUE,
         'default' => '',
       ),
+      'term_length' => array(
+        'description' => 'The term length of the membership.',
+        'type' => 'varchar',
+        'length' => 32,
+        'not null' => TRUE,
+        'default' => '',
+      ),
       'status' => array(
         'description' => 'Boolean indicating whether the membership is active or disabled.',
         'type' => 'int',
@@ -153,4 +160,17 @@ function membership_entity_update_7000() {
     ),
   );
   db_add_field('membership_entity', 'uid', $field, $keys);
+}
+
+/**
+ * Add term length field.
+ */
+function membership_entity_update_7001() {
+  db_add_field('membership_entity', 'term_length', array(
+    'description' => 'The term length of the membership.',
+    'type' => 'varchar',
+    'length' => 32,
+    'not null' => TRUE,
+    'default' => '',
+  ));
 }

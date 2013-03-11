@@ -6,6 +6,213 @@
  */
 
 /**
+ * Menu callback: Join as member of the site.
+ */
+function membership_entity_join($form, &$form_state) {
+  $current_step = !empty($form_state['storage']['current_step']) ? $form_state['storage']['current_step'] : 1;
+  $form_state['storage']['current_step'] = $current_step;
+
+  $max_step = !empty($form_state['storage']['max_step']) ? $form_state['storage']['max_step'] : 2;
+  $form_state['storage']['max_step'] = $max_step;
+
+  $storage = isset($form_state['storage']['step' . $current_step]) ? $form_state['storage']['step' . $current_step] : array();
+
+  $form = array(
+    '#prefix' => '<div id="membership-entity-join-wrapper">',
+    '#suffix' => '</div>',
+    '#attributes' => array(
+      'class' => array('membership-entity-join-form'),
+    ),
+    '#logged_in' => user_is_logged_in(),
+  );
+
+  $form['#user'] = empty($GLOBALS['user']->uid) ? drupal_anonymous_user() : $GLOBALS['user'];
+
+  switch ($current_step) {
+    case 1:
+      if (!$form['#logged_in']) {
+        $form['#user_category'] = 'register';
+
+        // Add the user register form.
+        user_account_form($form, $form_state);
+        $form['#validate'][] = 'user_register_validate';
+
+        // Display account info as a fieldset.
+        $form['account']['#type'] = 'fieldset';
+        $form['account']['#title'] = t('Account information');
+        $form['account']['#description'] = t('If you already have an account on @site_name please <a href="@login">login</a> before completing this form.', array(
+          '@site_name' => variable_get('site_name', ''),
+          '@login' => url('user', array('query' => array('destination' => 'membership_entity/join'))),
+        ));
+
+        $langcode = entity_language('user', $form['#user']);
+        field_attach_form('user', $form['#user'], $form, $form_state, $langcode);
+        foreach (field_info_instances('user', 'user') as $field_name => $instance) {
+          if (empty($instance['settings']['user_register_form'])) {
+            $form[$field_name]['#access'] = FALSE;
+          }
+        }
+
+        // Load stored values.
+        if (isset($storage['account'])) {
+          foreach ($storage['account'] as $field_name => $value) {
+            $form['account'][$field_name]['#default_value'] = $value;
+          }
+        }
+      }
+
+      $types = membership_entity_get_types();
+      $options = array();
+      foreach ($types as $type) {
+        $options[$type->type] = $type->name;
+      }
+
+      $form['step1'] = array(
+        '#type' => 'fieldset',
+        '#title' => t('Step 1: Select a Membership type'),
+      );
+
+      $form['step1']['membership_type'] = array(
+        '#type' => 'radios',
+        '#title' => t('Membership Type'),
+        '#default_value' => isset($storage['membership_type']) ? $storage['membership_type'] : '',
+        '#required' => TRUE,
+        '#options' => $options,
+      );
+      break;
+
+    case 2:
+      $type = $form_state['storage']['step1']['membership_type'];
+
+      // Create a default membership and build the form.
+      $membership = entity_get_controller('membership_entity')
+        ->create($type);
+      $form['#membership_entity'] = $membership;
+      membership_entity_form($form, $form_state);
+
+      // Remove the uid field if not logged in. This will be added later from
+      // the new account.
+      if (!$form['#logged_in']) {
+        $form['membership_entity']['uid']['#required'] = FALSE;
+        $form['membership_entity']['uid']['#access'] = FALSE;
+      }
+
+      // Add fieldset info.
+      $form['membership_entity']['#type'] = 'fieldset';
+      $form['membership_entity']['#title'] = t('Step 2: Membership information');
+      $form['membership_entity']['#parents'] = array('membership_entity');
+      break;
+  }
+
+  $form['actions'] = array('#type' => 'actions');
+  if ($current_step > 1) {
+    $form['actions']['back'] = array(
+      '#type' => 'submit',
+      '#value' => t('Back'),
+      '#name' => 'back',
+      '#submit' => array('membership_entity_join_multistep_submit'),
+      '#limit_validation_errors' => array(),
+    );
+  }
+
+  if ($current_step == $max_step) {
+    $form['actions']['submit'] = array(
+      '#type' => 'submit',
+      '#value' => t('Submit'),
+      '#submit' => array(
+        'membership_entity_join_multistep_submit',
+        'membership_entity_join_submit',
+      ),
+    );
+  }
+  else {
+    $form['actions']['next'] = array(
+      '#type' => 'submit',
+      '#value' => t('Next'),
+      '#name' => 'next',
+      '#submit' => array('membership_entity_join_multistep_submit'),
+    );
+  }
+
+  // Add ajax settings.
+  foreach (array('next', 'back') as $button) {
+    $form['actions'][$button]['#ajax'] = array(
+      'wrapper' => 'membership-entity-join-wrapper',
+      'callback' => 'membership_entity_join_multistep_callback',
+      'effect' => 'fade',
+    );
+  }
+
+  return $form;
+}
+
+/**
+ * Ajax callback to reload the membership join form.
+ */
+function membership_entity_join_multistep_callback($form, $form_state) {
+  return $form;
+}
+
+/**
+ * Sumbmit handler for the multistep join form.
+ */
+function membership_entity_join_multistep_submit($form, &$form_state) {
+  $button = $form_state['triggering_element'];
+  $current_step = &$form_state['storage']['current_step'];
+
+  $form_state['rebuild'] = TRUE;
+  $values = $form_state['values'];
+
+  switch ($current_step) {
+    case 1:
+      $form_state['storage']['step1'] = $values;
+      break;
+
+    case 2:
+      $form_state['storage']['step2'] = $values;
+      break;
+  }
+
+  // Update the step counter.
+  switch ($button['#name']) {
+    case 'next':
+      $current_step++;
+      break;
+
+    case 'back':
+      $current_step--;
+      break;
+  }
+}
+
+/**
+ * Submit handler to save the membership information.
+ */
+function membership_entity_join_submit($form, &$form_state) {
+  $storage = $form_state['storage'];
+  $account = $GLOBALS['user'];
+
+  if (!$form['#logged_in']) {
+    // Save Step 1 account information.
+    $form_state['values'] = $storage['step1'];
+    $form_state['values']['administer_users'] = user_access('administer users');
+    user_register_submit($form, $form_state);
+    $account = $form_state['user'];
+  }
+
+  // Save the membership.
+  $form_state['values'] = $storage['step2'];
+  $form_state['values']['uid'] = $account->uid;
+
+  // Set the expiration date.
+  $expire = format_date(strtotime($storage['step2']['term_length']), 'custom', DATE_FORMAT_DATETIME);
+  $form_state['values']['membership_entity_expire'][LANGUAGE_NONE][0]['value'] = $expire;
+  $form_state['values']['membership_entity_expire'][LANGUAGE_NONE][0]['value2'] = $expire;
+
+  membership_entity_edit_form_submit($form, $form_state);
+}
+
+/**
  * Menu callback: Autocomplete suggestions for existing users by role.
  *
  * @param $type
@@ -111,80 +318,14 @@ function membership_entity_add($type) {
  * @see membership_entity_form_submit()
  */
 function membership_entity_edit_form($form, &$form_state, $membership) {
-  $is_new = empty($membership->mid);
-
   $form['#attributes']['class'][] = 'membership-entity-edit-form';
   if (!empty($membership->type)) {
     $form['#attributes']['class'][] = 'membership-entity-' . $membership->type . '-edit-form';
   }
 
-  // Add the membership and entity info for future reference.
-  $form['#entity_type'] = 'membership_entity';
-  $form['#bundle'] = $membership->type;
+  // Add the membership entity form fields.
   $form['#membership_entity'] = $membership;
-  $form_state['membership_entity'] = $membership;
-
-  // Basic information.
-  foreach (array('mid', 'type', 'created', 'entity_type') as $key) {
-    $form[$key] = array(
-      '#type' => 'value',
-      '#value' => isset($membership->$key) ? $membership->$key : NULL,
-    );
-  }
-
-  $form['changed'] = array(
-    '#type' => 'hidden',
-    '#default_value' => isset($membership->changed) ? $membership->changed : NULL,
-  );
-
-  $form['member_id'] = array(
-    '#type' => 'textfield',
-    '#title' => t('Member ID'),
-    '#description' => t('A unique member id for this membership.'),
-    '#default_value' => isset($membership->member_id) ? $membership->member_id : NULL,
-    '#required' => TRUE,
-  );
-
-  $form['uid'] = array(
-    '#type' => 'textfield',
-    '#title' => t('Primary Member'),
-    '#default_value' => !empty($membership->uid) ? $membership->uid : NULL,
-    '#required' => TRUE,
-    '#autocomplete_path' => 'membership-entity/' . $membership->mid . '/user/autocomplete/' . $membership->type,
-    '#value_callback' => 'membership_entity_user_autocomplete_value',
-  );
-
-  // Add field UI items.
-  field_attach_form('membership_entity', $membership, $form, $form_state);
-
-  // If this is a new membership, the expiration date must be in the future.
-  if ($is_new && isset($form['membership_entity_expire'])) {
-    foreach (element_children($form['membership_entity_expire'][LANGUAGE_NONE]) as $key) {
-      $form['membership_entity_expire'][LANGUAGE_NONE][$key]['#element_validate'][] = 'membership_entity_date_validate_future';
-    }
-  }
-
-  // Admin fields access.
-  $fields = array(
-    'member_id',
-    'uid',
-    'membership_entity_join',
-    'membership_entity_expire',
-  );
-  foreach ($fields as $field) {
-    if (isset($form[$field])) {
-      if (!isset($form[$field]['#access'])) {
-        $form[$field]['#access'] = TRUE;
-      }
-      $form[$field]['#access'] = user_access('administer memberships') && $form[$field]['#access'];
-    }
-  }
-
-  // Additional members access.
-  if (!isset($form[$membership->type . '_members']['#access'])) {
-    $form[$membership->type . '_members']['#access'] = TRUE;
-  }
-  $form[$membership->type . '_members']['#access'] = membership_entity_access('manage', $membership) && $form[$membership->type . '_members']['#access'];
+  membership_entity_form($form, $form_state);
 
   // Add the buttons.
   $form['actions'] = array(
@@ -205,13 +346,113 @@ function membership_entity_edit_form($form, &$form_state, $membership) {
     );
   }
 
-  $form['#validate'][] = 'membership_entity_edit_form_validate';
-  $form['#submit'] = array();
+  // Add type specific submit handlers.
   if (function_exists($membership->type . '_membership_entity_edit_form_submit')) {
     $form['#submit'][] = $membership->type . '_membership_entity_edit_form_submit';
   }
 
   return $form;
+}
+
+/**
+ * Helper to add default and field api membership entity fields.
+ */
+function membership_entity_form(&$form, &$form_state) {
+  $membership = $form['#membership_entity'];
+  $is_new = empty($membership->mid);
+
+  $form['#validate'][] = 'membership_entity_form_validate';
+
+  $form['membership_entity'] = array(
+    '#type' => 'container',
+    '#entity_type' => 'membership_entity',
+    '#bundle' => $membership->type,
+  );
+  $membership_form = &$form['membership_entity'];
+
+  // Basic information.
+  foreach (array('mid', 'type', 'created', 'entity_type') as $key) {
+    $membership_form[$key] = array(
+      '#type' => 'value',
+      '#value' => isset($membership->$key) ? $membership->$key : NULL,
+    );
+  }
+
+  $membership_form['changed'] = array(
+    '#type' => 'hidden',
+    '#default_value' => isset($membership->changed) ? $membership->changed : NULL,
+  );
+
+  if (empty($membership->member_id)) {
+    $membership->member_id = membership_entity_next_member_id();
+  }
+  if (user_access('administer memberships')) {
+    $membership_form['member_id'] = array(
+      '#type' => 'textfield',
+      '#title' => t('Member ID'),
+      '#description' => t('A unique member id for this membership.'),
+      '#default_value' => $membership->member_id,
+      '#required' => TRUE,
+    );
+  }
+  else {
+    $membership_form['member_id'] = array(
+      '#type' => 'value',
+      '#value' => $membership->member_id,
+    );
+
+    $membership_form['member_id_view'] = array(
+      'label' => array(
+        '#theme' => 'html_tag',
+        '#tag' => 'label',
+        '#value' => t('Member ID'),
+        '#attributes' => array('for' => 'membership-entity-member-id'),
+      ),
+      'value' => array(
+        '#theme_wrappers' => array('container'),
+        '#attributes' => array('id' => 'membership-entity-member-id'),
+        '#markup' => check_plain($membership->member_id),
+      ),
+    );
+  }
+
+  $membership_form['uid'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Primary Member'),
+    '#default_value' => !empty($membership->uid) ? $membership->uid : NULL,
+    '#required' => TRUE,
+    '#autocomplete_path' => 'membership-entity/' . $membership->mid . '/user/autocomplete/' . $membership->type,
+    '#value_callback' => 'membership_entity_user_autocomplete_value',
+  );
+
+  $membership_form['term_length'] = array(
+    '#type' => 'radios',
+    '#title' => t('Term length'),
+    '#default_value' => !empty($membership->term_length) ? $membership->term_length : NULL,
+    '#required' => TRUE,
+    '#options' => drupal_map_assoc(variable_get('membership_entity_term_lengths_' . $membership->type, array())),
+  );
+
+  // Add field UI items.
+  field_attach_form('membership_entity', $membership, $membership_form, $form_state);
+
+  // Admin fields access.
+  foreach (array('uid', 'membership_entity_join') as $field) {
+    $membership_form[$field]['#disabled'] = !user_access('administer memberships');
+  }
+
+  // Additional members access.
+  if (!isset($membership_form[$membership->type . '_members']['#access'])) {
+    $membership_form[$membership->type . '_members']['#access'] = TRUE;
+  }
+  $membership_form[$membership->type . '_members']['#access'] = membership_entity_access('manage', $membership) && $membership_form[$membership->type . '_members']['#access'];
+
+  // If this is a new membership, the expiration date must be in the future.
+  if ($is_new) {
+    foreach (element_children($membership_form['membership_entity_expire'][LANGUAGE_NONE]) as $delta) {
+      $form['membership_entity']['membership_entity_expire'][LANGUAGE_NONE][$delta]['#element_validate'][] = 'membership_entity_date_validate_future';
+    }
+  }
 }
 
 /**
@@ -238,50 +479,42 @@ function membership_entity_user_autocomplete_value($element, $input = FALSE, $fo
  * Validate the membership entity form.
  *
  * @see membership_entity_form()
- * @see membership_entity_form_submit()
  */
-function membership_entity_edit_form_validate($form, &$form_state) {
+function membership_entity_form_validate($form, &$form_state) {
   $values = &$form_state['values'];
-  $membership = $form_state['membership_entity'];
+  $membership = $form['#membership_entity'];
 
   // Member ID must be unique.
-  $query = db_select('membership_entity', 'me')
-    ->fields('me', array('mid'));
-  if (!empty($membership->mid)) {
-    $query->condition('mid', $membership->mid, '<>');
-  }
-  $count = $query->condition('member_id', check_plain($values['member_id']))
-    ->countQuery()
-    ->execute()
-    ->fetchField();
-  if ($count > 0) {
+  if ((bool) db_select('membership_entity', 'me')->fields('me', array('mid'))->condition('mid', $membership->mid, '<>')->condition('member_id', db_like($values['member_id']), 'LIKE')->range(0, 1)->execute()->fetchField()) {
     form_set_error('member_id', t('The member ID %member_id already exists.', array(
       '%member_id' => $values['member_id'],
     )));
   }
 
   // Extract the uid.
-  preg_match('/^(?:\s*|(.*) )?\[\s*uid\s*:\s*(\d+)\s*\]$/', $values['uid'], $matches);
-  array_shift($matches);
-  if (!empty($matches)) {
-    // Check that name matches the uid.
-    list($name, $uid) = $matches;
-    $result = db_select('users', 'u')
-      ->fields('u', array('uid'))
-      ->condition('u.uid', $uid)
-      ->condition('u.name', $name)
-      ->countQuery()
-      ->execute()
-      ->fetchField();
-    if (!empty($result)) {
-      $values['uid'] = $uid;
+  if (!empty($values['uid'])) {
+    preg_match('/^(?:\s*|(.*) )?\[\s*uid\s*:\s*(\d+)\s*\]$/', $values['uid'], $matches);
+    array_shift($matches);
+    if (!empty($matches)) {
+      // Check that name matches the uid.
+      list($name, $uid) = $matches;
+      $result = db_select('users', 'u')
+        ->fields('u', array('uid'))
+        ->condition('u.uid', $uid)
+        ->condition('u.name', $name)
+        ->countQuery()
+        ->execute()
+        ->fetchField();
+      if (!empty($result)) {
+        $values['uid'] = $uid;
+      }
+      else {
+        form_set_error('uid', t('Primary member name mismatch. Please check your selection.'));
+      }
     }
     else {
-      form_set_error('uid', t('Primary member name mismatch. Please check your selection.'));
+      form_set_error('uid', t('Invalid selection for Priamry member.'));
     }
-  }
-  else {
-    form_set_error('uid', t('Invalid selection for Priamry member.'));
   }
 
   // Validate custom fields.
@@ -306,7 +539,7 @@ function membership_entity_date_validate_future(&$element) {
  * @see membership_entity_form_validate()
  */
 function membership_entity_edit_form_submit($form, &$form_state) {
-  $membership = $form_state['membership_entity'];
+  $membership = $form['#membership_entity'];
   entity_form_submit_build_entity('membership_entity', $membership, $form, $form_state);
 
   $is_new = empty($membership->mid);

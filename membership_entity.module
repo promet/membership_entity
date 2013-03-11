@@ -21,6 +21,11 @@ define('MEMBERSHIP_ENTITY_ACTIVE', 1);
 define('MEMBERSHIP_ENTITY_CANCELLED', 2);
 
 /**
+ * The membership is pending admin approval.
+ */
+define('MEMBERSHIP_ENTITY_PENDING', 3);
+
+/**
  * Implements hook_help().
  */
 function membership_entity_help($path, $arg) {
@@ -34,6 +39,9 @@ function membership_entity_help($path, $arg) {
  */
 function membership_entity_permission() {
   $perms = array(
+    'access membership join page' => array(
+      'title' => t('Access the membership join page'),
+    ),
     'administer membership types' => array(
       'title' => t('Administer membership types'),
       'restrict access' => TRUE,
@@ -258,6 +266,15 @@ function membership_entity_menu() {
     'access callback' => 'membership_entity_access',
     'access arguments' => array('edit', 1),
     'type' => MENU_CALLBACK,
+    'file' => 'membership_entity.pages.inc',
+  );
+  $items['membership-entity/join'] = array(
+    'title' => 'Join @site',
+    'title arguments' => array('@site' => variable_get('site_name', '')),
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('membership_entity_join'),
+    'access arguments' => array('access membership join page'),
+    'type' => MENU_NORMAL_ITEM,
     'file' => 'membership_entity.pages.inc',
   );
   return $items;
@@ -519,9 +536,16 @@ function membership_entity_field_extra_fields() {
  *   A membership entity type object.
  */
 function membership_entity_add_fields($type) {
-  // Add the join date field.
+  // Add the join and expiration date fields.
   $fields = array(
     'membership_entity_join' => array(
+      'type' => 'datetime',
+      'cardinality' => 1,
+      'settings' => array(
+        'granularity' => drupal_map_assoc(array('year', 'month', 'day')),
+      ),
+    ),
+    'membership_entity_expire' => array(
       'type' => 'datetime',
       'cardinality' => 1,
       'settings' => array(
@@ -550,6 +574,25 @@ function membership_entity_add_fields($type) {
         ),
       ),
     ),
+    'membership_entity_expire' => array(
+      'label' => t('Expiration Date'),
+      'widget' => array(
+        'type' => 'date_text',
+        'weight' => 98,
+        'settings' => array(
+          'year_range' => '0:+30',
+        ),
+      ),
+      'display' => array(
+        'full' => array(
+          'label' => 'above',
+          'type' => 'date_default',
+          'settings' => array(
+            'format_type' => 'short',
+          ),
+        ),
+      ),
+    ),
   );
 
   // Add the additional members field if cardinality is not 1.
@@ -559,7 +602,7 @@ function membership_entity_add_fields($type) {
     // because we can only control cardinality at the field level.
     $fields[$type->type . '_members'] = array(
       'type' => 'entityreference',
-      // Subtract 1 to account for primary member (unless unlimited).
+      // Subtract 1 for primary member (unless unlimited).
       'cardinality' => ($cardinality == FIELD_CARDINALITY_UNLIMITED) ? FIELD_CARDINALITY_UNLIMITED : $cardinality - 1,
       'settings' => array(
         'target_type' => 'user',
@@ -576,37 +619,6 @@ function membership_entity_add_fields($type) {
         'full' => array(
           'label' => 'above',
           'type' => 'entityreference_entity_id',
-        ),
-      ),
-    );
-  }
-
-  // Add an expiration date if this is not a lifetime membership.
-  if (!variable_get('membership_entity_lifetime_' . $type->type, FALSE)) {
-    $fields['membership_entity_expire'] = array(
-      'type' => 'datetime',
-      'cardinality' => 1,
-      'settings' => array(
-        'granularity' => drupal_map_assoc(array('year', 'month', 'day')),
-      ),
-    );
-
-    $instances['membership_entity_expire'] = array(
-      'label' => t('Expiration Date'),
-      'widget' => array(
-        'type' => 'date_text',
-        'weight' => 98,
-        'settings' => array(
-          'year_range' => '0:+30',
-        ),
-      ),
-      'display' => array(
-        'full' => array(
-          'label' => 'above',
-          'type' => 'date_default',
-          'settings' => array(
-            'format_type' => 'short',
-          ),
         ),
       ),
     );
@@ -851,6 +863,21 @@ function membership_entity_uri($membership) {
   return array(
     'path' => 'membership/' . $membership->mid,
   );
+}
+
+/**
+ * Increment and return the next available member id.
+ */
+function membership_entity_next_member_id() {
+  $member_id = variable_get('membership_entity_next_member_id', 0);
+
+  // Increment until we find an available member id.
+  while ((bool) db_select('membership_entity', 'me')->fields('me', array('mid'))->condition('member_id', db_like($member_id), 'LIKE')->range(0, 1)->execute()->fetchField()) {
+    $member_id++;
+  }
+
+  variable_set('membership_entity_next_member_id', $member_id + 1);
+  return $member_id;
 }
 
 /**
