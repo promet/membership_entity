@@ -869,14 +869,21 @@ function membership_entity_uri($membership) {
  * Increment and return the next available member id.
  */
 function membership_entity_next_member_id() {
-  $member_id = variable_get('membership_entity_next_member_id', 0);
+  $member_id = membership_entity_numeric_member_id_callback();
 
-  // Increment until we find an available member id.
-  while ((bool) db_select('membership_entity', 'me')->fields('me', array('mid'))->condition('member_id', db_like($member_id), 'LIKE')->range(0, 1)->execute()->fetchField()) {
-    $member_id++;
+  // Make sure the member_id is unique.
+  if ((bool) db_select('membership_entity', 'me')->fields('me', array('mid'))->condition('member_id', db_like($member_id), 'LIKE')->range(0, 1)->execute()->fetchField()) {
+    return membership_entity_next_member_id();
   }
+  return $member_id;
+}
 
-  variable_set('membership_entity_next_member_id', $member_id + 1);
+/**
+ * Callback to generate sequential numeric member ids.
+ */
+function membership_entity_numeric_member_id_callback() {
+  $member_id = variable_get('membership_entity_next_member_id', 0);
+  variable_set('membership_entity_next_member_id', ++$member_id);
   return $member_id;
 }
 

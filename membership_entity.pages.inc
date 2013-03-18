@@ -204,6 +204,10 @@ function membership_entity_join_submit($form, &$form_state) {
   $form_state['values'] = $storage['step2'];
   $form_state['values']['uid'] = $account->uid;
 
+  if (empty($form_state['values']['member_id'])) {
+    $form_state['values']['member_id'] = membership_entity_next_member_id();
+  }
+
   // Set the expiration date.
   $expire = format_date(strtotime($storage['step2']['term_length']), 'custom', DATE_FORMAT_DATETIME);
   $form_state['values']['membership_entity_expire'][LANGUAGE_NONE][0]['value'] = $expire;
@@ -383,37 +387,36 @@ function membership_entity_form(&$form, &$form_state) {
     '#default_value' => isset($membership->changed) ? $membership->changed : NULL,
   );
 
-  if (empty($membership->member_id)) {
-    $membership->member_id = membership_entity_next_member_id();
-  }
-  if (user_access('administer memberships')) {
-    $membership_form['member_id'] = array(
-      '#type' => 'textfield',
-      '#title' => t('Member ID'),
-      '#description' => t('A unique member id for this membership.'),
-      '#default_value' => $membership->member_id,
-      '#required' => TRUE,
-    );
-  }
-  else {
-    $membership_form['member_id'] = array(
-      '#type' => 'value',
-      '#value' => $membership->member_id,
-    );
+  if (!empty($memberhip->member_id)) {
+    if (user_access('administer memberships')) {
+      $membership_form['member_id'] = array(
+        '#type' => 'textfield',
+        '#title' => t('Member ID'),
+        '#description' => t('A unique member id for this membership.'),
+        '#default_value' => $membership->member_id,
+        '#required' => TRUE,
+      );
+    }
+    else {
+      $membership_form['member_id'] = array(
+        '#type' => 'value',
+        '#value' => $membership->member_id,
+      );
 
-    $membership_form['member_id_view'] = array(
-      'label' => array(
-        '#theme' => 'html_tag',
-        '#tag' => 'label',
-        '#value' => t('Member ID'),
-        '#attributes' => array('for' => 'membership-entity-member-id'),
-      ),
-      'value' => array(
-        '#theme_wrappers' => array('container'),
-        '#attributes' => array('id' => 'membership-entity-member-id'),
-        '#markup' => check_plain($membership->member_id),
-      ),
-    );
+      $membership_form['member_id_view'] = array(
+        'label' => array(
+          '#theme' => 'html_tag',
+          '#tag' => 'label',
+          '#value' => t('Member ID'),
+          '#attributes' => array('for' => 'membership-entity-member-id'),
+        ),
+        'value' => array(
+          '#theme_wrappers' => array('container'),
+          '#attributes' => array('id' => 'membership-entity-member-id'),
+          '#markup' => check_plain($membership->member_id),
+        ),
+      );
+    }
   }
 
   $membership_form['uid'] = array(
@@ -440,6 +443,7 @@ function membership_entity_form(&$form, &$form_state) {
   foreach (array('uid', 'membership_entity_join') as $field) {
     $membership_form[$field]['#disabled'] = !user_access('administer memberships');
   }
+  $membership_form['membership_entity_expire']['#access'] = user_access('administer memberships');
 
   // Additional members access.
   if (!isset($membership_form[$membership->type . '_members']['#access'])) {
@@ -485,10 +489,12 @@ function membership_entity_form_validate($form, &$form_state) {
   $membership = $form['#membership_entity'];
 
   // Member ID must be unique.
-  if ((bool) db_select('membership_entity', 'me')->fields('me', array('mid'))->condition('mid', $membership->mid, '<>')->condition('member_id', db_like($values['member_id']), 'LIKE')->range(0, 1)->execute()->fetchField()) {
-    form_set_error('member_id', t('The member ID %member_id already exists.', array(
-      '%member_id' => $values['member_id'],
-    )));
+  if (!empty($values['member_id'])) {
+    if ((bool) db_select('membership_entity', 'me')->fields('me', array('mid'))->condition('mid', $membership->mid, '<>')->condition('member_id', db_like($values['member_id']), 'LIKE')->range(0, 1)->execute()->fetchField()) {
+      form_set_error('member_id', t('The member ID %member_id already exists.', array(
+        '%member_id' => $values['member_id'],
+      )));
+    }
   }
 
   // Extract the uid.
@@ -525,6 +531,10 @@ function membership_entity_form_validate($form, &$form_state) {
  * Validate that a given date element is >= today.
  */
 function membership_entity_date_validate_future(&$element) {
+  if (empty($element['value'])) {
+    return;
+  }
+
   if (strtotime($element['value']['date']['#value']) < strtotime(format_date(REQUEST_TIME, 'custom', $element['value']['#date_format']))) {
     form_error($element, t('@field must be a current or future date.', array(
       '@field' => $element['#title'],
