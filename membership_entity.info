@@ -9,4 +9,3 @@ files[] = membership_entity.types.inc
 files[] = membership_entity.controller.inc
 
 dependencies[] = entityreference
-dependencies[] = date

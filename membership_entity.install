@@ -70,13 +70,6 @@ function membership_entity_schema() {
         'not null' => TRUE,
         'default' => '',
       ),
-      'term_length' => array(
-        'description' => 'The term length of the membership.',
-        'type' => 'varchar',
-        'length' => 32,
-        'not null' => TRUE,
-        'default' => '',
-      ),
       'status' => array(
         'description' => 'Boolean indicating whether the membership is active or disabled.',
         'type' => 'int',
@@ -112,6 +105,55 @@ function membership_entity_schema() {
       'membership_entity_primary_member' => array(
         'table' => 'users',
         'columns' => array('uid' => 'uid'),
+      ),
+    ),
+  );
+
+  $schema['membership_entity_terms'] = array(
+    'description' => 'Stores information about membership term lengths.',
+    'fields' => array(
+      'mid' => array(
+        'description' => 'The membership identifier.',
+        'type' => 'serial',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ),
+      'delta' => array(
+        'description' => 'The term length order',
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'start' => array(
+        'description' => 'The start date (unix timestamp) for this term.',
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'end' => array(
+        'description' => 'The end date (unix timestamp) for this term.',
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'term_length' => array(
+        'description' => 'The length for this term.',
+        'type' => 'varchar',
+        'length' => 32,
+        'not null' => TRUE,
+        'default' => '',
+      ),
+    ),
+    'indexes' => array(
+      'membership_entity_term_start' => array('start'),
+      'membership_entity_term_end' => array('end'),
+    ),
+    'primary key' => array('mid', 'delta'),
+    'foreign keys' => array(
+      'membership_entity_mid' => array(
+        'table' => 'membership_entity',
+        'columns' => array('mid' => 'mid'),
       ),
     ),
   );

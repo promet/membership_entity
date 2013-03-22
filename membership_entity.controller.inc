@@ -37,7 +37,35 @@ class MembershipEntityController
       'uid' => $user->uid,
       'type' => $type,
       'created' => REQUEST_TIME,
+      'status' => MEMBERSHIP_ENTITY_ACTIVE,
+      'terms' => array(),
     );
+  }
+
+  /**
+   * Loads a membership entity from the database.
+   *
+   * @param $mids
+   *  An array of membership_entity mids to laod.
+   * @param $conditions
+   *  An array of conditions to match.
+   */
+  public function load($mids = array(), $conditions = array()) {
+    $memberships = parent::load($mids, $conditions);
+
+    // Load memberships terms.
+    foreach ($memberships as &$membership) {
+      $membership->terms = db_select('membership_entity_terms', 'met')
+        ->fields('met')
+        ->condition('mid', $membership->mid)
+        ->orderBy('delta', 'ASC')
+        ->execute()
+        ->fetchAllAssoc('delta', PDO::FETCH_ASSOC);
+    }
+    // Unset foreach reference.
+    unset($membership);
+
+    return $memberships;
   }
 
   /**
@@ -57,13 +85,25 @@ class MembershipEntityController
     // Let modules modify the membership before it is saved to the database.
     module_invoke_all('entity_presave', $membership, 'membership_entity');
 
+    // Save the membership.
     if ($is_new) {
       drupal_write_record('membership_entity', $membership);
       $op = 'insert';
     }
     else {
-      drupal_write_record('membership_enitty', $membership, 'mid');
+      drupal_write_record('membership_entity', $membership, 'mid');
       $op = 'update';
+    }
+
+    // Save the membership terms.
+    foreach ($membership->terms as $term) {
+      if (empty($term['mid'])) {
+        $term['mid'] = $membership->mid;
+        drupal_write_record('membership_entity_terms', $term);
+      }
+      else {
+        drupal_write_record('membership_entity_terms', $term, array('mid', 'delta'));
+      }
     }
 
     // Save fields.
