@@ -40,6 +40,16 @@ function membership_entity_help($path, $arg) {
 }
 
 /**
+ * Implements hook_views_api().
+ */
+function membership_entity_views_api() {
+  return array(
+    'api' => 3,
+    'path' => drupal_get_path('module', 'membership_entity') . '/views',
+  );
+}
+
+/**
  * Implements hook_permission().
  */
 function membership_entity_permission() {
@@ -986,4 +996,16 @@ function membership_entity_delete($mid) {
 function membership_entity_delete_multiple($mids) {
   entity_get_controller('membership_entity')
     ->delete_multiple($mids);
+}
+
+/**
+ * Retrieve a list of membership status options.
+ */
+function membership_entity_get_status_list() {
+  return array(
+    MEMBERSHIP_ENTITY_EXPIRED => t('Expired'),
+    MEMBERSHIP_ENTITY_ACTIVE => t('Active'),
+    MEMBERSHIP_ENTITY_CANCELLED => t('Cancelled'),
+    MEMBERSHIP_ENTITY_PENDING => t('Pending'),
+  );
 }

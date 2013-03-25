@@ -8,4 +8,13 @@ files[] = membership_entity.install
 files[] = membership_entity.types.inc
 files[] = membership_entity.controller.inc
 
+files[] = views/membership_entity_handler_field_membership_entity.inc
+files[] = views/membership_entity_handler_field_membership_entity_link.inc
+files[] = views/membership_entity_handler_field_membership_entity_link_delete.inc
+files[] = views/membership_entity_handler_field_membership_entity_link_edit.inc
+files[] = views/membership_entity_handler_field_membership_entity_status.inc
+files[] = views/membership_entity_handler_filter_membership_entity_type.inc
+files[] = views/membership_entity_handler_filter_membership_entity_status.inc
+files[] = views/membership_entity_handler_field_membership_entity_type.inc
+
 dependencies[] = entityreference
