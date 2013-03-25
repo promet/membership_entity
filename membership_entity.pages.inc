@@ -100,6 +100,7 @@ function membership_entity_join($form, &$form_state) {
         '#membership_entity' => $form['#membership_entity'],
       );
       membership_entity_form($form['membership_info'], $form_state);
+      $form['#validate'][] = 'membership_entity_form_validate';
       break;
   }
 
@@ -214,6 +215,52 @@ function membership_entity_join_submit($form, &$form_state) {
 }
 
 /**
+ * Menu callback: Renew an existing membership.
+ */
+function membership_entity_renew($form, &$form_state, $membership) {
+  $membership->is_renewal = TRUE;
+
+  $form = array(
+    '#prefix' => '<div id="membership-entity-renew-wrapper">',
+    '#suffix' => '</div>',
+    '#attributes' => array(
+      'class' => array('membership-entity-renew-form'),
+    ),
+  );
+
+  // Create a default membership and build the form.
+  $form['#membership_entity'] = $membership;
+
+  // Display membership info as a fieldset.
+  $form['membership_info'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('Membership information'),
+    '#membership_entity' => $form['#membership_entity'],
+  );
+  membership_entity_form($form['membership_info'], $form_state);
+
+  $form['actions'] = array('#type' => 'actions');
+  $form['actions']['submit'] = array(
+    '#type' => 'submit',
+    '#value' => t('Renew'),
+  );
+
+  $form['#submit'][] = 'membership_entity_renew_submit';
+  $form['#validate'][] = 'membership_entity_form_validate';
+
+  return $form;
+}
+
+/**
+ * Submit the renewal form.
+ */
+function membership_entity_renew_submit($form, &$form_state) {
+  $membership = $form['#membership_entity'];
+  membership_entity_edit_form_submit($form, $form_state);
+  $form_state['redirect'] = 'membership/' . $membership->mid;
+}
+
+/**
  * Menu callback: Edit a membership.
  */
 function membership_entity_edit($membership) {
@@ -285,6 +332,7 @@ function membership_entity_edit_form($form, &$form_state, $membership) {
   // Add the membership entity form fields.
   $form['#membership_entity'] = $membership;
   membership_entity_form($form, $form_state);
+  $form['#validate'][] = 'membership_entity_form_validate';
 
   // Add the buttons.
   $form['actions'] = array(
@@ -319,8 +367,6 @@ function membership_entity_edit_form($form, &$form_state, $membership) {
 function membership_entity_form(&$form, &$form_state) {
   $membership = $form['#membership_entity'];
   $membership = membership_entity_prepare_form($membership);
-
-  $is_new = empty($membership->mid);
 
   $form['#entity_type'] = 'membership_entity';
   $form['#bundle'] = $membership->type;
@@ -378,14 +424,18 @@ function membership_entity_form(&$form, &$form_state) {
     '#access' => user_access('administer memberships'),
   );
 
+  // For joins and renewals we create a new term for the membership. All other
+  // edits will only update the most recent membership term.
+  $join = empty($membership->mid);
+  $renewal = !empty($membership->is_renewal);
   $form['membership']['current_term_length'] = array(
     '#type' => 'radios',
-    '#title' => $is_new ? t('Term length') : t('Current term length'),
-    '#description' => $is_new ? t('Select the desired term length.') : t('This will change your current term length. To renew this membership, go to the <a href="@url">renew page</a>', array('@url' => url('membership-entity/renew/' . $membership->mid))),
+    '#title' => ($join || $renewal) ? t('Term length') : t('Current term length'),
+    '#description' => ($join || $renewal) ? t('Select the desired term length.') : t('This will change your current term length. To renew this membership, go to the <a href="@url">renew page</a>', array('@url' => url('membership-entity/renew/' . $membership->mid))),
     '#default_value' => isset($membership->current_term_length) ? $membership->current_term_length : NULL,
     '#required' => TRUE,
     '#options' => drupal_map_assoc(variable_get('membership_entity_term_lengths_' . $membership->type, array())),
-    '#access' => $is_new || user_access('administer memberships'),
+    '#access' => ($join || $renewal || user_access('administer memberships')),
   );
 
   // Add field UI items.
@@ -397,8 +447,6 @@ function membership_entity_form(&$form, &$form_state) {
     $additional_members['#access'] = TRUE;
   }
   $additional_members['#access'] = membership_entity_access('manage', $membership) && $additional_members['#access'];
-
-  $form['#validate'][] = 'membership_entity_form_validate';
 }
 
 /**
@@ -522,8 +570,8 @@ function membership_entity_edit_form_submit($form, &$form_state) {
   $membership = $form['#membership_entity'];
   entity_form_submit_build_entity('membership_entity', $membership, $form, $form_state);
 
-  $is_new = empty($membership->mid);
-  if ($is_new) {
+  $new = empty($membership->mid);
+  if ($new) {
     $membership->member_id = membership_entity_next_member_id();
   }
   $membership = membership_entity_prepare_save($membership);
@@ -534,7 +582,7 @@ function membership_entity_edit_form_submit($form, &$form_state) {
     '@type' => membership_entity_type_get_name($membership),
     '%member_id' => $membership->member_id,
   );
-  if ($is_new) {
+  if ($new) {
     drupal_set_message(t('@type %member_id has been created.', $t_args));
   }
   else {

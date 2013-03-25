@@ -910,7 +910,7 @@ function membership_entity_prepare_form($membership) {
   foreach ($membership->terms as $key => $row) {
     $sort[$key] = $row['delta'];
   }
-  array_multisort($sort, SORT_DESC, $membership->terms);
+  array_multisort($sort, SORT_ASC, $membership->terms);
   $current = end($membership->terms);
   $membership->current_term_length = $current['term_length'];
 
@@ -921,31 +921,45 @@ function membership_entity_prepare_form($membership) {
  * Prepare a membership object for saving.
  */
 function membership_entity_prepare_save($membership) {
-  $is_new = empty($membership->mid);
+  $new = empty($membership->mid);
+  $renewal = !empty($membership->is_renewal);
   $term_length = $membership->current_term_length;
 
-  if ($is_new) {
-    // Add the fist term.
+  // Get the latest term.
+  $max = array();
+  foreach ($membership->terms as $key => $row) {
+    $max[$key] = $row['delta'];
+  }
+  $latest_delta = !empty($max) ? max($max) : -1;
+  $latest_term = isset($membership->terms[$latest_delta]) ? $membership->terms[$latest_delta] : array();
+
+  if ($new || $renewal) {
+    if (!empty($latest_term['end']) && $latest_term['end'] >= REQUEST_TIME) {
+      // If the latest term hasn't expired, then the new term starts when
+      // the latest term ends.
+      $start = $latest_term['end'];
+    }
+    else if ($renewal) {
+      // If this is a renewal and the membership has expired, then the new
+      // term starts now.
+      $start = REQUEST_TIME;
+    }
+    else {
+      $start = $membership->created;
+    }
+
+    // Add the new term.
     $membership->terms[] = array(
-      'delta' => 0,
-      'start' => $membership->created,
-      'end' => ($term_length == 'lifetime') ? MEMBERSHIP_ENTITY_LIFETIME_TERM : strtotime($term_length, $membership->created),
+      'delta' => $latest_delta + 1,
+      'start' => $start,
+      'end' => ($term_length == 'lifetime') ? MEMBERSHIP_ENTITY_LIFETIME_TERM : strtotime($term_length, $start),
       'term_length' => $term_length,
     );
   }
-  else {
-    // Get the latest term.
-    $max = array();
-    foreach ($membership->terms as $row) {
-      $max[] = $row['delta'];
-    }
-    $key = max($max);
-
-    // Update the latest term, if changed.
-    if ($term_length != $membership->terms[$key]['term_length']) {
-      $membership->terms[$key]['term_length'] = $term_length;
-      $membership->terms[$key]['end'] = ($term_length == 'lifetime') ? MEMBERSHIP_ENTITY_LIFETIME_TERM : strtotime($term_length, $membership->terms[$key]['start']);
-    }
+  else if (!empty($latest_term) && ($term_length != $latest_term['term_length'])) {
+    // Update the latest term.
+    $membership->terms[$latest_delta]['term_length'] = $term_length;
+    $membership->terms[$latest_delta]['end'] = ($term_length == 'lifetime') ? MEMBERSHIP_ENTITY_LIFETIME_TERM : strtotime($term_length, $latest_term['start']);
   }
 
   return $membership;
