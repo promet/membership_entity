@@ -36,9 +36,9 @@ function membership_entity_join($form, &$form_state) {
         $form['account_info'] = array(
           '#type' => 'fieldset',
           '#title' => t('Account information'),
-          '#description' => t('If you already have an account on @site_name please <a href="@login">login</a> before completing this form.', array(
+          '#description' => t('If you already have an account on @site_name please <a href="!login">login</a> before completing this form.', array(
             '@site_name' => variable_get('site_name', ''),
-            '@login' => url('user', array('query' => array('destination' => 'membership_entity/join'))),
+            '!login' => url('user', array('query' => array('destination' => 'membership_entity/join'))),
           )),
           '#user' => $form['#user'],
         );
@@ -238,6 +238,9 @@ function membership_entity_renew($form, &$form_state, $membership) {
     '#membership_entity' => $form['#membership_entity'],
   );
   membership_entity_form($form['membership_info'], $form_state);
+
+  // Set the membership to active.
+  $form['membership_info']['membership']['status']['#default_value'] = MEMBERSHIP_ENTITY_ACTIVE;
 
   $form['actions'] = array('#type' => 'actions');
   $form['actions']['submit'] = array(
@@ -516,7 +519,7 @@ function membership_entity_user_autocomplete($type, $string = '') {
       // information.
       ->fields('u', array('uid', 'name'))
       ->addMetaData('id', 'membership_entity_user_autocomplete')
-      ->condition('u.name', '%' . check_plain($string) . '%', 'LIKE');
+      ->condition('u.name', '%' . db_like($string) . '%', 'LIKE');
 
     // No role filter if authenticated user is selected.
     if (!empty($roles) && !in_array(DRUPAL_AUTHENTICATED_RID, $roles)) {
@@ -576,7 +579,6 @@ function membership_entity_edit_form_submit($form, &$form_state) {
   }
   $membership = membership_entity_prepare_save($membership);
   membership_entity_save($membership);
-  membership_entity_update_user_role($membership);
 
   $t_args = array(
     '@type' => membership_entity_type_get_name($membership),
@@ -722,11 +724,12 @@ function membership_entity_admin_list() {
   // Prepare the list of memberships.
   $destination = drupal_get_destination();
   $options = array();
+  $statuses = membership_entity_get_status_list();
   foreach ($memberships as $membership) {
     $options[$membership->mid] = array(
       'member_id' => l(check_plain($membership->member_id), 'membership/' . $membership->mid),
       'type' => check_plain(membership_entity_type_get_name($membership)),
-      'status' => $membership->status ? t('Active') : t('Expired'),
+      'status' => $statuses[$membership->status],
       'created' => format_date($membership->created, 'short'),
       'changed' => format_date($membership->changed, 'short'),
     );
@@ -885,11 +888,7 @@ function membership_entity_filters() {
     'title' => t('status'),
     'options' => array(
       '[any]' => t('any'),
-      MEMBERSHIP_ENTITY_ACTIVE => t('Active'),
-      MEMBERSHIP_ENTITY_PENDING => t('Pending'),
-      MEMBERSHIP_ENTITY_EXPIRED => t('Expired'),
-      MEMBERSHIP_ENTITY_CANCELLED => t('Cancelled'),
-    ),
+    ) + membership_entity_get_status_list(),
   );
 
   $types = array('[any]' => t('any'));

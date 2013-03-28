@@ -46,7 +46,7 @@ class MembershipEntityController
    * Loads a membership entity from the database.
    *
    * @param $mids
-   *  An array of membership_entity mids to laod.
+   *  An array of membership_entity mids to load.
    * @param $conditions
    *  An array of conditions to match.
    */
@@ -109,7 +109,10 @@ class MembershipEntityController
     // Save fields.
     $function = 'field_attach_' . $op;
     $function('membership_entity', $membership);
+
+    // Envoke insert/update hooks.
     module_invoke_all('entity_' . $op, $membership, 'membership_entity');
+    module_invoke_all('membership_entity_' . $op, $membership);
 
     return $membership;
   }
@@ -132,7 +135,14 @@ class MembershipEntityController
         module_invoke_all('entity_delete', $membership, 'membership_entity');
         field_attach_delete('membership_entity', $membership);
       }
+
+      // Delete the membership.
       db_delete('membership_entity')
+        ->condition('mid', $mids, 'IN')
+        ->execute();
+
+      // Delete the membership terms.
+      db_delete('membership_entity_terms')
         ->condition('mid', $mids, 'IN')
         ->execute();
     }

@@ -50,6 +50,52 @@ function membership_entity_views_api() {
 }
 
 /**
+ * Implements hook_cron().
+ */
+function membership_entity_cron() {
+  // Find all expired memberships.
+  $subquery = db_select('membership_entity_terms', 't');
+  $subquery->addField('t', 'mid');
+  $subquery->addExpression('MIN(end)', 'min_end');
+  $subquery->addExpression('MAX(end)', 'max_end');
+  $subquery->groupBy('t.mid');
+
+  $query = db_select('membership_entity', 'm');
+  $query->join($subquery, 't', 'm.mid=t.mid');
+  $query->addField('m', 'mid');
+  $query->condition('t.max_end', array(0, REQUEST_TIME), 'BETWEEN');
+  $query->condition('t.min_end', MEMBERSHIP_ENTITY_LIFETIME_TERM, '<>');
+  $result = $query->execute()
+    ->fetchAllAssoc('mid');
+
+  // Queue them up for expiration.
+  $queue = DrupalQueue::get('membership_entity_expire');
+  foreach (array_keys($result) as $mid) {
+    $queue->createItem($mid);
+  }
+}
+
+/**
+ * Implements hook_cron_queue_info().
+ */
+function membership_entity_cron_queue_info() {
+  $queues['membership_entity_expire'] = array(
+    'worker callback' => 'membership_entity_expire_worker',
+    'time' => 60,
+  );
+  return $queues;
+}
+
+/**
+ * Worker callback to process membership expirations.
+ */
+function membership_entity_expire_worker($data) {
+  $membership = membership_entity_load($data);
+  $membership->status = MEMBERSHIP_ENTITY_EXPIRED;
+  membership_entity_save($membership);
+}
+
+/**
  * Implements hook_permission().
  */
 function membership_entity_permission() {
@@ -145,6 +191,7 @@ function membership_entity_membership_entity_access($op, $membership = NULL, $ac
     $efq = new EntityFieldQuery();
     $results = $efq->entityCondition('entity_type', 'membership_entity')
       ->propertyCondition('uid', $user->uid)
+      ->propertyCondition('uid', 0, '<>')
       ->range(0, 1)
       ->execute();
     if (empty($results['membership_entity']) && user_access('access join page')) {
@@ -281,13 +328,24 @@ function membership_entity_menu() {
     'context' => MENU_CONTEXT_PAGE | MENU_CONTEXT_INLINE,
     'file' => 'membership_entity.pages.inc',
   );
+  $items['membership/%membership_entity/renew'] = array(
+    'title' => 'Renew',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('membership_entity_renew', 1),
+    'access callback' => 'membership_entity_access',
+    'access arguments' => array('renew', 1),
+    'weight' => 1,
+    'type' => MENU_LOCAL_TASK,
+    'context' => MENU_CONTEXT_PAGE | MENU_CONTEXT_INLINE,
+    'file' => 'membership_entity.pages.inc',
+  );
   $items['membership/%membership_entity/delete'] = array(
     'title' => 'Delete',
     'page callback' => 'drupal_get_form',
     'page arguments' => array('membership_entity_delete_confirm', 1),
     'access callback' => 'membership_entity_access',
     'access arguments' => array('delete', 1),
-    'weight' => 1,
+    'weight' => 2,
     'type' => MENU_LOCAL_TASK,
     'context' => MENU_CONTEXT_INLINE,
     'file' => 'membership_entity.pages.inc',
@@ -310,15 +368,20 @@ function membership_entity_menu() {
     'type' => MENU_NORMAL_ITEM,
     'file' => 'membership_entity.pages.inc',
   );
-  $items['membership-entity/renew/%membership_entity'] = array(
-    'title' => 'Renew your membership',
-    'page callback' => 'drupal_get_form',
-    'page arguments' => array('membership_entity_renew', 2),
-    'access callback' => 'membership_entity_access',
-    'access arguments' => array('renew', 2),
-    'type' => MENU_NORMAL_ITEM,
-    'file' => 'membership_entity.pages.inc',
-  );
+
+  // Add support for devel generate.
+  if (module_exists('devel_generate')) {
+    $items['admin/config/development/generate/membership-entity'] = array(
+      'title' => 'Generate memberships',
+      'description' => 'Generate a given number of memberships. Optionally delete current memberships.',
+      'page callback' => 'drupal_get_form',
+      'page arguments' => array('membership_entity_devel_generate_memberships_form'),
+      'access arguments' => array('administer memberships'),
+      'type' => MENU_NORMAL_ITEM,
+      'file' => 'membership_entity.devel.inc',
+    );
+  }
+
   return $items;
 }
 
@@ -521,13 +584,6 @@ function membership_entity_membership_entity_type_delete($type) {
     ->condition('name', 'membership_entity_%_' . $type->type, 'LIKE')
     ->execute();
   cache_clear_all('variables', 'cache_bootstrap');
-}
-
-/**
- * Implements hook_cron().
- */
-function membership_entity_cron() {
-  // @TODO: Disable expired memberships.
 }
 
 /**
@@ -876,8 +932,7 @@ function membership_entity_numeric_member_id_callback() {
  * Helper function to add or remove active and expired roles from a member.
  *
  * @param $membership
- *  A membership object. Must include at minimum $membership-uid
- *  and $membership->type
+ *  A membership object. Must include at minimum uid, type, and status.
  * @return boolean
  *  TRUE if the membership has expired.
  */
@@ -886,29 +941,31 @@ function membership_entity_update_user_role($membership) {
   $active_role = user_role_load(variable_get('membership_entity_active_role_' . $membership->type, NULL));
   $expired_role = user_role_load(variable_get('membership_entity_expired_role_' . $membership->type, NULL));
 
-  $expired = TRUE; // Guilty until proven innocent!
-  foreach ($membership->terms as $term) {
-    $lifetime = $term['term_length'] == 'lifetime';
-    if ($lifetime || ($term['start'] <= REQUEST_TIME && $term['end'] >= REQUEST_TIME)) {
-      $expired = FALSE;
-    }
+  switch ($membership->status) {
+    case MEMBERSHIP_ENTITY_ACTIVE:
+      // Add the Active role.
+      $member->roles[$active_role->rid] = $active_role->name;
+      // Remove the Expired role.
+      unset($member->roles[$expired_role->rid]);
+      break;
+
+    case MEMBERSHIP_ENTITY_EXPIRED:
+      // Add Expired role.
+      $member->roles[$expired_role->rid] = $expired_role->name;
+      // Remove Active role.
+      unset($member->roles[$active_role->rid]);
+      break;
+
+    case MEMBERSHIP_ENTITY_CANCELLED:
+    case MEMBERSHIP_ENTITY_PENDING:
+      // Remove both active and expired roles.
+      unset($member->roles[$expired_role->rid]);
+      unset($member->roles[$active_role->rid]);
+      break;
   }
 
-  if ($expired) {
-    // Add Expired role.
-    $member->roles[$expired_role->rid] = $expired_role->name;
-    // Remove Active role.
-    unset($member->roles[$active_role->rid]);
-  }
-  else {
-    // Add the Active role.
-    $member->roles[$active_role->rid] = $active_role->name;
-    // Remove the Expired role.
-    unset($member->roles[$expired_role->rid]);
-  }
+  // Save the member.
   user_save($member);
-
-  return $expired;
 }
 
 /**
@@ -981,6 +1038,21 @@ function membership_entity_prepare_save($membership) {
 function membership_entity_save(&$membership) {
   return entity_get_controller('membership_entity')
     ->save($membership);
+}
+
+/**
+ * Implements hook_membership_entity_insert().
+ */
+function membership_entity_membership_entity_insert($membership) {
+  membership_entity_membership_entity_update($membership);
+}
+
+/**
+ * Implements hook_membership_entity_update().
+ */
+function membership_entity_membership_entity_update($membership) {
+  // Update the primary member's role to match $membership->status.
+  membership_entity_update_user_role($membership);
 }
 
 /**
