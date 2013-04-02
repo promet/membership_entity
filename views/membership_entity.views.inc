@@ -22,16 +22,25 @@ function membership_entity_views_data_alter(&$data) {
       'base' => 'membership_entity',
       'base field' => 'uid',
       'field' => 'uid',
+      'label' => t('membership'),
     ),
   );
+
+  // If the date_views module is available, use a handler that extends that class.
+  if (module_exists('date_views')) {
+    $data['membership_entity_terms']['start']['filter']['handler'] = 'membership_entity_handler_filter_terms_date_date';
+    $data['membership_entity_terms']['end']['filter']['handler'] = 'membership_entity_handler_filter_terms_date_date';
+  }
 }
 
 /**
  * Implements hook_views_data().
  */
 function membership_entity_views_data() {
+  // Group to display fields in views ui.
   $data['membership_entity']['table']['group'] = t('Membership');
 
+  // Base table definition for views.
   $data['membership_entity']['table']['base'] = array(
     'field' => 'mid',
     'title' => t('Memberships'),
@@ -41,21 +50,24 @@ function membership_entity_views_data() {
     ),
   );
 
-  $data['membership_entity']['join'] = array(
-    'users' => array(
-      'left_table' => 'membership_entity',
-      'left_field' => 'uid',
-      'field' => 'uid',
+  // Let views know which entity is used.
+  $data['membership_entity']['table']['entity type'] = 'membership_entity';
+
+  // Add the membership_entity_terms table to be joined when using a field from
+  // the membership_entity table.
+  $data['membership_entity']['table']['default_relationship'] = array(
+    'membership_entity_terms' => array(
+      'table' => 'membership_entity_terms',
+      'field' => 'mid',
     ),
   );
 
-  $data['membership_entity']['table']['entity type'] = 'membership_entity';
-
+  // Define fields for the membership_entity table.
   $data['membership_entity']['mid'] = array(
     'title' => t('Mid'),
     'help' => t('Membership entity ID.'),
     'field' => array(
-      'handler' => 'membership_entity_handler_field_membership_entity',
+      'handler' => 'membership_entity_handler_field_mid',
       'click sortable' => TRUE,
     ),
     'argument' => array(
@@ -76,14 +88,14 @@ function membership_entity_views_data() {
     'title' => t('Type'),
     'help' => t('The membership type.'),
     'field' => array(
-      'handler' => 'membership_entity_handler_field_membership_entity_type',
+      'handler' => 'membership_entity_handler_field_type',
       'click sortable' => TRUE,
     ),
     'sort' => array(
       'handler' => 'views_handler_sort',
     ),
     'filter' => array(
-      'handler' => 'membership_entity_handler_filter_membership_entity_type',
+      'handler' => 'membership_entity_handler_filter_type',
     ),
     'argument' => array(
       'handler' => 'views_handler_argument_string',
@@ -94,7 +106,7 @@ function membership_entity_views_data() {
     'title' => t('Member ID'),
     'help' => t('The member ID'),
     'field' => array(
-      'handler' => 'membership_entity_handler_field_membership_entity',
+      'handler' => 'membership_entity_handler_field_mid',
       'click sortable' => TRUE,
     ),
     'sort' => array(
@@ -112,11 +124,11 @@ function membership_entity_views_data() {
     'title' => t('Status'),
     'help' => t('Whether or not the membership is active'),
     'field' => array(
-      'handler' => 'membership_entity_handler_field_membership_entity_status',
+      'handler' => 'membership_entity_handler_field_status',
       'click sortable' => TRUE,
     ),
     'filter' => array(
-      'handler' => 'membership_entity_handler_filter_membership_entity_status',
+      'handler' => 'membership_entity_handler_filter_status',
       'numeric' => TRUE,
       'allow empty' => TRUE,
     ),
@@ -184,7 +196,7 @@ function membership_entity_views_data() {
     'field' => array(
       'title' => t('Link'),
       'help' => t('Provide a link to the membership.'),
-      'handler' => 'membership_entity_handler_field_membership_entity_link',
+      'handler' => 'membership_entity_handler_field_link',
     ),
   );
 
@@ -193,7 +205,7 @@ function membership_entity_views_data() {
     'field' => array(
       'title' => t('Edit link'),
       'help' => t('Provide a link to edit the membership.'),
-      'handler' => 'membership_entity_handler_field_membership_entity_link_edit',
+      'handler' => 'membership_entity_handler_field_link_edit',
     ),
   );
 
@@ -202,7 +214,93 @@ function membership_entity_views_data() {
     'field' => array(
       'title' => t('Delete link'),
       'help' => t('Provide a link to delete the membership.'),
-      'handler' => 'membership_entity_handler_field_membership_entity_link_delete',
+      'handler' => 'membership_entity_handler_field_link_delete',
+    ),
+  );
+
+  $data['membership_entity']['renew_membership']['moved to'] = array('views_entity_membership_entity', 'renew membership');
+  $data['views_entity_membership_entity']['renew_membership'] = array(
+    'field' => array(
+      'title' => t('Renew link'),
+      'help' => t('Provide a link to renew the membership.'),
+      'handler' => 'membership_entity_handler_field_link_renew',
+    ),
+  );
+
+  $data['membership_entity_terms']['table']['entity type'] = 'membership_entity';
+  $data['membership_entity_terms']['table']['group'] = t('Membership');
+
+  $data['membership_entity_terms']['table']['join'] = array(
+    'membership_entity' => array(
+      'left_field' => 'mid',
+      'field' => 'mid',
+    ),
+  );
+
+  $data['membership_entity_terms']['table']['default_relationship'] = array(
+    'membership_entity' => array(
+      'table' => 'membership_entity',
+      'field' => 'mid',
+    ),
+  );
+
+  // Define fields for the membership_entity_terms table.
+  $data['membership_entity_terms']['delta'] = array(
+    'title' => t('Delta'),
+    'help' => t('Membership term delta.'),
+    'field' => array(
+      'handler' => 'views_handler_field_numeric',
+      'click sortable' => TRUE,
+    ),
+    'filter' => array(
+      'handler' => 'views_handler_filter_numeric',
+    ),
+    'sort' => array(
+      'handler' => 'views_handler_sort',
+    ),
+  );
+
+  $data['membership_entity_terms']['start'] = array(
+    'title' => t('Start Date'),
+    'help' => t('Membership Start Date.'),
+    'field' => array(
+      'handler' => 'membership_entity_handler_field_terms_date',
+      'click sortable' => TRUE,
+    ),
+    'filter' => array(
+      'handler' => 'membership_entity_handler_filter_terms_date',
+      'is date' => TRUE,
+    ),
+    'sort' => array(
+      'handler' => 'views_handler_sort_date',
+    ),
+  );
+
+  $data['membership_entity_terms']['end'] = array(
+    'title' => t('End Date'),
+    'help' => t('Membership End Date'),
+    'field' => array(
+      'handler' => 'membership_entity_handler_field_terms_date',
+      'click sortable' => TRUE,
+    ),
+    'filter' => array(
+      'handler' => 'membership_entity_handler_filter_terms_date',
+      'is date' => TRUE,
+    ),
+    'sort' => array(
+      'handler' => 'views_handler_sort_date',
+    ),
+  );
+
+  $data['membership_entity_terms']['term_length'] = array(
+    'title' => t('Term'),
+    'help' => t('Membership Term Length.'),
+    'field' => array(
+      'handler' => 'views_handler_field',
+      'click sortable' => TRUE,
+    ),
+    'filter' => array(
+      'handler' => 'views_handler_filter_string',
     ),
   );
 

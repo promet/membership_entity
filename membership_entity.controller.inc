@@ -16,7 +16,7 @@ interface MembershipEntityControllerInterface
 }
 
 /**
- * Entity controller class for memberhip entities.
+ * Entity controller class for membership entities.
  */
 class MembershipEntityController
   extends DrupalDefaultEntityController

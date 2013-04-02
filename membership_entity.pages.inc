@@ -310,7 +310,7 @@ function membership_entity_add_page() {
 }
 
 /**
- * Menu callback: Add a memberhsip entity.
+ * Menu callback: Add a membership entity.
  */
 function membership_entity_add($type) {
   // Create a generic membership entity.
@@ -584,10 +584,10 @@ function membership_entity_edit_form_submit($form, &$form_state) {
     '@type' => membership_entity_type_get_name($membership),
     '%member_id' => $membership->member_id,
   );
-  if ($new) {
+  if ($new && user_access('administer memberships')) {
     drupal_set_message(t('@type %member_id has been created.', $t_args));
   }
-  else {
+  elseif (!$new) {
     drupal_set_message(t('@type %member_id has been updated.', $t_args));
   }
 
@@ -603,7 +603,7 @@ function membership_entity_edit_form_delete($form, &$form_state) {
     $destination = drupal_get_destination();
     unset($_GET['destination']);
   }
-  $membership = $form_state['membership_entity'];
+  $membership = $form['#membership_entity'];
   $form_state['redirect'] = array(
     'membership/' . $membership->mid . '/delete',
     array('query' => $destination),
