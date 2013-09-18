@@ -1,0 +1,85 @@
+<?php
+
+/**
+ * @file
+ * Defines membership terms.
+ */
+
+/**
+ * The term length for lifetime memberships.
+ */
+define('MEMBERSHIP_ENTITY_TERM_LIFETIME', -1);
+
+/**
+ * Implements hook_help().
+ */
+function membership_entity_term_help($path, $arg) {
+  switch ($path) {
+    // @TODO add help documentation
+  }
+}
+
+/**
+ * Implements hook_entity_info().
+ */
+function membership_entity_entity_info() {
+  $info = array(
+    'label' => t('Membershp term'),
+    'plural label' => t('Membership terms'),
+    'description' => t('Terms attached to a membership.'),
+    'entity class' => 'MembershipEntityTerm',
+    'controller class' => 'EntityAPIController',
+    'base table' => 'membership_entity_term',
+    'label callback' => 'entity_class_label',
+    'uri callback' => 'entity_class_uri',
+    'fieldable' => FALSE,
+    'entity keys' => array(
+      'id' => 'id',
+      'mid' => 'mid',
+    ),
+    'bundles' => array(
+      'term' => array(
+        'label' => t('Term'),
+        'admin' => array(
+          'path' => 'admin/config/membership/terms',
+          'access arguments' => array('administer membership terms'),
+        ),
+      ),
+    ),
+    'view modes' => array(
+      'membership' => array(
+        'label' => t('Membership'),
+        'custom settings' => FALSE,
+      ),
+    ),
+  );
+
+  return $info;
+}
+
+/**
+ * Implements hook_permission().
+ */
+function membership_entity_term_permission() {
+  return array(
+    'administer membership terms' => array(
+      'title' => t('Administer membership terms'),
+      'restrict access' => TRUE,
+    ),
+}
+
+/**
+ * Implements hook_menu().
+ */
+function membership_entity_term() {
+  return $items;
+}
+
+/**
+ *  Defines a membership term.
+ */
+class MembershipEntityTerm extends Entity {
+  public function __construct($values = array()) {
+    parent::__construct($values, 'membership_entity_term');
+  }
+}

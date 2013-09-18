@@ -1,0 +1,342 @@
+<?php
+
+/**
+ * @file
+ * Allows users to create different types of memberships.
+ */
+
+/**
+ * Implements hook_help().
+ */
+function membership_entity_type_help($path, $arg) {
+  switch ($path) {
+    // @TODO add help documentation
+  }
+}
+
+/**
+ * Implements hook_entity_info().
+ */
+function membership_entity_type_entity_info() {
+  $info['membership_entity_type'] = array(
+    'label' => t('Membershp type'),
+    'plural label' => t('Membership types'),
+    'description' => t('Types of memberships.'),
+    'entity class' => 'MembershipEntityType',
+    'controller class' => 'EntityAPIControllerExportable',
+    'base table' => 'membership_entity_type',
+    'fieldable' => FALSE,
+    'bundle of' => 'membership_entity',
+    'exportable' => TRUE,
+    'entity keys' => array(
+      'id' => 'id',
+      'name' => 'type',
+      'label' => 'label',
+    ),
+    'access callback' => 'membership_entity_type_admin_access',
+    'module' => 'membership_entity_type',
+    'admin ui' => array(
+      'path' => 'admin/structure/membership-types',
+      'file' => 'membership_entity_type.admin.inc',
+      'controller class' => 'MembershipEntityTypeUIController',
+    ),
+  );
+
+  return $info;
+}
+
+/**
+ *  Implements hook_menu().
+ */
+function membership_entity_type_menu() {
+  $items = array();
+  foreach (membership_entity_get_types(TRUE) as $type) {
+    $type_url_str = str_replace('_', '-', $type->type);
+    $items['admin/memberships/add/' . $type_url_str] = array(
+      'title' => $type->name,
+      'title callback' => 'check_plain',
+      'page callback' => 'membership_entity_add',
+      'page arguments' => array($type->type),
+      'access arguments' => array('administer memberships'),
+      'description' => $type->description,
+      'file' => 'membership_entity.pages.inc',
+    );
+  }
+  return $items;
+}
+
+/**
+ *  Access callback for membership entity type admin ui.
+ */
+function membership_entity_type_admin_access($op, $type = NULL, $account = NULL) {
+  return user_access('administer membership types', $account);
+}
+
+/**
+ * Implements hook_permission().
+ */
+function membership_entity_type_permission() {
+  $perms = array(
+    'administer membership types' => array(
+      'title' => t('Administer membership types'),
+      'restrict access' => TRUE,
+    ),
+  );
+
+  foreach (membership_entity_type_get_types() as $type_name => $type) {
+    $perms += array(
+      $type_name . ' renew any membership' => array(
+        'title' => t('Renew any %type membership', array('%type' => $type->name)),
+      ),
+      $type_name . ' renew own membership' => array(
+        'title' => t('Renew own %type membership', array('%type' => $type->name)),
+      ),
+      $type_name . ' view any membership' => array(
+        'title' => t('View any %type membership', array('%type' => $type->name)),
+      ),
+      $type_name . ' view own membership' => array(
+        'title' => t('View own %type membership', array('%type' => $type->name)),
+      ),
+      $type_name . ' edit any membership' => array(
+        'title' => t('Edit any %type membership', array('%type' => $type->name)),
+      ),
+      $type_name . ' edit own membership' => array(
+        'title' => t('Edit own %type membership', array('%type' => $type->name)),
+      ),
+      $type_name . ' manage own membership' => array(
+        'title' => t('Manage own %type secondary members', array('%type' => $type->name)),
+        'description' => t('Add/remove secondary members.'),
+      ),
+      $type_name . ' delete any membership' => array(
+        'title' => t('Delete any %type membership', array('%type' => $type->name)),
+      ),
+      $type_name . ' delete own membership' => array(
+        'title' => t('Delete own %type membership', array('%type' => $type->name)),
+      ),
+    );
+  }
+  return $perms;
+}
+
+/**
+ *  Create a new Membership entity type with default values.
+ */
+function membership_entity_type_create() {
+  return new MembershipEntityType(array(
+    'is_new' => TRUE,
+    'label' => '',
+    'type' => '',
+    'description' => '',
+    'weight' => 0,
+    'data' => array(
+      'available_term_lengths' => array(),
+      'cardinality' => 1,
+      'show_on_profile' => 1,
+      'all_edit' => 0,
+      'roles' => array(),
+      'primary_role' => '',
+      'secondary_role' => '',
+    ),
+  ));
+}
+
+/**
+ * Load a membership type object.
+ *
+ * @param $type
+ *   The machine name name of a membership type to load, '_' is replaced with '-'.
+ *
+ * @return
+ *   A membership type object or FALSE if $name does not exist.
+ */
+function membership_entity_type_load($type) {
+  $types = membership_entity_type_get_types();
+  $machine_name = str_replace('-', '_', $name);
+  return isset($types[$machine_name]) ? $types[$machine_name] : FALSE;
+}
+
+/**
+ * Returns a list of membership types.
+ *
+ * @param $rebuild
+ *  TRUE to rebuild the membership types cache.
+ */
+function membership_entity_type_get_types($rebuild = FALSE) {
+  $cid = 'membership_entity_types';
+
+  if (!$rebuild) {
+    // Check the static cache.
+    $types = &drupal_static(__FUNCTION__);
+    if (isset($types)) {
+      return $types;
+    }
+
+    // Check the database cache.
+    if ($cache = cache_get($cid)) {
+      $types = $cache->data;
+      return $types;
+    }
+  }
+
+  $types = array();
+
+  $results = db_select('membership_entity_type', 'met')
+    ->fields('met')
+    ->orderBy('met.type', 'ASC')
+    ->execute();
+
+  foreach ($results as $result) {
+    $types[$result->type] = $result;
+  }
+
+  cache_set($cid, $types);
+  return $types;
+}
+
+/**
+ * Returns a list of membership type names.
+ */
+function membership_entity_type_get_names() {
+  $types = membership_entity_type_get_types();
+  $names = array();
+  foreach ($types as $type) {
+    $names[$type->type] = $type->name;
+  }
+  return $names;
+}
+
+/**
+ * Returns the human readable name of a membership object type.
+ *
+ * @param $membership
+ *  The membership object to get the type name.
+ */
+function membership_entity_type_get_name($membership) {
+  $names = membership_entity_get_type_names();
+  return isset($names[$membership->type]) ? $names[$membership->type] : '';
+}
+
+/**
+ * Rebuilds membership type information.
+ */
+function membership_entity_types_rebuild() {
+  membership_entity_get_types(TRUE);
+}
+
+/**
+ * Saves a membership type to the database.
+ *
+ * @param $type
+ *   The membership type to save, as an object.
+ *
+ * @return
+ *   Status flag indicating outcome of the operation.
+ */
+function membership_entity_type_save($type) {
+  $type_exists = (bool) db_query_range('SELECT 1 FROM {membership_entity_type} WHERE type = :type', 0, 1, array(':type' => $type->type))->fetchField();
+
+  $fields = array(
+    'type' => (string) $type->type,
+    'name' => (string) $type->name,
+    'description' => (string) $type->description,
+  );
+
+  if ($type_exists) {
+    db_update('membership_entity_type')
+      ->fields($fields)
+      ->condition('type', $type->type)
+      ->execute();
+
+    // Allow other modules to act on a membership type update.
+    module_invoke_all('membership_entity_type_update', $type);
+    $status = SAVED_UPDATED;
+  }
+  else {
+    db_insert('membership_entity_type')
+      ->fields($fields)
+      ->execute();
+
+    // Notify field api of the new bundle.
+    field_attach_create_bundle('membership_entity', $type->type);
+
+    // Allow other modules to act on a new membership type insert.
+    module_invoke_all('membership_entity_type_insert', $type);
+    $status = SAVED_NEW;
+  }
+
+  // Rebuild the membership types and menus.
+  membership_entity_types_rebuild();
+  menu_rebuild();
+  return $status;
+}
+
+/**
+ * Deletes a membership type from the database.
+ *
+ * @param $type
+ *   The membership type object to be deleted.
+ */
+function membership_entity_type_delete($type) {
+  db_delete('membership_entity_type')
+    ->condition('type', $type->type)
+    ->execute();
+
+  // Delete the field instances,
+  field_attach_delete_bundle('membership_entity', $type->type);
+
+  // Allow other modules to act on a membership type deletion.
+  module_invoke_all('membership_entity_type_delete', $type);
+
+  // Rebuild the membership types and menus.
+  membership_entity_types_rebuild();
+  menu_rebuild();
+}
+
+/**
+ * Implements hook_membership_entity_type_delete.
+ */
+function membership_entity_membership_entity_type_delete($type) {
+  // Remove membership type variables. We can't use variable_del() because
+  // we need to query the vairable name.
+  db_delete('variable')
+    ->condition('name', 'membership_entity_%_' . $type->type, 'LIKE')
+    ->execute();
+  cache_clear_all('variables', 'cache_bootstrap');
+}
+
+/**
+ * Title callback for a membership type.
+ */
+function membership_entity_type_page_title($type) {
+  return $type->name;
+}
+
+/**
+ * Implements hook_forms().
+ */
+function membership_entity_forms() {
+  $forms = array();
+  if ($types = membership_entity_get_types()) {
+    foreach ($types as $type) {
+      $forms[$type->type . '_membership_entity_edit_form']['callback'] = 'membership_entity_edit_form';
+    }
+  }
+  return $forms;
+}
+
+/**
+ *  Defines a membership type.
+ */
+class MembershipEntityType extends Entity {
+  public function __construct($values = array()) {
+    parent::__construct($values, 'membership_entity_type');
+  }
+
+  /**
+   * Overrides Entity::save().
+   */
+  public function save() {
+    parent::save();
+    field_info_cache_clear();
+  }
+}

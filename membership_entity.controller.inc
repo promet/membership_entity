@@ -6,41 +6,10 @@
  */
 
 /**
- * MembershipEntityControllerInterface definition.
- */
-interface MembershipEntityControllerInterface
-  extends DrupalEntityControllerInterface {
-  public function create($type);
-  public function save($membership);
-  public function delete_multiple($mids);
-}
-
-/**
  * Entity controller class for membership entities.
  */
 class MembershipEntityController
-  extends DrupalDefaultEntityController
-  implements MembershipEntityControllerInterface {
-
-  /**
-   * Return a new membership entity with default values.
-   *
-   * @param $type
-   *  The membership type for the new membership entity.
-   */
-  public function create($type) {
-    $user = $GLOBALS['user'];
-
-    return (object) array(
-      'entity_type' => 'membership_entity',
-      'mid' => 0,
-      'uid' => $user->uid,
-      'type' => $type,
-      'created' => REQUEST_TIME,
-      'status' => MEMBERSHIP_ENTITY_ACTIVE,
-      'terms' => array(),
-    );
-  }
+  extends DrupalDefaultEntityController {
 
   /**
    * Loads a membership entity from the database.

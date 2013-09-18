@@ -9,37 +9,6 @@
  * Implements hook_schema().
  */
 function membership_entity_schema() {
-  $schema['membership_entity_type'] = array(
-    'description' => 'Stores information about all defined membership types (bundles).',
-    'fields' => array(
-      'type' => array(
-        'description' => 'The machine-readable name of this type.',
-        'type' => 'varchar',
-        'length' => 32,
-        'not null' => TRUE,
-      ),
-      'name' => array(
-        'description' => 'The human-readable name of this type.',
-        'type' => 'varchar',
-        'length' => 255,
-        'not null' => TRUE,
-        'default' => '',
-        'translatable' => TRUE,
-      ),
-      'description' => array(
-        'description' => 'A brief description of this type.',
-        'type' => 'text',
-        'not null' => TRUE,
-        'size' => 'medium',
-        'translatable' => TRUE,
-      ),
-    ),
-    'unique keys' => array(
-      'name' => array('name'),
-    ),
-    'primary key' => array('type'),
-  );
-
   $schema['membership_entity'] = array(
     'description' => 'The base table for memberships.',
     'fields' => array(
@@ -48,6 +17,13 @@ function membership_entity_schema() {
         'type' => 'serial',
         'unsigned' => TRUE,
         'not null' => TRUE,
+      ),
+      'member_id' => array(
+        'description' => 'A user enterable unique member id.',
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+        'default' => '',
       ),
       'type' => array(
         'description' => 'The type (bundle) of this membership.',
@@ -63,15 +39,8 @@ function membership_entity_schema() {
         'not null' => TRUE,
         'default' => 0,
       ),
-      'member_id' => array(
-        'description' => 'A user enterable unique member id.',
-        'type' => 'varchar',
-        'length' => 255,
-        'not null' => TRUE,
-        'default' => '',
-      ),
       'status' => array(
-        'description' => 'Boolean indicating whether the membership is active or disabled.',
+        'description' => 'Integer code indicating the membership status.',
         'type' => 'int',
         'not null' => TRUE,
         'default' => 1,
@@ -109,110 +78,5 @@ function membership_entity_schema() {
     ),
   );
 
-  $schema['membership_entity_terms'] = array(
-    'description' => 'Stores information about membership term lengths.',
-    'fields' => array(
-      'mid' => array(
-        'description' => 'The membership identifier.',
-        'type' => 'serial',
-        'unsigned' => TRUE,
-        'not null' => TRUE,
-      ),
-      'delta' => array(
-        'description' => 'The term length order',
-        'type' => 'int',
-        'unsigned' => TRUE,
-        'not null' => TRUE,
-        'default' => 0,
-      ),
-      'start' => array(
-        'description' => 'The start date (unix timestamp) for this term.',
-        'type' => 'int',
-        'not null' => TRUE,
-        'default' => 0,
-      ),
-      'end' => array(
-        'description' => 'The end date (unix timestamp) for this term.',
-        'type' => 'int',
-        'not null' => TRUE,
-        'default' => 0,
-      ),
-      'term_length' => array(
-        'description' => 'The length for this term.',
-        'type' => 'varchar',
-        'length' => 32,
-        'not null' => TRUE,
-        'default' => '',
-      ),
-    ),
-    'indexes' => array(
-      'membership_entity_term_start' => array('start'),
-      'membership_entity_term_end' => array('end'),
-    ),
-    'primary key' => array('mid', 'delta'),
-    'foreign keys' => array(
-      'membership_entity_mid' => array(
-        'table' => 'membership_entity',
-        'columns' => array('mid' => 'mid'),
-      ),
-    ),
-  );
-
   return $schema;
-}
-
-/**
- * Implements hook_install().
- */
-function membership_entity_install() {
-  // @TODO: Install tasks.
-}
-
-/**
- * Implements hook_uninstall().
- */
-function membership_entity_uninstall() {
-  // Remove variables.
-  db_delete('variable')
-    ->condition('name', 'membership_entity_%', 'LIKE')
-    ->execute();
-  cache_clear_all('variables', 'cache_bootstrap');
-}
-
-/**
- * Add primary member uid field.
- */
-function membership_entity_update_7000() {
-  $field = array(
-    'description' => 'The user id of the primary member.',
-    'type' => 'int',
-    'unsigned' => TRUE,
-    'not null' => TRUE,
-    'default' => 0,
-  );
-  $keys = array(
-    'indexes' => array(
-      'membership_entity_uid' => array('uid'),
-    ),
-    'foreign keys' => array(
-      'membership_entity_primary_member' => array(
-        'table' => 'users',
-        'columns' => array('uid' => 'uid'),
-      ),
-    ),
-  );
-  db_add_field('membership_entity', 'uid', $field, $keys);
-}
-
-/**
- * Add term length field.
- */
-function membership_entity_update_7001() {
-  db_add_field('membership_entity', 'term_length', array(
-    'description' => 'The term length of the membership.',
-    'type' => 'varchar',
-    'length' => 32,
-    'not null' => TRUE,
-    'default' => '',
-  ));
 }

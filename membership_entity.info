@@ -4,11 +4,9 @@ package = Memberships
 version = 7.x-1.x-dev
 core = 7.x
 
-dependencies[] = entityreference
+dependencies[] = entity
 
 files[] = membership_entity.install
-files[] = membership_entity.types.inc
-files[] = membership_entity.controller.inc
 
 ; Views handlers.
 files[] = views/membership_entity_handler_field_mid.inc

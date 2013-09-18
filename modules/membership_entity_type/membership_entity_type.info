@@ -1,0 +1,9 @@
+name = Membership Entity Types
+description = Allows users to create different types of memberships.
+package = Memberships
+version = 7.x-1.x-dev
+core = 7.x
+
+dependencies[] = membership_entity
+
+files[] = membership_entity_type.install
