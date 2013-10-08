@@ -6,24 +6,24 @@
  */
 
 /**
- * Membership is disabled.
+ * Membership status codes.
  */
 define('MEMBERSHIP_ENTITY_EXPIRED', 0);
-
-/**
- * Membership is active.
- */
 define('MEMBERSHIP_ENTITY_ACTIVE', 1);
-
-/**
- * Membership was cancelled before it expires.
- */
 define('MEMBERSHIP_ENTITY_CANCELLED', 2);
+define('MEMBERSHIP_ENTITY_PENDING', 3);
 
 /**
- * The membership is pending admin approval.
+ * Retrieve a list of membership status options.
  */
-define('MEMBERSHIP_ENTITY_PENDING', 3);
+function membership_entity_get_status_list() {
+  return array(
+    MEMBERSHIP_ENTITY_EXPIRED => t('Expired'),
+    MEMBERSHIP_ENTITY_ACTIVE => t('Active'),
+    MEMBERSHIP_ENTITY_CANCELLED => t('Cancelled'),
+    MEMBERSHIP_ENTITY_PENDING => t('Pending'),
+  );
+}
 
 /**
  * Implements hook_help().
@@ -52,7 +52,7 @@ function membership_entity_entity_info() {
     'label' => t('Membership'),
     'plural label' => t('Membershps'),
     'entity class' => 'MembershipEntity',
-    'controller class' => 'EntityAPIController',
+    'controller class' => 'MembershipEntityController',
     'base table' => 'membership_entity',
     'label callback' => 'entity_class_label',
     'uri callback' => 'entity_class_uri',
@@ -110,7 +110,7 @@ function membership_entity_entity_info() {
  * Implements hook_permission().
  */
 function membership_entity_permission() {
-  return array(
+  $permissions = array(
     'administer memberships' => array(
       'title' => t('Administer memberships'),
       'restrict access' => TRUE,
@@ -119,6 +119,31 @@ function membership_entity_permission() {
       'title' => t('Join @site', array('@site' => variable_get('site_name', ''))),
     ),
   );
+
+  if (!module_exists('membership_entity_type')) {
+    $permissions['membership view any membership'] = array(
+      'title' => t('View any membership.'),
+    );
+    $permissions['membership view own membership'] = array(
+      'title' => t('View own membership.'),
+    );
+    $permissions['membership edit any membership'] = array(
+      'title' => t('Edit any membership.'),
+    );
+    $permissions['membership edit own membership'] = array(
+      'title' => t('Edit own membership.'),
+    );
+    $permissions['membership delete any membership'] = array(
+      'title' => t('Delete any membership.'),
+      'restrict access' => TRUE,
+    );
+    $permissions['membership delete own membership'] = array(
+      'title' => t('Delete own membership.'),
+      'restrict access' => TRUE,
+    );
+  }
+
+  return $permissions;
 }
 
 /**
@@ -157,6 +182,7 @@ function membership_entity_access($op, $membership = NULL, $account = NULL) {
  */
 function membership_entity_membership_entity_access($op, $membership = NULL, $account = NULL) {
   $user = isset($account) ? $account : $GLOBALS['user'];
+  $bundle_settings = membership_entity_get_bundle_settings();
 
   // Join page access.
   if ($op == 'join') {
@@ -181,17 +207,15 @@ function membership_entity_membership_entity_access($op, $membership = NULL, $ac
       return TRUE;
     }
 
-    $efq = new EntityFieldQuery();
-    $result = $efq->entityCondition('entity_type', 'membership_entity')
-      ->entityCondition('bundle', $type_name)
-      ->fieldCondition($type_name . '_members', 'target_id', $user->uid)
-      ->execute();
-    if (!empty($result['membership_entity'])
-      && in_array($membership->mid, array_keys($result['membership_entity']))) {
-
+    // Secondary member access.
+    $results = db_select('membership_entity_secondary_member')
+      ->fields('membership_entity_secondary_member', array('mid'))
+      ->condition('uid', $user->uid)
+      ->execute()
+      ->fetchAllAssoc('mid');
+    if (!empty($results) && in_array($membership->mid, array_keys($results))) {
       // Can secondary members edit the membership?
-      if ($op == 'edit' && variable_get('membership_entity_all_edit_' . $type_name, FALSE)
-        && user_access("$type edit own membership", $user)) {
+      if ($op == 'edit' && $bundle_settings['all_edit'] && user_access("$type edit own membership", $user)) {
         return TRUE;
       }
 
@@ -204,6 +228,15 @@ function membership_entity_membership_entity_access($op, $membership = NULL, $ac
 }
 
 /**
+ * Access callback for the modal register form.
+ *
+ * @see  user_register_access().
+ */
+function membership_entity_modal_register_access() {
+  return user_access('administer users') || variable_get('user_register', USER_REGISTER_VISITORS_ADMINISTRATIVE_APPROVAL);
+}
+
+/**
  * Implements hook_menu().
  */
 function membership_entity_menu() {
@@ -213,7 +246,7 @@ function membership_entity_menu() {
       'page callback' => 'drupal_get_form',
       'page arguments' => array('membership_entity_settings_form'),
       'access arguments' => array('administer memberships'),
-      'file' => 'membership_entity.admin.inc',
+      'file' => 'membership_entity.pages.inc',
     );
 
     $items['admin/structure/memberships/settings'] = array(
@@ -228,14 +261,25 @@ function membership_entity_menu() {
     'page callback' => 'drupal_get_form',
     'page arguments' => array('membership_entity_admin_memberships'),
     'access arguments' => array('administer memberships'),
-    'file' => 'membership_entity.admin.inc',
+    'file' => 'membership_entity.pages.inc',
   );
 
   $items['admin/memberships/add'] = array(
     'title' => 'Add a membership',
-    'type' => MENU_LOCAL_ACTION,
-    'page callback' => 'membership_entity_add',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('membership_entity_edit_form'),
     'access arguments' => array('administer memberships'),
+    'type' => MENU_LOCAL_ACTION,
+    'file' => 'membership_entity.pages.inc',
+  );
+
+  $items['user/join'] = array(
+    'title' => 'Join',
+    'page callback' => 'membership_entity_join',
+    'access callback' => 'membership_entity_access',
+    'access arguments' => array('join'),
+    'type' => MENU_LOCAL_TASK,
+    'weight' => -9999, // Me first!
     'file' => 'membership_entity.pages.inc',
   );
 
@@ -285,23 +329,15 @@ function membership_entity_menu() {
     'context' => MENU_CONTEXT_INLINE,
     'file' => 'membership_entity.pages.inc',
   );
-  $items['membership-entity/%membership_entity/user/autocomplete/%'] = array(
-    'page callback' => 'membership_entity_user_autocomplete',
-    'page arguments' => array(4),
-    'access callback' => 'membership_entity_access',
-    'access arguments' => array('edit', 1),
+
+  // Modal register form.
+  $items['membership_entity/%ctools_js/register/%'] = array(
+    'title' => 'Register',
+    'page callback' => 'membership_entity_modal_register',
+    'page arguments' => array(1, 3),
+    'access callback' => 'membership_entity_modal_register_access',
+    'file' => 'membership_entity.pages.inc',
     'type' => MENU_CALLBACK,
-    'file' => 'membership_entity.pages.inc',
-  );
-  $items['membership-entity/join'] = array(
-    'title' => 'Join @site',
-    'title arguments' => array('@site' => variable_get('site_name', '')),
-    'page callback' => 'drupal_get_form',
-    'page arguments' => array('membership_entity_join'),
-    'access callback' => 'membership_entity_access',
-    'access arguments' => array('join'),
-    'type' => MENU_NORMAL_ITEM,
-    'file' => 'membership_entity.pages.inc',
   );
 
   // Add support for devel generate.
@@ -321,49 +357,14 @@ function membership_entity_menu() {
 }
 
 /**
- * Implements hook_cron().
+ * Title callback for a membership page.
  */
-function membership_entity_cron() {
-  // Find all expired memberships.
-  $subquery = db_select('membership_entity_terms', 't');
-  $subquery->addField('t', 'mid');
-  $subquery->addExpression('MIN(end)', 'min_end');
-  $subquery->addExpression('MAX(end)', 'max_end');
-  $subquery->groupBy('t.mid');
-
-  $query = db_select('membership_entity', 'm');
-  $query->join($subquery, 't', 'm.mid=t.mid');
-  $query->addField('m', 'mid');
-  $query->condition('t.max_end', array(0, REQUEST_TIME), 'BETWEEN');
-  $query->condition('t.min_end', MEMBERSHIP_ENTITY_LIFETIME_TERM, '<>');
-  $result = $query->execute()
-    ->fetchAllAssoc('mid');
-
-  // Queue them up for expiration.
-  $queue = DrupalQueue::get('membership_entity_expire');
-  foreach (array_keys($result) as $mid) {
-    $queue->createItem($mid);
-  }
-}
-
-/**
- * Implements hook_cron_queue_info().
- */
-function membership_entity_cron_queue_info() {
-  $queues['membership_entity_expire'] = array(
-    'worker callback' => 'membership_entity_expire_worker',
-    'time' => 60,
-  );
-  return $queues;
-}
-
-/**
- * Worker callback to process membership expirations.
- */
-function membership_entity_expire_worker($data) {
-  $membership = membership_entity_load($data);
-  $membership->status = MEMBERSHIP_ENTITY_EXPIRED;
-  membership_entity_save($membership);
+function membership_entity_page_title($membership) {
+  $statuses = membership_entity_get_status_list();
+  return t('Membership @member_id@status', array(
+    '@member_id' => $membership->member_id,
+    '@status' => ($membership->status != MEMBERSHIP_ENTITY_ACTIVE) ? ' (' . $statuses[$membership->status] . ')' : '',
+  ));
 }
 
 /**
@@ -379,13 +380,21 @@ function membership_entity_admin_paths() {
  * Implements hook_theme().
  */
 function membership_entity_theme() {
-  return array(
-    // @TODO: Theme a membership.
+  $theme_hooks = array(
     'membership_entity_available_term_lengths' => array(
       'render element' => 'element',
-      'file' => 'membership_entity.admin.inc',
+    ),
+    'membership_entity' => array(
+      'render element' => 'membership',
+      'template' => 'membership-entity',
     ),
   );
+
+  foreach ($theme_hooks as $hook => $info) {
+    $theme_hooks[$hook]['file'] = 'membership_entity.theme.inc';
+  }
+
+  return $theme_hooks;
 }
 
 /**
@@ -394,77 +403,9 @@ function membership_entity_theme() {
  * Add membership data to the user page.
  */
 function membership_entity_user_view($account, $view_mode, $langcode) {
-  foreach (membership_entity_get_types() as $type_name => $type) {
-    if ($memberships = membership_entity_load_by_user($account, $type_name)) {
-      foreach ($memberships as $mid => $membership) {
-        $account->content['memberships'][$mid] = membership_entity_view($membership, 'account');
-      }
-    }
-  }
-}
-
-/**
- * Add default fields to a membership entity type.
- *
- * @param $type
- *   A membership entity type object.
- */
-function membership_entity_add_fields($type) {
-  $fields = array();
-  $instances = array();
-
-  // Add the additional members field if cardinality is not 1.
-  $cardinality = (int) variable_get('membership_entity_cardinality_' . $type->type, 0);
-  if ($cardinality > 1 || $cardinality == FIELD_CARDINALITY_UNLIMITED) {
-    // We must create a separate member reference field for each membership type
-    // because we can only control cardinality at the field level.
-    $fields[$type->type . '_members'] = array(
-      'type' => 'entityreference',
-      // Subtract 1 for primary member (unless unlimited).
-      'cardinality' => ($cardinality == FIELD_CARDINALITY_UNLIMITED) ? FIELD_CARDINALITY_UNLIMITED : $cardinality - 1,
-      'settings' => array(
-        'target_type' => 'user',
-      ),
-    );
-
-    $instances[$type->type . '_members'] = array(
-      'label' => t('Additional Members'),
-      'widget' => array(
-        'type' => 'entityreference_autocomplete',
-        'weight' => 99,
-      ),
-      'display' => array(
-        'full' => array(
-          'label' => 'above',
-          'type' => 'entityreference_entity_id',
-        ),
-      ),
-    );
-  }
-
-  // Create the fields.
-  foreach ($fields as $field_name => $settings) {
-    $field = field_info_field($field_name);
-    if (empty($field)) {
-      $field = array_merge(array(
-        'field_name' => $field_name,
-        'entity_types' => array('membership_entity'),
-        'locked' => TRUE, // No editing allowed!
-      ), $settings);
-      $field = field_create_field($field);
-    }
-  }
-
-  // Create the instances.
-  foreach ($instances as $field_name => $settings) {
-    $instance = field_info_instance('membership_entity', $field_name, $type->type);
-    if (empty($instance)) {
-      $instance = array_merge(array(
-        'field_name' => $field_name,
-        'entity_type' => 'membership_entity',
-        'bundle' => $type->type,
-      ), $settings);
-      $instance = field_create_instance($instance);
+  if ($memberships = membership_entity_load_by_user($account)) {
+    foreach (membership_entity_load_by_user($account) as $mid => $membership) {
+      $account->content['memberships'][$mid] = membership_entity_view($membership, 'account');
     }
   }
 }
@@ -482,179 +423,67 @@ function membership_entity_membership_entity_operations() {
 }
 
 /**
- * Load a membership object.
- *
- * @param $mid
- *   Integer specifying the membership entity id.
- * @param $reset
- *   A boolean indicating that the internal cache should be reset.
- * @return
- *   A fully-loaded membership object or FALSE if it cannot be loaded.
- */
-function membership_entity_load($mid = NULL, $reset = FALSE) {
-  $mids = isset($mid) ? array($mid) : array();
-  $membership = membership_entity_load_multiple($mids, array(), $reset);
-  return $membership ? reset($membership) : FALSE;
-}
-
-/**
- * Load all memberships for a given user.
- *
- * @param $account
- *  A user account object or uid.
- * @param $type
- *  Load a specific membership type.
- */
-function membership_entity_load_by_user($account, $type_name = NULL) {
-  // Support uid or entire user object.
-  $uid = is_object($account) ? $account->uid : $account;
-  $cache = &drupal_static(__FUNCTION__, array());
-
-  // If no type is given, load them all.
-  if (empty($type_name)) {
-    foreach (membership_entity_get_types() as $type) {
-      $cache[$uid][$type->type] = membership_entity_load_by_user($uid, $type->type);
-    }
-  }
-
-  if (!isset($cache[$uid][$type->type])) {
-    $mids = array();
-    // Load primary memberships.
-    $efq = new EntityFieldQuery();
-    $result = $efq->entityCondition('entity_type', 'membership_entity')
-      ->entityCondition('bundle', $type_name)
-      ->propertyCondition('uid', $uid)
-      ->execute();
-    if (!empty($result)) {
-      $mids = array_merge($mids, array_keys($result['membership_entity']));
-    }
-
-    // Load secondary memberships.
-    if ($instance = field_info_instance('membership_entity', $type_name . '_members', $type_name)) {
-      $efq = new EntityFieldQuery();
-      $result = $efq->entityCondition('entity_type', 'membership_entity')
-        ->entityCondition('bundle', $type_name)
-        ->fieldCondition($type_name . '_members', 'target_id', $uid)
-        ->execute();
-      if (!empty($result)) {
-        $mids = array_merge($mids, array_keys($result['membership_entity']));
-      }
-    }
-    $cache[$uid][$type_name] = membership_entity_load_multiple($mids);
-  }
-  return !empty($type_name) ? $cache[$uid][$type_name] : $cache[$uid];
-}
-
-/**
- * Loads multiple membership objects.
- */
-function membership_entity_load_multiple($mids = FALSE, $conditions = array(), $reset = FALSE) {
-  return entity_load('membership_entity', $mids, $conditions, $reset);
-}
-
-/**
  * Menu callback: Display a membership.
- *
- * Invokes a number of hooks to prepare the membership for display.
- *
- * @see hook_entity_prepare_view()
- * @see hook_entity_view()
- * @see hook_entity_view_alter()
  */
 function membership_entity_view($membership, $view_mode = 'full') {
   $entity_type = 'membership_entity';
-  $type = membership_entity_type_load($membership->type);
   $account = user_load($membership->uid);
 
-  $membership->content = array(
+  $build = array(
+    '#theme' => 'membership_entity',
+    '#membership_entity' => $membership,
     '#view_mode' => $view_mode,
-  );
-
-  if ($view_mode == 'full') {
-    drupal_set_title(t('@type: @id', array(
-      '@type' => $type->name,
-      '@id' => $membership->member_id,
-    )));
-  }
-
-  $membership->content['uid'] = array(
-    'label' => array(
-      '#theme_wrappers' => array('container'),
-      '#attributes' => array('class' => array('membership-entity-label')),
-      '#markup' => t('Primary Member:') . '&nbsp',
-    ),
-    'link' => array(
-      '#theme' => 'link',
-      '#text' => format_username($account),
-      '#path' => 'user/' . $account->uid,
-      '#options' => array(
-        'attributes' => array('class' => array('membership-entity-primary-member')),
-        'html' => FALSE,
-      ),
-    ),
   );
 
   // Build custom field content.
   field_attach_prepare_view($entity_type, array($membership->mid => $membership), $view_mode);
   entity_prepare_view($entity_type, array($membership->mid => $membership));
-  $membership->content += field_attach_view($entity_type, $membership, $view_mode);
+  $build += field_attach_view($entity_type, $membership, $view_mode);
 
-  // Display the membership terms.
-  $membership->content['terms'] = array(
-    '#theme' => 'table',
-    '#caption' => t('Membership Terms'),
-    '#header' => array(
-      t('Term length'),
-      t('Start Date'),
-      t('End Date'),
-    ),
-    '#rows' => array(),
-    '#attributes' => array('id' => 'membership-entity-terms'),
+  $build['links'] = array(
+    '#theme' => 'links__membership_entity',
+    '#pre_render' => array('drupal_pre_render_links'),
+    '#attributes' => array('class' => array('links', 'inline')),
+    '#weight' => 99,
   );
-  foreach ($membership->terms as $delta => $term) {
-    $membership->content['terms']['#rows'][] = array(
-      array('data' => $term['term_length']),
-      array('data' => format_date($term['start'], 'short')),
-      array('data' => ($term['end'] == MEMBERSHIP_ENTITY_LIFETIME_TERM) ? t('N/A') : format_date($term['end'], 'short')),
-    );
-  }
 
-  // Display the membership on user account pages.
-  if ($view_mode == 'account' && variable_get('membership_entity_show_on_profile_' . $membership->type)) {
-    $membership->content = array(
-      '#type' => 'fieldset',
-      '#title' => t('@type: @member_id', array(
-        '@type' => $type->name,
+  if ($view_mode == 'account') {
+    // Display the membership in a fieldset on user account pages.
+    $build += array(
+      '#theme_wrappers' => array('fieldset'),
+      '#title' => t('Membership @member_id', array(
         '@member_id' => $membership->member_id,
       )),
-      'content' => $membership->content,
-      'links' => array(
-        '#theme_wrappers' => array('container'),
-        '#attributes' => array(
-          'class' => array('membership-entity-links'),
+    );
+
+    $links = array();
+
+    if (membership_entity_access('view', $membership)) {
+      $links['view'] = array(
+        'title' => t('View full membership'),
+        'href' => 'membership/' . $membership->mid,
+        'attributes' => array(
+          'title' => t('View membership @member_id.', array('@member_id' => $membership->member_id)),
         ),
-        '#weight' => 99,
-        'view' => array(
-          '#theme' => 'link',
-          '#text' => t('View full membership'),
-          '#path' => 'membership/' . $membership->mid,
-          '#options' => array(
-            'attributes' => array(),
-            'html' => FALSE,
-          ),
-          '#access' => membership_entity_access('view', $membership),
+        'html' => FALSE,
+      );
+    }
+
+    if (membership_entity_access('edit', $membership)) {
+      $links['edit'] = array(
+        'title' => t('Edit membership'),
+        'href' => 'membership/' . $membership->mid . '/edit',
+        'attributes' => array(
+          'title' => t('Edit membership @member_id.', array('@member_id' => $membership->member_id)),
         ),
-        'edit' => array(
-          '#theme' => 'link',
-          '#text' => t('Edit membership'),
-          '#path' => 'membership/' . $membership->mid . '/edit',
-          '#options' => array(
-            'attributes' => array(),
-            'html' => FALSE,
-          ),
-          '#access' => membership_entity_access('edit', $membership),
-        ),
-      ),
+        'html' => FALSE,
+      );
+    }
+
+    $build['links']['membership_entity'] = array(
+      '#theme' => 'links__membership_entity__membership_entity',
+      '#links' => $links,
+      '#attributes' => array('class' => array('links', 'inline')),
     );
   }
 
@@ -663,37 +492,22 @@ function membership_entity_view($membership, $view_mode = 'full') {
   module_invoke_all('entity_view', $membership, $entity_type, $view_mode, $langcode);
   drupal_alter(array('entity_membership_entity_view', 'entity_view'), $membership->content, $entity_type);
 
-  return $membership->content;
+  return $build;
 }
 
 /**
  * Implements hook_field_extra_fields().
  */
 function membership_entity_field_extra_fields() {
-  $fields = array();
-  foreach (membership_entity_get_types() as $type_name => $type) {
-    $fields['membership_entity'][$type_name] = array(
-      'form' => array(
-        'uid' => array(
-          'label' => t('Primary member'),
-          'description' => t('The primary member the membership.'),
-          'weight' => 0,
-        ),
+  $fields['membership_entity']['membership'] = array(
+    'form' => array(
+      'membership' => array(
+        'label' => t('Membership Information'),
+        'description' => t('Primary and secondary members, status, term length, etc.'),
+        'weight' => 0,
       ),
-      'display' => array(
-        'uid' => array(
-          'label' => t('Primary member'),
-          'description' => t('The primary member the membership.'),
-          'weight' => 0,
-        ),
-        'terms' => array(
-          'label' => t('Membership terms'),
-          'description' => t('A table of membership terms and renewals.'),
-          'weight' => 9999,
-        ),
-      ),
-    );
-  }
+    ),
+  );
   return $fields;
 }
 
@@ -704,6 +518,24 @@ function membership_entity_uri($membership) {
   return array(
     'path' => 'membership/' . $membership->mid,
   );
+}
+
+/**
+ * Load bundle settings for a membership.
+ *
+ * @param $bundle
+ *  The membership bundle to load settings or NULL to load defaults.
+ */
+function membership_entity_get_bundle_settings($bundle = NULL) {
+  $data = empty($bundle) ? variable_get('membership_entity_settings', array()) : array();
+  if (empty($data)) {
+    drupal_set_message(t('The membership entity module is missing configuration settings. Please visit the <a href="!url">settings page</a> to configure the module.', array(
+      '!url' => url('admin/structure/memberships/settings', array('query' => drupal_get_destination())),
+    )), 'error');
+    return FALSE;
+  }
+
+  return $data;
 }
 
 /**
@@ -721,138 +553,342 @@ function membership_entity_next_member_id() {
 
 /**
  * Callback to generate sequential numeric member ids.
+ *
+ * @param $length
+ *  The minimum number of charaters for the member id. Numeric ids with fewer
+ *  $length digits will be padded with '0's (eg. 00001).
  */
-function membership_entity_numeric_member_id_callback() {
+function membership_entity_numeric_member_id_callback($length = 5) {
   $member_id = variable_get('membership_entity_next_member_id', 0);
   variable_set('membership_entity_next_member_id', ++$member_id);
-  return $member_id;
+  return str_pad($member_id, $length, '0', STR_PAD_LEFT);
 }
 
 /**
- * Helper function to add or remove active and expired roles from a member.
+ * Implements hook_form_FORM_ID_alter() for the user_login() form.
+ */
+function membership_entity_form_user_login_alter(&$form, &$form_state, $form_id) {
+  if ($form['#action'] == '/user/join') {
+    $form['#submit'][] = 'membership_entity_join_login_submit';
+  }
+}
+
+/**
+ * Submit handler for the login form on the join page.
+ */
+function membership_entity_join_login_submit($form, &$form_state) {
+  // Redirect to the join page.
+  $form_state['redirect'] = 'user/join';
+}
+
+/**
+ * Implements hook_user_cancel().
+ */
+function membership_entity_user_cancel($edit, $account, $method) {
+  switch ($method) {
+    case 'user_cancel_block_unpublish':
+      $memberships = membership_entity_load_by_user($account->uid);
+      foreach ($memberships as $mid => $membership) {
+        $membership->status = MEMBERSHIP_ENTITY_CANCELLED;
+        membership_entity_save($membership);
+      }
+      break;
+
+    case 'user_cancel_reassign':
+      membership_entity_user_delete($account);
+      break;
+  }
+}
+
+/**
+ * Implements hook_user_delete().
+ */
+function membership_entity_user_delete($account) {
+  // Delete primary memberships.
+  $memberships = membership_entity_load_by_user($account->uid);
+  membership_entity_delete_multiple(array_keys($memberships));
+
+  // Delete secondary memberships.
+  db_delete('membership_entity_secondary_member')
+    ->condition('uid', $account->uid)
+    ->execute();
+}
+
+/**
+ * Creates a Drupal Ajax attribute command.
  *
- * @param $membership
- *  A membership object. Must include at minimum uid, type, and status.
- * @return boolean
- *  TRUE if the membership has expired.
+ * The attribute command uses jQuery.attr() to apply an arbitrary attribute
+ * to each element matched by the given selector. Why this isn't in core, I
+ * don't know!
+ *
+ * @param $selector
+ *  A jQuery selector string.
+ * @param $attribute
+ *  The HTML attribute to add or change.
+ * @param $value
+ *  The new value of the attribute.
  */
-function membership_entity_update_user_role($membership) {
-  $member = user_load($membership->uid);
-  $active_role = user_role_load(variable_get('membership_entity_active_role_' . $membership->type, NULL));
-  $expired_role = user_role_load(variable_get('membership_entity_expired_role_' . $membership->type, NULL));
-
-  switch ($membership->status) {
-    case MEMBERSHIP_ENTITY_ACTIVE:
-      // Add the Active role.
-      $member->roles[$active_role->rid] = $active_role->name;
-      // Remove the Expired role.
-      unset($member->roles[$expired_role->rid]);
-      break;
-
-    case MEMBERSHIP_ENTITY_EXPIRED:
-      // Add Expired role.
-      $member->roles[$expired_role->rid] = $expired_role->name;
-      // Remove Active role.
-      unset($member->roles[$active_role->rid]);
-      break;
-
-    case MEMBERSHIP_ENTITY_CANCELLED:
-    case MEMBERSHIP_ENTITY_PENDING:
-      // Remove both active and expired roles.
-      unset($member->roles[$expired_role->rid]);
-      unset($member->roles[$active_role->rid]);
-      break;
-  }
-
-  // Save the member.
-  user_save($member);
+function membership_entity_ajax_command_attr($selector, $attribute, $value) {
+  return array(
+    'command' => 'membership_entity_attr',
+    'selector' => $selector,
+    'attribute' => $attribute,
+    'value' => $value,
+  );
 }
 
 /**
- * Prepare a membership object for the edit form.
+ * Implements hook_element_info().
  */
-function membership_entity_prepare_form($membership) {
-  // Make sure terms are sorted by delta and add the current term length.
-  $sort = array();
-  foreach ($membership->terms as $key => $row) {
-    $sort[$key] = $row['delta'];
-  }
-  array_multisort($sort, SORT_ASC, $membership->terms);
-  $current = end($membership->terms);
-  $membership->current_term_length = $current['term_length'];
-
-  return $membership;
+function membership_entity_element_info() {
+  return array(
+    'membership_entity_member_select' => array(
+      '#input' => TRUE,
+      '#title' => '',
+      '#description' => '',
+      '#default_value' => '',
+      '#disabled' => FALSE,
+      '#cardinality' => 1,
+      '#required' => FALSE,
+      '#autocomplete_path' => 'user/autocomplete',
+      '#process' => array('membership_entity_member_select_process'),
+      '#element_validate' => array('membership_entity_member_select_validate'),
+    ),
+  );
 }
 
 /**
- * Prepare a membership object for saving.
+ * Value callback for the member select field.
  */
-function membership_entity_prepare_save($membership) {
-  $new = empty($membership->mid);
-  $renewal = !empty($membership->is_renewal);
-  $term_length = $membership->current_term_length;
-
-  // Get the latest term.
-  $max = array();
-  foreach ($membership->terms as $key => $row) {
-    $max[$key] = $row['delta'];
+function form_type_membership_entity_member_select_value($element, $input, &$form_state) {
+  if ($input === FALSE && !empty($element['#default_value'])) {
+    $defaults = is_array($element['#default_value']) ? $element['#default_value'] : array($element['#default_value']);
+    foreach ($defaults as $delta => $uid) {
+      // Expand the raw uid into username.
+      $value[$delta] = array(
+        'value' => check_plain(db_select('users')->fields('users', array('name'))->condition('uid', $uid)->range(0, 1)->execute()->fetchField()),
+        '_weight' => $delta,
+      );
+    }
+    return $value;
   }
-  $latest_delta = !empty($max) ? max($max) : -1;
-  $latest_term = isset($membership->terms[$latest_delta]) ? $membership->terms[$latest_delta] : array();
+  return $input;
+}
 
-  if ($new || $renewal) {
-    if (!empty($latest_term['end']) && $latest_term['end'] >= REQUEST_TIME) {
-      // If the latest term hasn't expired, then the new term starts when
-      // the latest term ends.
-      $start = $latest_term['end'];
-    }
-    else if ($renewal) {
-      // If this is a renewal and the membership has expired, then the new
-      // term starts now.
-      $start = REQUEST_TIME;
-    }
-    else {
-      $start = $membership->created;
-    }
+/**
+ * Process callback for the member select element.
+ */
+function membership_entity_member_select_process($element, &$form_state, $complete_form) {
+  // Include the CTools tools and javascript that we need.
+  ctools_include('ajax');
+  ctools_include('modal');
+  ctools_modal_add_js();
+  drupal_add_js(drupal_get_path('module', 'membership_entity') . '/js/membership-entity-ajax.js');
 
-    // Add the new term.
-    $membership->terms[] = array(
-      'delta' => $latest_delta + 1,
-      'start' => $start,
-      'end' => ($term_length == 'lifetime') ? MEMBERSHIP_ENTITY_LIFETIME_TERM : strtotime($term_length, $start),
-      'term_length' => $term_length,
+  $multiple = ($element['#cardinality'] > 1 || $element['#cardinality'] == FIELD_CARDINALITY_UNLIMITED);
+  $wrapper_id = drupal_html_id($element['#id'] . '-add-more-wrapper');
+
+  if (empty($form_state['items_count'][$element['#name']])) {
+    $form_state['items_count'][$element['#name']] = count($element['#value']);
+  }
+
+  if ($element['#cardinality'] == FIELD_CARDINALITY_UNLIMITED) {
+    $max = $form_state['items_count'][$element['#name']];
+  }
+  else {
+    $max = $element['#cardinality'] - 1;
+  }
+
+  if ($multiple) {
+    $field_element = array(
+      '#theme' => 'field_multiple_value_form',
+      '#field_name' => $element['#name'],
+      '#prefix' => '<div id="' . $wrapper_id . '">',
+      '#suffix' => '</div>',
+      '#max_delta' => $max,
+      '#tree' => TRUE,
     );
   }
-  else if (!empty($latest_term) && ($term_length != $latest_term['term_length'])) {
-    // Update the latest term.
-    $membership->terms[$latest_delta]['term_length'] = $term_length;
-    $membership->terms[$latest_delta]['end'] = ($term_length == 'lifetime') ? MEMBERSHIP_ENTITY_LIFETIME_TERM : strtotime($term_length, $latest_term['start']);
+  else {
+    // Single value is displayed in a fieldset.
+    $field_element = array(
+      '#prefix' => '<label>' . $element['#title'] . '</label>',
+      '#tree' => TRUE,
+    );
   }
 
-  return $membership;
+  $field_element += $element;
+  for ($delta = 0; $delta <= $max; $delta++) {
+    $id = drupal_html_id($element['#id'] . '_' . $delta);
+    $item['value'] = array(
+      '#delta' => $delta,
+      '#weight' => $delta,
+      '#type' => 'textfield',
+      '#title' => t('Select an existing account'),
+      '#disabled' => $element['#disabled'],
+      '#description' => filter_xss($element['#description']),
+      '#autocomplete_path' => $element['#autocomplete_path'],
+      '#default_value' => is_array($element['#default_value']) ? (isset($element['#default_value'][$delta]) ? $element['#default_value'][$delta] : '') : $element['#default_value'],
+      '#value_callback' => 'membership_entity_uid_value',
+      // Only the first item should be required.
+      '#required' => $delta == 0 && $element['#required'],
+      '#id' => $id,
+    );
+
+    // Add the "Create a new account" button.
+    if (!$element['#disabled'] && membership_entity_modal_register_access()) {
+      $item['value']['#field_suffix'] = ' or ' . ctools_modal_text_button(t('Create a new account'), 'membership_entity/nojs/register/' . $id, t('Create a new account.'), 'button');
+    }
+
+    if ($element['#cardinality'] > 1 || $element['#cardinality'] == FIELD_CARDINALITY_UNLIMITED) {
+      // We name the element '_weight' to avoid clashing with elements
+      // defined by widget.
+      $item['_weight'] = array(
+        '#type' => 'weight',
+        '#title' => t('Weight for row @number', array('@number' => $delta + 1)),
+        '#title_display' => 'invisible',
+        '#delta' => $max,
+        '#default_value' => isset($items[$delta]['_weight']) ? $items[$delta]['_weight'] : $delta,
+        '#weight' => 100,
+      );
+    }
+
+    $field_element[$delta] = $item;
+  }
+
+  // Add the "add more" button.
+  if ($element['#cardinality'] == FIELD_CARDINALITY_UNLIMITED && empty($form_state['programmed'])) {
+    $field_element['add_more'] = array(
+      '#type' => 'submit',
+      '#name' => strtr($element['#id'],'-', '_') . '_add_more',
+      '#value' => t('Add another'),
+      '#field_name' => $element['#name'],
+      '#attributes' => array('class' => array('field-add-more-submit')),
+      '#limit_validation_errors' => array(),
+      '#submit' => array('membership_entity_member_select_add_more_submit'),
+      '#ajax' => array(
+        'callback' => 'membership_entity_member_select_add_more_js',
+        'wrapper' => $wrapper_id,
+        'effect' => 'fade',
+      ),
+    );
+  }
+
+  return $field_element;
+}
+
+/**
+ * Submit handler for the "Add another" button of a member field.
+ */
+function membership_entity_member_select_add_more_submit($form, &$form_state) {
+  $button = $form_state['triggering_element'];
+  $form_state['items_count'][$button['#field_name']]++;
+  $form_state['rebuild'] = TRUE;
+}
+
+/**
+ * Ajax callback to add another member select widget.
+ *
+ * @see membership_entity_member_select_add_more_submit().
+ */
+function membership_entity_member_select_add_more_js($form, $form_state) {
+  $button = $form_state['triggering_element'];
+
+  // Go one level up in the form, to the widgets container.
+  $element = drupal_array_get_nested_value($form, array_slice($button['#array_parents'], 0, -1));
+
+  if ($element['#cardinality'] != FIELD_CARDINALITY_UNLIMITED) {
+    return;
+  }
+
+  // Add a DIV around the delta receiving the Ajax effect.
+  $delta = $element['#max_delta'];
+  $element[$delta]['#prefix'] = '<div class="ajax-new-content">' . (isset($element[$delta]['#prefix']) ? $element[$delta]['#prefix'] : '');
+  $element[$delta]['#suffix'] = (isset($element[$delta]['#suffix']) ? $element[$delta]['#suffix'] : '') . '</div>';
+
+  return $element;
+}
+
+/**
+ * Element validate callback for the membership_entity_member_select element.
+ */
+function membership_entity_member_select_validate($element, &$form_state) {
+  $values = array();
+  foreach ($element['#value'] as $delta => $value) {
+    if (!is_numeric($delta)) {
+      continue;
+    }
+
+    if (!empty($value['value'])) {
+      $name = $value['value'];
+      if ($uid = db_select('users')->fields('users', array('uid'))->condition('name', $name)->execute()->fetchField()) {
+        // Save the value as a uid instead of username.
+        $values[$delta] = $uid;
+      }
+      else {
+        form_error($element[$delta], t('Could not find an account with the username %name', array('%name' => $name)));
+      }
+    }
+  }
+
+  usort($values, '_field_sort_items_helper');
+  form_set_value($element, $values, $form_state);
+  return $element;
+}
+
+/**
+ * Value callback to display the username of a given user.
+ */
+function membership_entity_uid_value($element, $input = FALSE, $form_state) {
+  if ($input === FALSE && !empty($element['#default_value'])) {
+    // Expand the raw uid into username.
+    $uid = $element['#default_value'];
+    $result = db_select('users')->fields('users', array('name'))->condition('uid', $uid)->range(0, 1)->execute()->fetchField();
+    return check_plain($result);
+  }
+}
+
+/**
+ * Create a new membership entity with default values.
+ *
+ * @param $uid
+ *  The user id of the primary member account.
+ */
+function membership_entity_create($values = array()) {
+  return entity_create('membership_entity', $values);
+}
+
+/**
+ * Load a single membership object.
+ */
+function membership_entity_load($mid = NULL, $reset = FALSE) {
+  $memberships = membership_entity_load_multiple(array($mid), array(), $reset);
+  return is_array($memberships) ? reset($memberships) : FALSE;
+}
+
+/**
+ * Load all memberships for a given user.
+ */
+function membership_entity_load_by_user($account, $reset = FALSE) {
+  $controller = entity_get_controller('membership_entity');
+  if ($reset) {
+    $controller->resetCache();
+  }
+  return $controller->load_by_user($account);
+}
+
+/**
+ * Loads multiple membership objects.
+ */
+function membership_entity_load_multiple($mids = FALSE, $conditions = array(), $reset = FALSE) {
+  return entity_load('membership_entity', $mids, $conditions, $reset);
 }
 
 /**
  * Save a membership entity.
  */
 function membership_entity_save(&$membership) {
-  return entity_get_controller('membership_entity')
-    ->save($membership);
-}
-
-/**
- * Implements hook_membership_entity_insert().
- */
-function membership_entity_membership_entity_insert($membership) {
-  membership_entity_membership_entity_update($membership);
-}
-
-/**
- * Implements hook_membership_entity_update().
- */
-function membership_entity_membership_entity_update($membership) {
-  // Update the primary member's role to match $membership->status.
-  membership_entity_update_user_role($membership);
+  return entity_save('membership_entity', $membership);
 }
 
 /**
@@ -866,82 +902,24 @@ function membership_entity_delete($mid) {
  * Delete multiple membership entities.
  */
 function membership_entity_delete_multiple($mids) {
-  entity_get_controller('membership_entity')
-    ->delete_multiple($mids);
+  entity_delete_multiple('membership_entity', $mids);
 }
 
 /**
- * Retrieve a list of membership status options.
+ * Add/Remove roles managed by the membership.
  */
-function membership_entity_get_status_list() {
-  return array(
-    MEMBERSHIP_ENTITY_EXPIRED => t('Expired'),
-    MEMBERSHIP_ENTITY_ACTIVE => t('Active'),
-    MEMBERSHIP_ENTITY_CANCELLED => t('Cancelled'),
-    MEMBERSHIP_ENTITY_PENDING => t('Pending'),
-  );
-}
+function _membership_entity_update_roles($roles) {
+  $accounts = user_load_multiple(array_keys($roles));
 
-/**
- *  Defines a membership entity.
- */
-class MembershipEntity extends Entity {
-  /**
-   * The primary identifier for a membership.
-   */
-  public $mid;
-
-  /**
-   * A user enterable unique member id.
-   */
-  public $member_id;
-
-  /**
-   * The type (bundle) of membership.
-   */
-  public $type;
-
-  /**
-   * The primary member.
-   */
-  public $uid;
-
-  /**
-   * Integer code indicating the membership status.
-   */
-  public $status;
-
-  /**
-   * The Unix timestamp when the membership was created.
-   */
-  public $created;
-
-  /**
-   * The Unix timestamp when the membership was most recently saved.
-   */
-  public $changed;
-
-  /**
-   * Default constructor.
-   */
-  public function __construct($values = array()) {
-    parent::__construct($values, 'membership_entity');
+  foreach ($accounts as $uid => $account) {
+    $rid = $roles[$uid]['rid'];
+    if ($roles[$uid]['op'] == 'add' && !isset($account->roles[$rid])) {
+      $account->roles[$rid]= $rid;
+      user_save($account);
+    }
+    elseif (isset($account->roles[$rid])) {
+      unset($account->roles[$rid]);
+      user_save($account);
+    }
   }
-}
-
-/**
- * Create a new membership entity with default values.
- */
-function membership_entity_create() {
-  $user = $GLOBALS['user'];
-
-  return new MembershipEntity(array(
-    'entity_type' => 'membership_entity',
-    'mid' => 0,
-    'uid' => $user->uid,
-    'type' => 'membership',
-    'created' => REQUEST_TIME,
-    'status' => MEMBERSHIP_ENTITY_ACTIVE,
-    'terms' => array(),
-  ));
 }

@@ -78,5 +78,49 @@ function membership_entity_schema() {
     ),
   );
 
+  $schema['membership_entity_secondary_member'] = array(
+    'description' => 'Secondary members.',
+    'fields' => array(
+      'mid' => array(
+        'description' => 'The membership identifier.',
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ),
+      'uid' => array(
+        'description' => 'The user id of the secondary member.',
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'weight' => array(
+        'description' => 'The display order for listing secondary members.',
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 1,
+      ),
+    ),
+    'primary key' => array('mid', 'uid'),
+    'foreign keys' => array(
+      'membership_entity_membership' => array(
+        'table' => 'membership_entity',
+        'columns' => array('mid' => 'mid'),
+      ),
+      'membership_entity_secondary_member' => array(
+        'table' => 'users',
+        'columns' => array('uid' => 'uid'),
+      ),
+    ),
+  );
+
   return $schema;
+}
+
+/**
+ * Implements hook_uninstall().
+ */
+function membership_entity_uninstall() {
+  variable_del('membership_entity_settings');
+  variable_del('membership_entity_next_member_id');
 }

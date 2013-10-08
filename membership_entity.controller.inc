@@ -2,118 +2,114 @@
 
 /**
  * @file
- * Membership entity controller class definition.
+ * Containse the MembershipEntityController class.
  */
 
 /**
  * Entity controller class for membership entities.
  */
-class MembershipEntityController
-  extends DrupalDefaultEntityController {
+class MembershipEntityController extends EntityAPIController {
+  /**
+   * Overrides EntityAPIController::create().
+   */
+  public function create(array $values = array()) {
+    // Add some defaults.
+    $values += array(
+      'mid' => 0,
+      'uid' => 0,
+      'type' => 'membership',
+      'created' => REQUEST_TIME,
+      'status' => MEMBERSHIP_ENTITY_ACTIVE,
+      'secondary_members' => array(),
+    );
+    return parent::create($values);
+  }
 
   /**
-   * Loads a membership entity from the database.
-   *
-   * @param $mids
-   *  An array of membership_entity mids to load.
-   * @param $conditions
-   *  An array of conditions to match.
+   * Overrides EntityAPIController::load().
    */
   public function load($mids = array(), $conditions = array()) {
     $memberships = parent::load($mids, $conditions);
 
-    // Load memberships terms.
-    foreach ($memberships as &$membership) {
-      $membership->terms = db_select('membership_entity_terms', 'met')
-        ->fields('met')
-        ->condition('mid', $membership->mid)
-        ->orderBy('delta', 'ASC')
-        ->execute()
-        ->fetchAllAssoc('delta', PDO::FETCH_ASSOC);
+    if (!$memberships) {
+      // Early exit if membership loading failed.
+      return FALSE;
     }
-    // Unset foreach reference.
-    unset($membership);
 
+    // Load secondary members.
+    foreach ($memberships as $mid => $membership) {
+      $membership->secondary_members = array();
+      $secondary_members = db_select('membership_entity_secondary_member')
+        ->fields('membership_entity_secondary_member', array('uid', 'weight'))
+        ->condition('mid', $membership->mid)
+        ->orderBy('weight')
+        ->execute();
+      foreach ($secondary_members as $member) {
+        $membership->secondary_members[$member->weight] = $member->uid;
+      }
+    }
     return $memberships;
   }
 
   /**
-   * Saves membership_entity fields using drupal_write_record().
+   * Load all memberships for a given user.
    *
-   * @param $membership
-   *  The membership object to save. If $membership->mid is omitted or is 0, a
-   *  new membership will be created.
+   * @param $account
+   *  A user account object or uid.
    */
-  public function save($membership) {
-    field_attach_presave('membership_entity', $membership);
+  public function load_by_user($account) {
+    // Support uid or entire user object.
+    $uid = is_object($account) ? $account->uid : $account;
+    $mids = array();
 
-    // Determine if we will be inserting a new membership.
-    $is_new = empty($membership->mid);
-    $membership->changed = REQUEST_TIME;
-
-    // Let modules modify the membership before it is saved to the database.
-    module_invoke_all('entity_presave', $membership, 'membership_entity');
-
-    // Save the membership.
-    if ($is_new) {
-      drupal_write_record('membership_entity', $membership);
-      $op = 'insert';
+    $efq = new EntityFieldQuery();
+    $result = $efq->entityCondition('entity_type', 'membership_entity')
+      ->propertyCondition('uid', $uid)
+      ->execute();
+    if (!empty($result)) {
+      $mids = array_merge($mids, array_keys($result['membership_entity']));
     }
-    else {
-      drupal_write_record('membership_entity', $membership, 'mid');
-      $op = 'update';
-    }
-
-    // Save the membership terms.
-    foreach ($membership->terms as $term) {
-      if (empty($term['mid'])) {
-        $term['mid'] = $membership->mid;
-        drupal_write_record('membership_entity_terms', $term);
-      }
-      else {
-        drupal_write_record('membership_entity_terms', $term, array('mid', 'delta'));
-      }
-    }
-
-    // Save fields.
-    $function = 'field_attach_' . $op;
-    $function('membership_entity', $membership);
-
-    // Envoke insert/update hooks.
-    module_invoke_all('entity_' . $op, $membership, 'membership_entity');
-    module_invoke_all('membership_entity_' . $op, $membership);
-
-    return $membership;
+    return $this->load($mids);
   }
 
   /**
-   * Delete one or more membership entities.
-   *
-   * @param $mid
-   *   An array of membership ids to delete.
+   * Overrides EntityAPIController::save().
    */
-  public function delete_multiple($mids) {
-    if (empty($mids)) {
-      return;
-    }
+  public function save($membership, DatabaseTransaction $transaction = NULL) {
+    $transaction = isset($transaction) ? $transaction : db_transaction();
+    $data = variable_get('membership_entity_settings', array());
 
-    $memberships = membership_entity_load_multiple($mids);
-    $transaction = db_transaction();
     try {
-      foreach ($memberships as $mid => $membership) {
-        module_invoke_all('entity_delete', $membership, 'membership_entity');
-        field_attach_delete('membership_entity', $membership);
+      $roles = array();
+
+      // Add or remove old roles depending on membership status.
+      $roles[$membership->uid] = array(
+        'rid' => $data['primary_role'],
+        'op' => ($membership->status == MEMBERSHIP_ENTITY_ACTIVE) ? 'add' : 'remove',
+      );
+      foreach ($membership->secondary_members as $uid) {
+        $roles[$uid] = array(
+          'rid' => $data['secondary_role'],
+          'op' => ($membership->status == MEMBERSHIP_ENTITY_ACTIVE) ? 'add' : 'remove',
+        );
       }
 
-      // Delete the membership.
-      db_delete('membership_entity')
-        ->condition('mid', $mids, 'IN')
-        ->execute();
-
-      // Delete the membership terms.
-      db_delete('membership_entity_terms')
-        ->condition('mid', $mids, 'IN')
-        ->execute();
+      // Remove old roles.
+      $original_uid = db_select('membership_entity')->fields('membership_entity', array('uid'))->condition('mid', $membership->mid)->execute()->fetchField();
+      if ($membership->uid != $original_uid) {
+        $roles[$original_uid] = array(
+          'rid' => $data['primary_role'],
+          'op' => 'remove',
+        );
+      }
+      $original_secondary = array_keys(db_select('membership_entity_secondary_member')->fields('membership_entity_secondary_member', array('uid'))->condition('mid', $membership->mid)->execute()->fetchAllAssoc('uid'));
+      foreach (array_diff($original_secondary, $membership->secondary_members) as $uid) {
+        $roles[$uid] = array(
+          'rid' => $data['secondary_role'],
+          'op' => 'remove',
+        );
+      }
+      _membership_entity_update_roles($roles);
     }
     catch (Exception $e) {
       $transaction->rollback();
@@ -121,6 +117,75 @@ class MembershipEntityController
       throw $e;
     }
 
-    $this->resetCache($mids);
+    // Save the membership.
+    $status = parent::save($membership, $transaction);
+
+    try {
+      // Update secondary members.
+      db_delete('membership_entity_secondary_member')->condition('mid', $membership->mid)->execute();
+      if (!empty($membership->secondary_members)) {
+        $query = db_insert('membership_entity_secondary_member')->fields(array('mid', 'uid', 'weight'));
+        foreach ($membership->secondary_members as $weight => $uid) {
+          $query->values(array(
+            'mid' => $membership->mid,
+            'uid' => $uid,
+            'weight' => $weight,
+          ));
+        }
+        $query->execute();
+      }
+    }
+    catch (Exception $e) {
+      $transaction->rollback();
+      watchdog_exception('membership_entity', $e);
+      throw $e;
+    }
+
+    return $status;
+  }
+
+  /**
+   * Overrides EntityAPIController::delete().
+   */
+  public function delete($mids, DatabaseTransaction $transaction = NULL) {
+    $memberships = $mids ? $this->load($mids) : FALSE;
+    if (!$memberships) {
+      // Early exit if no memberships were loaded.
+      return;
+    }
+
+    try {
+      // Remove roles.
+      $data = variable_get('membership_entity_settings', array());
+      $roles = array();
+      foreach ($memberships as $membership) {
+        $roles[$membership->uid] = array(
+          'rid' => $data['primary_role'],
+          'op' => 'remove',
+        );
+        foreach ($membership->secondary_members as $uid) {
+          $roles[$uid] = array(
+            'rid' => $data['secondary_role'],
+            'op' => 'remove',
+          );
+        }
+      }
+      _membership_entity_update_roles($roles);
+
+      // Delete secondary members.
+      db_delete('membership_entity_secondary_member')
+        ->condition('mid', $mids, 'IN')
+        ->execute();
+    }
+    catch (Exception $e) {
+      if (isset($transaction)) {
+        $transaction->rollback();
+      }
+      watchdog_exception($this->entityType, $e);
+      throw $e;
+    }
+
+    // Finish deleting the memberships;
+    parent::delete($mids, $transaction);
   }
 }

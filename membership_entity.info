@@ -4,9 +4,11 @@ package = Memberships
 version = 7.x-1.x-dev
 core = 7.x
 
+dependencies[] = ctools
 dependencies[] = entity
 
-files[] = membership_entity.install
+files[] = membership_entity.inc
+files[] = membership_entity.controller.inc
 
 ; Views handlers.
 files[] = views/membership_entity_handler_field_mid.inc
@@ -25,4 +27,3 @@ files[] = views/membership_entity_handler_filter_terms_date_date.inc
 ; Extending views functionality.
 files[] = views/membership_entity_views_join_derived_table.inc
 
-stylesheets[all][] = membership_entity.css
