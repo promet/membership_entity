@@ -15,7 +15,6 @@ function membership_entity_settings_form($form, &$form_state, $data = array()) {
 
   // Provide some defaults.
   $data += array(
-    'available_term_lengths' => array(),
     'cardinality' => 1,
     'show_on_profile' => 1,
     'all_edit' => 0,
@@ -23,107 +22,7 @@ function membership_entity_settings_form($form, &$form_state, $data = array()) {
     'secondary_role' => '',
   );
 
-  // Add membership term lengths.
-  if (!isset($form_state['available_term_lengths'])) {
-    $form_state['available_term_lengths'] = $data['available_term_lengths'];
-  }
-
-  $form['term_lengths'] = array(
-    '#type' => 'fieldset',
-    '#title' => t('Membership Term Lengths'),
-    '#collapsible' => TRUE,
-    '#collapsed' => FALSE,
-    '#tree' => TRUE,
-    '#description' => t('Select the term lengths that will be available for this membership type.'),
-  );
-
-  $wrapper_id = 'available-term-lengths-wrapper';
-  $form['term_lengths']['available_term_lengths'] = array(
-    '#theme' => 'membership_entity_available_term_lengths',
-    '#id' => 'membership-entity-term-lengths',
-    '#prefix' => '<div id="'. $wrapper_id . '">',
-    '#suffix' => '</div>',
-  );
-
-  foreach ($form_state['available_term_lengths'] as $delta => $term_length) {
-    $form['term_lengths']['available_term_lengths'][$delta] = array(
-      'term_length' => array(
-        '#type' => 'value',
-        '#value' => $term_length,
-      ),
-      'example' => array(
-        '#markup' => ($term_length == 'lifetime') ? t('N/A') : format_date(strtotime($term_length), 'custom', 'Y-m-d H:i:s O'),
-      ),
-      'weight' => array(
-        '#type' => 'weight',
-        '#title' => t('Weight for term length @term_length', array('@term_lenght' => $term_length)),
-        '#title_display' => 'invisible',
-        '#default_value' => $delta,
-      ),
-      'remove' => array(
-        '#type' => 'submit',
-        '#value' => t('Remove'),
-        '#name' => 'remove_' . $delta,
-        '#delta' => $delta,
-        '#submit' => array('membership_entity_remove_term_length'),
-        '#limit_validation_errors' => array(),
-        '#ajax' => array(
-          'callback' => 'membership_entity_term_length_callback',
-          'wrapper' => $wrapper_id,
-          'effect' => 'fade',
-        ),
-      ),
-    );
-  }
-
-  $form['term_lengths']['term_length_options'] = array(
-    '#type' => 'select',
-    '#title' => t('Term length'),
-    '#required' => TRUE,
-    '#options' => array(
-      '1 day' => t('1 day'),
-      '1 week' => t('1 week'),
-      '1 month' => t('1 month'),
-      '3 months' => t('3 months'),
-      '6 months' => t('6 months'),
-      '1 year' => t('1 year'),
-      '2 years' => t('2 years'),
-      '3 years' => t('3 years'),
-      '4 years' => t('4 years'),
-      '5 years' => t('5 years'),
-      '10 years' => t('10 years'),
-      'lifetime' => t('Lifetime'),
-      'other' => t('Other'),
-    ),
-  );
-
-  $form['term_lengths']['custom_term_length'] = array(
-    '#type' => 'textfield',
-    '#title' => t('Other term length'),
-    '#size' => 32,
-    '#description' => t('Enter a term length including number and unit (eg. 15 years).'),
-    '#states' => array(
-      'visible' => array(
-       ':input[name="term_lengths[term_length_options]"]' => array('value' => 'other'),
-      ),
-      'required' => array(
-        ':input[name="term_lengths[term_length_options]"]' => array('value' => 'other'),
-      ),
-    ),
-  );
-
-  $form['term_lengths']['add_term_length'] = array(
-    '#type' => 'submit',
-    '#value' => t('Add term length'),
-    '#validate' => array('membership_entity_add_term_length_validate'),
-    '#submit' => array('membership_entity_add_term_length'),
-    '#limit_validation_errors' => array(array('term_lengths')),
-    '#ajax' => array(
-      'callback' => 'membership_entity_term_length_callback',
-      'wrapper' => $wrapper_id,
-      'effect' => 'fade',
-    ),
-  );
+  $form['#data'] = $data;
 
   $form['user_settings'] = array(
     '#type' => 'fieldset',
@@ -201,7 +100,6 @@ function membership_entity_settings_form($form, &$form_state, $data = array()) {
     '#limit_validation_errors' => array(
       array('primary_role'),
       array('secondary_role'),
-      array('term_lengths', 'available_term_lengths'),
       array('cardinality'),
       array('show_on_profile'),
       array('all_edit'),
@@ -212,94 +110,18 @@ function membership_entity_settings_form($form, &$form_state, $data = array()) {
 }
 
 /**
- * Ajax callback to update term lengths.
- */
-function membership_entity_term_length_callback($form, $form_state) {
-  return $form['term_lengths']['available_term_lengths'];
-}
-
-/**
- * Validate handler to add a term length.
- */
-function membership_entity_add_term_length_validate($form, &$form_state) {
-  $values = &$form_state['values']['term_lengths'];
-  $term_length = $values['term_length_options'];
-
-  // Validate a custom term length.
-  if ($term_length == 'other') {
-    $term_length = trim($values['custom_term_length']);
-    $regex = '/^((\d+ (sec|second|min|minute|hour|day|week|month|year)s?)\s?)+$/i';
-    if (!preg_match($regex, $term_length)) {// || strtotime($term_length) === FALSE) {
-      form_set_error('term_lengths][custom_term_length', t('%term_length is not a valid term length. Please enter term lengths as a number and unit (eg. 15 years)', array(
-        '%term_length' => $term_length,
-      )));
-    }
-  }
-
-  // Check for duplicates.
-  if (in_array($term_length, $form_state['available_term_lengths'])) {
-    form_set_error('term_lengths][term_length_options', t('The term length %term_length has already been added.', array(
-      '%term_length' => $term_length,
-    )));
-  }
-}
-
-/**
- * Submit handler to add a term length.
- */
-function membership_entity_add_term_length($form, &$form_state) {
-  $values = $form_state['values']['term_lengths'];
-  $term = ($values['term_length_options'] != 'other') ? $values['term_length_options'] : $term = $values['custom_term_length'];
-  $form_state['available_term_lengths'][] = check_plain($term);
-  $form_state['rebuild'] = TRUE;
-}
-
-/**
- * Submit handler to remove a term length.
- */
-function membership_entity_remove_term_length($form, &$form_state) {
-  $button = $form_state['triggering_element'];
-  if (isset($button['#delta'])) {
-    unset($form_state['available_term_lengths'][$button['#delta']]);
-  }
-  $form_state['rebuild'] = TRUE;
-}
-
-/**
- *  Form validation handler for membership_entity_settings_form().
- */
-function membership_entity_settings_form_validate($form, &$form_state) {
-  // Make sure at least one term length is selected.
-  if (empty($form_state['values']['term_lengths']['available_term_lengths'])) {
-    form_set_error('term_lengths][available_term_lengths', t('You must add at least one term length.'));
-  }
-}
-
-/**
  * Form submission handler for membership_entity_settings_form().
  */
 function membership_entity_settings_form_submit($form, &$form_state) {
-  $values = $form_state['values'];
-
-  // Prepare available term_lengths.
-  $term_lengths = array();
-  foreach ($values['term_lengths']['available_term_lengths'] as $item) {
-    $term_lengths[$item['weight']] = $item['term_length'];
-  }
-  ksort($term_lengths);
-  $values['available_term_lengths'] = $term_lengths;
-  unset($values['term_lengths']);
-
   // Prepare roles.
-  if ($values['secondary_role'] == 'primary') {
-    $values['secondary_role'] = $values['primary_role'];
+  if ($form_state['values']['secondary_role'] == 'primary') {
+    $form_state['values']['secondary_role'] = $form_state['values']['primary_role'];
   }
 
   // Remove extra fields.
-  unset($values['submit']);
-  unset($values['op']);
+  form_state_values_clean($form_state);
 
-  variable_set('membership_entity_settings', $values);
+  variable_set('membership_entity_settings', $form_state['values']);
   drupal_set_message(t('The configuration options have been saved'));
 }
 
@@ -731,55 +553,6 @@ function membership_entity_join_form($form, &$form_state) {
 }
 
 /**
- * Menu callback: Renew an existing membership.
- */
-function membership_entity_renew($form, &$form_state, $membership) {
-  $membership->is_renewal = TRUE;
-
-  $form = array(
-    '#prefix' => '<div id="membership-entity-renew-wrapper">',
-    '#suffix' => '</div>',
-    '#attributes' => array(
-      'class' => array('membership-entity-renew-form'),
-    ),
-  );
-
-  // Create a default membership and build the form.
-  $form['#membership_entity'] = $membership;
-
-  // Display membership info as a fieldset.
-  $form['membership_info'] = array(
-    '#type' => 'fieldset',
-    '#title' => t('Membership information'),
-    '#membership_entity' => $form['#membership_entity'],
-  );
-  membership_entity_form($form['membership_info'], $form_state);
-
-  // Set the membership to active.
-  $form['membership_info']['membership']['status']['#default_value'] = MEMBERSHIP_ENTITY_ACTIVE;
-
-  $form['actions'] = array('#type' => 'actions');
-  $form['actions']['submit'] = array(
-    '#type' => 'submit',
-    '#value' => t('Renew'),
-  );
-
-  $form['#submit'][] = 'membership_entity_renew_submit';
-  $form['#validate'][] = 'membership_entity_form_validate';
-
-  return $form;
-}
-
-/**
- * Submit the renewal form.
- */
-function membership_entity_renew_submit($form, &$form_state) {
-  $membership = $form['#membership_entity'];
-  membership_entity_edit_form_submit($form, $form_state);
-  $form_state['redirect'] = 'membership/' . $membership->mid;
-}
-
-/**
  * Helper to add default and field api membership entity fields.
  */
 function membership_entity_form(&$form, &$form_state) {
@@ -788,6 +561,7 @@ function membership_entity_form(&$form, &$form_state) {
 
   $form['#entity_type'] = 'membership_entity';
   $form['#bundle'] = $membership->type;
+  $form['#membership_entity_form'] = TRUE;
 
   // Basic information.
   foreach (array('mid', 'type', 'created', 'entity_type') as $key) {
@@ -842,16 +616,6 @@ function membership_entity_form(&$form, &$form_state) {
     '#default_value' => $membership->status,
     '#required' => TRUE,
     '#access' => user_access('administer memberships'),
-  );
-
-  // For joins and renewals we create a new term for the membership.
-  $form['membership']['term_length'] = array(
-    '#type' => 'radios',
-    '#title' => t('Term length'),
-    '#description' => t('Select the desired membership term length.'),
-    '#required' => TRUE,
-    '#options' => drupal_map_assoc($bundle_settings['available_term_lengths']),
-    '#access' => !(empty($membership->is_new) && empty($membership->is_renewal)), // DeMorgan's Theorem FTW!
   );
 
   // Add field UI items.
@@ -910,6 +674,9 @@ function membership_entity_edit_form_submit($form, &$form_state) {
 
   entity_form_submit_build_entity('membership_entity', $membership, $form, $form_state);
   $status = membership_entity_save($membership);
+
+  // Add the saved membership object to $form_state for other modules.
+  $form_state['#membership_entity'] = $membership;
 
   $t_args = array('%member_id' => $membership->member_id);
   switch ($status) {

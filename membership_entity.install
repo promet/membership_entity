@@ -9,50 +9,51 @@
  * Implements hook_schema().
  */
 function membership_entity_schema() {
+  $t = get_t();
   $schema['membership_entity'] = array(
-    'description' => 'The base table for memberships.',
+    'description' => $t('The base table for memberships.'),
     'fields' => array(
       'mid' => array(
-        'description' => 'The primary identifier for a membership.',
+        'description' => $t('The primary identifier for a membership.'),
         'type' => 'serial',
         'unsigned' => TRUE,
         'not null' => TRUE,
       ),
       'member_id' => array(
-        'description' => 'A user enterable unique member id.',
+        'description' => $t('A user enterable unique member id.'),
         'type' => 'varchar',
         'length' => 255,
         'not null' => TRUE,
         'default' => '',
       ),
       'type' => array(
-        'description' => 'The type (bundle) of this membership.',
+        'description' => $t('The type (bundle) of this membership.'),
         'type' => 'varchar',
         'length' => 32,
         'not null' => TRUE,
         'default' => '',
       ),
       'uid' => array(
-        'description' => 'The user id of the primary member.',
+        'description' => $t('The user id of the primary member.'),
         'type' => 'int',
         'unsigned' => TRUE,
         'not null' => TRUE,
         'default' => 0,
       ),
       'status' => array(
-        'description' => 'Integer code indicating the membership status.',
+        'description' => $t('Integer code indicating the membership status.'),
         'type' => 'int',
         'not null' => TRUE,
         'default' => 1,
       ),
       'created' => array(
-        'description' => 'The Unix timestamp when the membership was created.',
+        'description' => $t('The Unix timestamp when the membership was created.'),
         'type' => 'int',
         'not null' => TRUE,
         'default' => 0,
       ),
       'changed' => array(
-        'description' => 'The Unix timestamp when the membership was most recently saved.',
+        'description' => $t('The Unix timestamp when the membership was most recently saved.'),
         'type' => 'int',
         'not null' => TRUE,
         'default' => 0,
@@ -79,23 +80,23 @@ function membership_entity_schema() {
   );
 
   $schema['membership_entity_secondary_member'] = array(
-    'description' => 'Secondary members.',
+    'description' => $t('Secondary members.'),
     'fields' => array(
       'mid' => array(
-        'description' => 'The membership identifier.',
+        'description' => $t('The membership identifier.'),
         'type' => 'int',
         'unsigned' => TRUE,
         'not null' => TRUE,
       ),
       'uid' => array(
-        'description' => 'The user id of the secondary member.',
+        'description' => $t('The user id of the secondary member.'),
         'type' => 'int',
         'unsigned' => TRUE,
         'not null' => TRUE,
         'default' => 0,
       ),
       'weight' => array(
-        'description' => 'The display order for listing secondary members.',
+        'description' => $t('The display order for listing secondary members.'),
         'type' => 'int',
         'not null' => TRUE,
         'default' => 1,

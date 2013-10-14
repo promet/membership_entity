@@ -307,17 +307,6 @@ function membership_entity_menu() {
     'context' => MENU_CONTEXT_PAGE | MENU_CONTEXT_INLINE,
     'file' => 'membership_entity.pages.inc',
   );
-  $items['membership/%membership_entity/renew'] = array(
-    'title' => 'Renew',
-    'page callback' => 'drupal_get_form',
-    'page arguments' => array('membership_entity_renew', 1),
-    'access callback' => 'membership_entity_access',
-    'access arguments' => array('renew', 1),
-    'weight' => 1,
-    'type' => MENU_LOCAL_TASK,
-    'context' => MENU_CONTEXT_PAGE | MENU_CONTEXT_INLINE,
-    'file' => 'membership_entity.pages.inc',
-  );
   $items['membership/%membership_entity/delete'] = array(
     'title' => 'Delete',
     'page callback' => 'drupal_get_form',
@@ -381,9 +370,6 @@ function membership_entity_admin_paths() {
  */
 function membership_entity_theme() {
   $theme_hooks = array(
-    'membership_entity_available_term_lengths' => array(
-      'render element' => 'element',
-    ),
     'membership_entity' => array(
       'render element' => 'membership',
       'template' => 'membership-entity',
@@ -425,31 +411,35 @@ function membership_entity_membership_entity_operations() {
 /**
  * Menu callback: Display a membership.
  */
-function membership_entity_view($membership, $view_mode = 'full') {
-  $entity_type = 'membership_entity';
-  $account = user_load($membership->uid);
+function membership_entity_view($membership, $view_mode = 'full', $langcode = NULL) {
+  if (!isset($langcode)) {
+    $langcode = $GLOBALS['language']->language;
+  }
 
-  $build = array(
-    '#theme' => 'membership_entity',
-    '#membership_entity' => $membership,
-    '#view_mode' => $view_mode,
+  $membership->content = array();
+
+  // Allow modules to change the view mode.
+  $context = array(
+    'entity_type' => 'membership_enttiy',
+    'entity' => $membership,
+    'langcode' => $langcode,
   );
+  drupal_alter('entity_view_mode', $view_mode, $context);
 
   // Build custom field content.
-  field_attach_prepare_view($entity_type, array($membership->mid => $membership), $view_mode);
-  entity_prepare_view($entity_type, array($membership->mid => $membership));
-  $build += field_attach_view($entity_type, $membership, $view_mode);
+  field_attach_prepare_view('membership_entity', array($membership->mid => $membership), $view_mode, $langcode);
+  entity_prepare_view('membership_entity', array($membership->mid => $membership), $langcode);
+  $membership->content += field_attach_view('membership_entity', $membership, $view_mode, $langcode);
 
-  $build['links'] = array(
+  $membership->content['links'] = array(
     '#theme' => 'links__membership_entity',
     '#pre_render' => array('drupal_pre_render_links'),
     '#attributes' => array('class' => array('links', 'inline')),
     '#weight' => 99,
   );
-
   if ($view_mode == 'account') {
     // Display the membership in a fieldset on user account pages.
-    $build += array(
+    $membership->content += array(
       '#theme_wrappers' => array('fieldset'),
       '#title' => t('Membership @member_id', array(
         '@member_id' => $membership->member_id,
@@ -480,18 +470,31 @@ function membership_entity_view($membership, $view_mode = 'full') {
       );
     }
 
-    $build['links']['membership_entity'] = array(
+    $membership->content['links']['membership_entity'] = array(
       '#theme' => 'links__membership_entity__membership_entity',
       '#links' => $links,
       '#attributes' => array('class' => array('links', 'inline')),
     );
   }
 
-  // Invoke hook_entity_view() and hook_entity_view_alter().
-  $langcode = $GLOBALS['language']->language ;
-  module_invoke_all('entity_view', $membership, $entity_type, $view_mode, $langcode);
-  drupal_alter(array('entity_membership_entity_view', 'entity_view'), $membership->content, $entity_type);
+  module_invoke_all('membership_entity_view', $membership, $view_mode, $langcode);
+  module_invoke_all('entity_view', $membership, 'membership_entity', $view_mode, $langcode);
 
+  $membership->content += array('#view_mode' => $view_mode);
+
+  $build = $membership->content;
+  unset($membership->content);
+
+  $build += array(
+    '#theme' => 'membership_entity',
+    '#membership_entity' => $membership,
+    '#view_mode' => $view_mode,
+    '#language' => $langcode,
+  );
+
+  // Invoke view and alter hooks.
+  $type = 'membership_entity';
+  drupal_alter(array('entity_membership_entity_view', 'entity_view'), $build, $type);
   return $build;
 }
 
@@ -850,9 +853,6 @@ function membership_entity_uid_value($element, $input = FALSE, $form_state) {
 
 /**
  * Create a new membership entity with default values.
- *
- * @param $uid
- *  The user id of the primary member account.
  */
 function membership_entity_create($values = array()) {
   return entity_create('membership_entity', $values);

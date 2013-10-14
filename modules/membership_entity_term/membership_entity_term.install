@@ -1,0 +1,79 @@
+<?php
+
+/**
+ * @file
+ * Install, uninstall, and update hooks for the membership_entity_term module.
+ */
+
+/**
+ * Implements hook_schema().
+ */
+function membership_entity_term_schema() {
+  $t = get_t();
+
+  $schema['membership_entity_term'] = array(
+    'description' => $t('The base table for membership terms.'),
+    'fields' => array(
+      'id' => array(
+        'description' => $t('The primary identifier for membership terms.'),
+        'type' => 'serial',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ),
+      'mid' => array(
+        'description' => $t('The membership identifier.'),
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ),
+      'term' => array(
+        'description' => $t('The human readable term length. eg. 1 year.'),
+        'type' => 'varchar',
+        'length' => 32,
+        'not null' => TRUE,
+        'default' => '',
+      ),
+      'modifiers' => array(
+        'description' => $t('A serialized list of term length modifiers. eg. +1 month.'),
+        'type' => 'text',
+        'size' => 'big',
+        'not null' => FALSE,
+        'serialize' => TRUE,
+      ),
+      'start' => array(
+        'description' => $t('The UNIX timestamp when this term starts.'),
+        'type' => 'datetime',
+        'mysql_type' => 'datetime',
+        'pgsql_type' => 'timestamp without time zone',
+        'sqlite_type' => 'varchar',
+        'sqlsrv_type' => 'smalldatetime',
+        'not null' => TRUE,
+        'sortable' => TRUE,
+      ),
+      'end' => array(
+        'description' => $t('The UNIX timestamp when this term ends.'),
+        'type' => 'datetime',
+        'mysql_type' => 'datetime',
+        'pgsql_type' => 'timestamp without time zone',
+        'sqlite_type' => 'varchar',
+        'sqlsrv_type' => 'smalldatetime',
+        'not null' => TRUE,
+        'sortable' => TRUE,
+      ),
+    ),
+    'indexes' => array(
+      'membership_entity_term_membership' => array('mid'),
+      'membership_entity_term_start' => array('mid', 'start'),
+      'membership_entity_term_end' => array('mid', 'end'),
+    ),
+    'primary key' => array('id'),
+    'foreign keys' => array(
+      'membership_entity_term_membership' => array(
+        'table' => 'membership_entity',
+        'columns' => array('mid' => 'mid'),
+      ),
+    ),
+  );
+
+  return $schema;
+}

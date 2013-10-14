@@ -2,7 +2,7 @@
 
 /**
  * @file
- * Defines membership terms.
+ * Allow users to create time limited memberships.
  */
 
 /**
@@ -22,39 +22,29 @@ function membership_entity_term_help($path, $arg) {
 /**
  * Implements hook_entity_info().
  */
-function membership_entity_entity_info() {
-  $info = array(
-    'label' => t('Membershp term'),
-    'plural label' => t('Membership terms'),
-    'description' => t('Terms attached to a membership.'),
-    'entity class' => 'MembershipEntityTerm',
-    'controller class' => 'EntityAPIController',
-    'base table' => 'membership_entity_term',
-    'label callback' => 'entity_class_label',
-    'uri callback' => 'entity_class_uri',
-    'fieldable' => FALSE,
-    'entity keys' => array(
-      'id' => 'id',
-      'mid' => 'mid',
-    ),
-    'bundles' => array(
-      'term' => array(
-        'label' => t('Term'),
-        'admin' => array(
-          'path' => 'admin/config/membership/terms',
-          'access arguments' => array('administer membership terms'),
+function membership_entity_term_entity_info() {
+  return array(
+    'membership_entity_term' => array(
+      'label' => t('Membershp term'),
+      'plural label' => t('Membership terms'),
+      'description' => t('Terms attached to a membership.'),
+      'entity class' => 'MembershipEntityTerm',
+      'controller class' => 'MembershipEntityTermController',
+      'base table' => 'membership_entity_term',
+      'label callback' => 'entity_class_label',
+      'uri callback' => 'entity_class_uri',
+      'fieldable' => FALSE,
+      'entity keys' => array(
+        'id' => 'id',
+      ),
+      'view modes' => array(
+        'membership' => array(
+          'label' => t('Membership'),
+          'custom settings' => FALSE,
         ),
       ),
     ),
-    'view modes' => array(
-      'membership' => array(
-        'label' => t('Membership'),
-        'custom settings' => FALSE,
-      ),
-    ),
   );
-
-  return $info;
 }
 
 /**
@@ -66,20 +56,308 @@ function membership_entity_term_permission() {
       'title' => t('Administer membership terms'),
       'restrict access' => TRUE,
     ),
+  );
 }
 
 /**
  * Implements hook_menu().
  */
-function membership_entity_term() {
+function membership_entity_term_menu() {
+  $items['membership-term/%membership_entity_term/edit'] = array(
+    'title' => 'Edit',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('membership_entity_term_edit', 1),
+    'access arguments' => array('administer membership terms'),
+    'type' => MENU_NORMAL_ITEM,
+    'file' => 'membership_entity_term.pages.inc',
+  );
+
+/*
+  $items['membership/%membership_entity/renew'] = array(
+    'title' => 'Renew',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('membership_entity_term_renew', 1),
+    'access callback' => 'membership_entity_term_access',
+    'access arguments' => array('renew', 1),
+    'weight' => 1,
+    'type' => MENU_LOCAL_TASK,
+    'context' => MENU_CONTEXT_PAGE | MENU_CONTEXT_INLINE,
+    'file' => 'membership_entity.pages.inc',
+  );
+*/
+
   return $items;
 }
 
 /**
- *  Defines a membership term.
+ * Implements hook_field_extra_fields().
  */
-class MembershipEntityTerm extends Entity {
-  public function __construct($values = array()) {
-    parent::__construct($values, 'membership_entity_term');
+function membership_entity_term_field_extra_fields() {
+  $fields['membership_entity']['membership'] = array(
+    'display' => array(
+      'membership_terms' => array(
+        'label' => t('Membership Terms'),
+        'description' => t('A list of terms for the membership.'),
+        'weight' => 99,
+      ),
+    ),
+  );
+  return $fields;
+}
+
+/**
+ * Implements hook_membership_entity_view().
+ */
+function membership_entity_term_membership_entity_view($membership, $view_mode, $langcode) {
+  $terms = membership_entity_term_load_by_membership($membership);
+  $membership->content['membership_terms'] = membership_entity_terms_view($terms, $view_mode, $langcode);
+}
+
+/**
+ * View a table of membership terms.
+ */
+function membership_entity_terms_view($terms, $view_mode = 'full', $langocode = NULL) {
+  if (!isset($langcode)) {
+    $langcode = $GLOBALS['language']->language;
+  }
+
+  $header = array(
+    array('data' => t('Term Length')),
+    array('data' => t('Start')),
+    array('data' => t('End')),
+  );
+  if (user_access('administer membership terms')) {
+    $header[] = array('data' => t('Operations'));
+  }
+
+  $rows = array();
+  foreach ($terms as $id => $term) {
+    $start = new DateObject($term->start);
+    $end = new DateObject($term->end);
+
+    $rows[$id] = array(
+      array('data' => check_plain($term->term)),
+      array('data' => date_format_date($start, 'medium')),
+      array('data' => date_format_date($end, 'medium')),
+    );
+    if (user_access('administer membership terms')) {
+      $destination = drupal_get_destination();
+      $rows[$id][] = array(
+        'data' => array(
+          '#type' => 'link',
+          '#title' => t('edit'),
+          '#href' => 'membership-term/'. $term->id . '/edit',
+          '#options' => array('query' => $destination),
+        ),
+      );
+    }
+  }
+
+  return array(
+    '#theme' => 'table__membership_entity_terms',
+    '#membership_entity_terms' => $terms,
+    '#header' => $header,
+    '#rows' => $rows,
+  );
+}
+
+/**
+ * Implements hook_theme().
+ */
+function membership_entity_term_theme() {
+  return array(
+    'membership_entity_term_available_term_lengths' => array(
+      'render element' => 'element',
+    ),
+    'membership_entity_term_modifiers' => array(
+      'render element' => 'element',
+    ),
+  );
+}
+
+/**
+ * Implements hook_form_alter().
+ */
+function membership_entity_term_form_alter(&$form, &$form_state, $form_id) {
+  if (!empty($form['#membership_entity_form'])) {
+    form_load_include($form_state, 'inc', 'membership_entity_term', 'membership_entity_term.pages');
+    _membership_entity_term_create_form($form, $form_state);
   }
 }
+
+/**
+ * Implements hook_form_FORM_ID_alter() for membership_entity_settings_form().
+ */
+function membership_entity_term_form_membership_entity_settings_form_alter(&$form, &$form_state, $form_id) {
+  form_load_include($form_state, 'inc', 'membership_entity_term', 'membership_entity_term.pages');
+  _membership_entity_term_settings_form($form, $form_state);
+}
+
+/**
+ * Create a new membership entity term with default values.
+ */
+function membership_entity_term_create($values = array()) {
+  return entity_create('membership_entity_term', $values);
+}
+
+/**
+ * Load a single membership term object.
+ */
+function membership_entity_term_load($id = NULL, $reset = FALSE) {
+  $terms = membership_entity_term_load_multiple(array($id), array(), $reset);
+  return is_array($terms) ? reset($terms) : FALSE;
+}
+
+/**
+ * Load all terms for a given membership.
+ */
+function membership_entity_term_load_by_membership($membership, $reset = FALSE) {
+  $controller = entity_get_controller('membership_entity_term');
+  if ($reset) {
+    $controller->resetCache();
+  }
+  return $controller->load_by_membership($membership);
+}
+
+/**
+ * Loads multiple membership objects.
+ */
+function membership_entity_term_load_multiple($ids = FALSE, $conditions = array(), $reset = FALSE) {
+  return entity_load('membership_entity_term', $ids, $conditions, $reset);
+}
+
+/**
+ * Save a membership term.
+ */
+function membership_entity_term_save($term) {
+  return entity_save('membership_entity_term', $term);
+}
+
+/**
+ * Calcluate the membership term end date.
+ *
+ * @param $start
+ *  The term start date in YYYY-MM-DD hh:mm:ss format.
+ * @param $length
+ *  A relative term length (eg. 1 year).
+ * @param $modifiers
+ *  (optional) An array of relative term modifiers (eg. +1 month).
+ * @return The term end date in YYYY-MM-DD hh:mm:ss format.
+ */
+function membership_entity_term_end_date($start, $term, $modifiers = array(), $timezone = NULL) {
+  $timezone = ($timezone) ? $timezone : date_default_timezone();
+  $end = DateObject::createFromFormat(DATE_FORMAT_DATETIME, $start, new DateTimezone($timezone));
+
+  // Add the term length.
+  $end->add(DateInterval::createFromDateString($term));
+
+  // Add modifiers.
+  foreach ($modifiers as $modifier) {
+    $end->add(DateInterval::createFromDateString($modifier));
+  }
+  return $end->format(DATE_FORMAT_DATETIME);
+}
+
+/**
+ * Returns HTML for the available term lengths form element.
+ *
+ * @param $variables
+ *   An associative array containing:
+ *   - element: A render element representing the form element.
+ */
+function theme_membership_entity_term_available_term_lengths($variables) {
+  $element = $variables['element'];
+  $order_class = $element['#id'] . '-term-weight';
+
+  // Sort items according to weight.
+  $items = array();
+  foreach (element_children($element) as $key) {
+    $items[] = &$element[$key];
+  }
+
+  if (!empty($items)) {
+    usort($items, '_membership_entity_sort_items_by_weight');
+  }
+
+  $table_id = 'available-term-lengths';
+  $header = array(t('Available Term Lengths'), t('Example (relative to now)'), '');
+  $rows = array();
+
+  if (!empty($items)) {
+    $header[] = t('Order');
+
+    // Add the items as table rows.
+    foreach ($items as $key => $item) {
+      $item['weight']['#attributes']['class'][] = $order_class;
+      $rows[] = array(
+        'data' => array(
+          // We use #type => value instead of markup so that term_length will
+          // be included in $form_state['values'].
+          array('data' => $item['term_length']['#value']),
+          array('data' => drupal_render($item['example'])),
+          array('data' => drupal_render($item['remove'])),
+          array('data' => drupal_render($item['weight']), 'class' => array('term-weight')),
+        ),
+        'class' => array('draggable'),
+      );
+    }
+    drupal_add_tabledrag($table_id, 'order', 'sibling', $order_class);
+  }
+  else {
+    $rows[]['data'] = array(
+      array(
+        'data' => t('Select a term length and click "Add term length" to add it to the list of available term lengths.'),
+        'colspan' => 3,
+      ),
+    );
+  }
+
+  return theme('table', array(
+    'header' => $header,
+    'rows' => $rows,
+    'attributes' => array('id' => $table_id),
+  ));
+}
+
+/**
+ * Returns HTML for the term modifiers form element.
+ *
+ * @param $variables
+ *   An associative array containing:
+ *   - element: A render element representing the form element.
+ */
+function theme_membership_entity_term_modifiers($variables) {
+  $element = $variables['element'];
+  $header = array(
+    array('data' => t('Modifier'), 'colspan' => 2),
+  );
+  $rows = array();
+  $items = element_children($element);
+  if (!empty($items)) {
+    foreach ($items as $key) {
+      $rows[] = array(
+        'data' => array(
+          // We use #type => value instead of markup so that the modifier will
+          // be included in $form_state['values'].
+          array('data' => $element[$key]['value']['#value']),
+          array('data' => drupal_render($element[$key]['remove'])),
+        ),
+      );
+    }
+  }
+  else {
+    $rows[]['data'] = array(
+      array(
+        'data' => t('Select a modifier and click "Add modifier" to add it to the list.'),
+        'colspan' => 2,
+      ),
+    );
+  }
+
+  return theme('table', array(
+    'header' => $header,
+    'rows' => $rows,
+    'attributes' => array('id' => 'term-modifers'),
+  ));
+}
+
