@@ -32,7 +32,7 @@ function _membership_entity_term_settings_form(&$form, &$form_state) {
 
   $wrapper_id = 'available-term-lengths-wrapper';
   $form['term_lengths']['available_term_lengths'] = array(
-    '#theme' => 'membership_entity_term_available_term_lengths',
+    '#theme' => 'membership_entity_term_available_term_lengths_element',
     '#id' => 'membership-entity-term-lengths',
     '#prefix' => '<div id="'. $wrapper_id . '">',
     '#suffix' => '</div>',
@@ -218,14 +218,12 @@ function _membership_entity_term_create_form(&$form, &$form_state) {
 function membership_entity_term_create_form_submit($form, &$form_state) {
   $membership = $form_state['#membership_entity'];
   $term_length = $form_state['values']['term_length'];
-
+  $start = new DateObject('now', 'UTC');
   $term = membership_entity_term_create(array(
     'mid' => $membership->mid,
     'term' => $term_length,
-    'start' => format_date(REQUEST_TIME, 'custom', DATE_FORMAT_DATETIME),
-    'end' => format_date(strtotime($term_length, REQUEST_TIME), 'custom', DATE_FORMAT_DATETIME),
+    'start' => date_format_date($start, 'custom', DATE_FORMAT_DATETIME),
   ));
-
   membership_entity_term_save($term);
 }
 
@@ -244,19 +242,22 @@ function membership_entity_term_edit($form, &$form_state, $term) {
   }
 
   // Basic information.
-  foreach (array('id', 'mid', 'end') as $key) {
+  foreach (array('id', 'mid') as $key) {
     $form[$key] = array(
       '#type' => 'value',
       '#value' => isset($term->{$key}) ? $term->{$key} : NULL,
     );
   }
 
+  // Convert to user's timezone.
+  $start = new DateObject($term->start, 'UTC');
+  $start->setTimezone(new DateTimeZone(date_default_timezone()));
   $form['start'] = array(
     '#type' => 'date_select',
     '#title' => t('Term start date'),
     '#description' => t('Select the new membership term start date. The term end date will be calculated automatically based on the start date, term length, and any modifiers.'),
     '#date_format' => DATE_FORMAT_DATETIME,
-    '#default_value' => $term->start,
+    '#default_value' => date_format_date($start, 'custom', DATE_FORMAT_DATETIME),
     '#date_text_parts' => array('year'),
   );
 
@@ -279,13 +280,18 @@ function membership_entity_term_edit($form, &$form_state, $term) {
     '#title' => t('Term Modifiers'),
     '#description' => t('Modifiers are used to extend or reduce the term length by a set amout of time. eg. +1 month.'),
     '#collapsible' => TRUE,
-    '#collapsed' => TRUE,
+    '#collapsed' => FALSE,
     '#tree' => TRUE,
+    '#states' => array(
+      'invisible' => array(
+       ':input[name="term"]' => array('value' => 'lifetime'),
+      ),
+    ),
   );
 
   $wrapper_id = 'term-modifiers-wrapper';
   $form['modifiers']['list'] = array(
-    '#theme' => 'membership_entity_term_modifiers',
+    '#theme' => 'membership_entity_term_modifiers_element',
     '#id' => 'membership-entity-term-modifiers',
     '#prefix' => '<div id="'. $wrapper_id . '">',
     '#suffix' => '</div>',
@@ -423,12 +429,18 @@ function membership_entity_term_edit_form_validate($form, &$form_state) {
   $values = &$form_state['values'];
 
   // Prepare available term modifiers.
-  $modifiers = array_map(function($a){return $a['value'];}, $values['modifiers']['list']);
-  form_set_value($form['modifiers'], $modifiers, $form_state);
+  if (empty($values['modifiers']['list']) || $values['term'] == 'lifetime') {
+    form_set_value($form['modifiers'], array(), $form_state);
+  }
+  else {
+    $modifiers = array_map(function($a){return $a['value'];}, $values['modifiers']['list']);
+    form_set_value($form['modifiers'], $modifiers, $form_state);
+  }
 
-  // Calculate the end date.
-  $end = membership_entity_term_end_date($values['start'], $values['term'], $values['modifiers']);
-  form_set_value($form['end'], $end, $form_state);
+  // Convert start date back to UTC.
+  $start = new DateObject($values['start'], $form['start']['#date_timezone']);
+  $start->setTimezone(new DateTimeZone('UTC'));
+  form_set_value($form['start'], date_format_date($start, 'custom', DATE_FORMAT_DATETIME), $form_state);
 }
 
 /**

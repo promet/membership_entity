@@ -19,8 +19,7 @@ class MembershipEntityTermController extends EntityAPIController {
       'mid' => 0,
       'term' => '',
       'modifiers' => array(),
-      'start' => '',
-      'end' => '',
+      'start' => format_date(REQUEST_TIME, 'custom', DATE_FORMAT_DATETIME),
     );
     return parent::create($values);
   }

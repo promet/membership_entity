@@ -6,11 +6,6 @@
  */
 
 /**
- * The term length for lifetime memberships.
- */
-define('MEMBERSHIP_ENTITY_TERM_LIFETIME', -1);
-
-/**
  * Implements hook_help().
  */
 function membership_entity_term_help($path, $arg) {
@@ -116,7 +111,12 @@ function membership_entity_term_membership_entity_view($membership, $view_mode, 
 /**
  * View a table of membership terms.
  */
-function membership_entity_terms_view($terms, $view_mode = 'full', $langocode = NULL) {
+function membership_entity_terms_view($terms, $view_mode = 'full', $langocode = NULL, $timezone = NULL) {
+  if (!isset($timezone)) {
+    $timezone = date_default_timezone();
+  }
+  $tz = new DateTimeZone($timezone);
+
   if (!isset($langcode)) {
     $langcode = $GLOBALS['language']->language;
   }
@@ -132,14 +132,25 @@ function membership_entity_terms_view($terms, $view_mode = 'full', $langocode = 
 
   $rows = array();
   foreach ($terms as $id => $term) {
-    $start = new DateObject($term->start);
-    $end = new DateObject($term->end);
+    $start = new DateObject($term->start, 'UTC');
+    $start->setTimezone($tz);
+
+    if ($term->term != 'lifetime') {
+      $end = new DateObject($term->end, 'UTC');
+      $end->setTimezone($tz);
+    }
 
     $rows[$id] = array(
       array('data' => check_plain($term->term)),
       array('data' => date_format_date($start, 'medium')),
-      array('data' => date_format_date($end, 'medium')),
+      array('data' => ($term->term != 'lifetime') ? date_format_date($end, 'medium') : t('N/A')),
     );
+
+    // Add modifiers.
+    if (!empty($term->modifiers)) {
+      $rows[$id][0]['data'] .= theme('membership_entity_term_modifiers', array('modifiers' => $term->modifiers));
+    }
+
     if (user_access('administer membership terms')) {
       $destination = drupal_get_destination();
       $rows[$id][] = array(
@@ -162,16 +173,32 @@ function membership_entity_terms_view($terms, $view_mode = 'full', $langocode = 
 }
 
 /**
+ * Implements hook_membership_entity_delete().
+ */
+function membership_entity_term_membership_entity_delete($membership) {
+  // Remove membership terms.
+  db_delete('membership_entity_term')
+    ->condition('mid', $membership->mid)
+    ->execute();
+  watchdog('membership_entity_term', 'Deleted terms for membership %member_id', array('%member_id' => $membership->member_id));
+}
+
+/**
  * Implements hook_theme().
  */
 function membership_entity_term_theme() {
   return array(
-    'membership_entity_term_available_term_lengths' => array(
+    'membership_entity_term_available_term_lengths_element' => array(
+      'render element' => 'element',
+    ),
+    'membership_entity_term_modifiers_element' => array(
       'render element' => 'element',
     ),
     'membership_entity_term_modifiers' => array(
-      'render element' => 'element',
-    ),
+      'variables' => array(
+        'modifiers' => array(),
+      ),
+    )
   );
 }
 
@@ -234,38 +261,13 @@ function membership_entity_term_save($term) {
 }
 
 /**
- * Calcluate the membership term end date.
- *
- * @param $start
- *  The term start date in YYYY-MM-DD hh:mm:ss format.
- * @param $length
- *  A relative term length (eg. 1 year).
- * @param $modifiers
- *  (optional) An array of relative term modifiers (eg. +1 month).
- * @return The term end date in YYYY-MM-DD hh:mm:ss format.
- */
-function membership_entity_term_end_date($start, $term, $modifiers = array(), $timezone = NULL) {
-  $timezone = ($timezone) ? $timezone : date_default_timezone();
-  $end = DateObject::createFromFormat(DATE_FORMAT_DATETIME, $start, new DateTimezone($timezone));
-
-  // Add the term length.
-  $end->add(DateInterval::createFromDateString($term));
-
-  // Add modifiers.
-  foreach ($modifiers as $modifier) {
-    $end->add(DateInterval::createFromDateString($modifier));
-  }
-  return $end->format(DATE_FORMAT_DATETIME);
-}
-
-/**
  * Returns HTML for the available term lengths form element.
  *
  * @param $variables
  *   An associative array containing:
  *   - element: A render element representing the form element.
  */
-function theme_membership_entity_term_available_term_lengths($variables) {
+function theme_membership_entity_term_available_term_lengths_element($variables) {
   $element = $variables['element'];
   $order_class = $element['#id'] . '-term-weight';
 
@@ -326,7 +328,7 @@ function theme_membership_entity_term_available_term_lengths($variables) {
  *   An associative array containing:
  *   - element: A render element representing the form element.
  */
-function theme_membership_entity_term_modifiers($variables) {
+function theme_membership_entity_term_modifiers_element($variables) {
   $element = $variables['element'];
   $header = array(
     array('data' => t('Modifier'), 'colspan' => 2),
@@ -359,5 +361,21 @@ function theme_membership_entity_term_modifiers($variables) {
     'rows' => $rows,
     'attributes' => array('id' => 'term-modifers'),
   ));
+}
+
+/**
+ * Returns HTML for a list of term modifiers.
+ *
+ * @param $variables
+ *   An associative array containing:
+ *   - modifiers: An array of relative modifiers.
+ */
+function theme_membership_entity_term_modifiers($variables) {
+  drupal_add_css(drupal_get_path('module', 'membership_entity_term') . '/membership_entity_term.css');
+  $modifiers = $variables['modifiers'];
+  $output = '<div class="membership-entity-term-modifiers">';
+  $output .= implode('<br>', array_map('check_plain', $modifiers));
+  $output .= '</div>';
+  return $output;
 }
 
