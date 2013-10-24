@@ -80,7 +80,7 @@ function membership_entity_entity_info() {
 
   if (module_exists('membership_entity_type')) {
     // Add user defined bundles.
-    foreach (membership_entity_get_types() as $bundle => $type) {
+    foreach (membership_entity_type_get_types() as $bundle => $type) {
       $info['membership_entity']['bundles'][$bundle] = array(
         'label' => $type->name,
         'admin' => array(

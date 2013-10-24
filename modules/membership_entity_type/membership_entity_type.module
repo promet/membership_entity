@@ -50,7 +50,7 @@ function membership_entity_type_entity_info() {
  */
 function membership_entity_type_menu() {
   $items = array();
-  foreach (membership_entity_get_types(TRUE) as $type) {
+  foreach (membership_entity_type_get_types(TRUE) as $type) {
     $type_url_str = str_replace('_', '-', $type->type);
     $items['admin/memberships/add/' . $type_url_str] = array(
       'title' => $type->name,
@@ -220,7 +220,7 @@ function membership_entity_type_get_name($membership) {
  * Rebuilds membership type information.
  */
 function membership_entity_types_rebuild() {
-  membership_entity_get_types(TRUE);
+  membership_entity_type_get_types(TRUE);
 }
 
 /**
@@ -316,7 +316,7 @@ function membership_entity_type_page_title($type) {
  */
 function membership_entity_forms() {
   $forms = array();
-  if ($types = membership_entity_get_types()) {
+  if ($types = membership_entity_type_get_types()) {
     foreach ($types as $type) {
       $forms[$type->type . '_membership_entity_edit_form']['callback'] = 'membership_entity_edit_form';
     }
