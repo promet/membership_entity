@@ -17,7 +17,7 @@ class membership_entity_handler_filter_type extends views_handler_filter_in_oper
   function get_value_options() {
     if (!isset($this->value_options)) {
       $this->value_title = t('Membership types');
-      $types = membership_entity_get_types();
+      $types = membership_entity_type_get_types();
       $options = array();
       foreach ($types as $type => $info) {
         $options[$type] = t($info->name);
