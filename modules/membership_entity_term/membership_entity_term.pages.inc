@@ -198,8 +198,7 @@ function _membership_entity_term_create_form(&$form, &$form_state) {
   $membership = $form['#membership_entity'];
   $bundle_settings = $form['#bundle_settings'];
 
-  if (!(empty($membership->is_new) && empty($membership->is_renewal))) {
-    // Select a term length when creating or renewing a membership.
+  if (!empty($membership->is_new)) {
     $form['membership']['term_length'] = array(
       '#type' => 'radios',
       '#title' => t('Term length'),
@@ -547,51 +546,42 @@ function membership_entity_multiple_delete_confirm_submit($form, &$form_state) {
  * Menu callback: Renew an existing membership.
  */
 function membership_entity_term_renew($form, &$form_state, $membership) {
-  $membership->is_renewal = TRUE;
+  drupal_set_title(t('Renew membership @member_id', array('@member_id' => $membership->member_id)));
 
-  $form = array(
-    '#prefix' => '<div id="membership-entity-renew-wrapper">',
-    '#suffix' => '</div>',
-    '#attributes' => array(
-      'class' => array('membership-entity-renew-form'),
+  $form['#membership_entity'] = $membership;
+  $bundle_settings = membership_entity_get_bundle_settings();
+  if (empty($bundle_settings)) {
+    return '';
+  }
+
+  $form['term_length'] = array(
+    '#type' => 'radios',
+    '#title' => t('Renewal term length'),
+    '#description' => t('Select the desired renewal term length.'),
+    '#required' => TRUE,
+    '#options' => drupal_map_assoc($bundle_settings['available_term_lengths']),
+  );
+
+  $form['actions'] = array(
+    '#type' => 'actions',
+    '#weight' => 9999,
+    'submit' => array(
+      '#type' => 'submit',
+      '#value' => t('Renew'),
+      '#submit' => array('membership_entity_term_renew_submit'),
     ),
   );
-
-  // Create a default membership and build the form.
-  $form['#membership_entity'] = $membership;
-
-  // Display membership info as a fieldset.
-  $form['membership_info'] = array(
-    '#type' => 'fieldset',
-    '#title' => t('Membership information'),
-    '#membership_entity' => $form['#membership_entity'],
-  );
-
-  form_load_include($form_state, 'inc', 'membership_entity', 'membership_entity.pages');
-  membership_entity_form($form['membership_info'], $form_state);
-
-  // Set the membership to active.
-  $form['membership_info']['membership']['status']['#default_value'] = MEMBERSHIP_ENTITY_ACTIVE;
-
-  $form['actions'] = array('#type' => 'actions');
-  $form['actions']['submit'] = array(
-    '#type' => 'submit',
-    '#value' => t('Renew'),
-  );
-
-  $form['#submit'][] = 'membership_entity_term_renew_submit';
-  $form['#validate'][] = 'membership_entity_form_validate';
 
   return $form;
 }
 
 /**
- * Submit the renewal form.
+ * [$membership description]
+ * @var [type]
  */
 function membership_entity_term_renew_submit($form, &$form_state) {
   $membership = $form['#membership_entity'];
-  membership_entity_edit_form_submit($form, $form_state);
-  $form_state['redirect'] = 'membership/' . $membership->mid;
+  $bundle_settings = $form['#bundle_settings'];
 }
 
 /**

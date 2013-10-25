@@ -46,12 +46,23 @@ function membership_entity_term_entity_info() {
  * Implements hook_permission().
  */
 function membership_entity_term_permission() {
-  return array(
+  $permissions = array(
     'administer membership terms' => array(
       'title' => t('Administer membership terms'),
       'restrict access' => TRUE,
     ),
   );
+
+  if (!module_exists('membership_entity_type')) {
+    $permissions['membership renew any membership'] = array(
+      'title' => t('Renew any membership.'),
+    );
+    $permissions['membership renew own membership'] = array(
+      'title' => t('Renew own membership.'),
+    );
+  }
+
+  return $permissions;
 }
 
 /**
@@ -67,21 +78,29 @@ function membership_entity_term_menu() {
     'file' => 'membership_entity_term.pages.inc',
   );
 
-/*
   $items['membership/%membership_entity/renew'] = array(
     'title' => 'Renew',
     'page callback' => 'drupal_get_form',
     'page arguments' => array('membership_entity_term_renew', 1),
-    'access callback' => 'membership_entity_term_access',
-    'access arguments' => array('renew', 1),
+    'access callback' => 'membership_entity_term_renew_access',
+    'access arguments' => array(1),
     'weight' => 1,
     'type' => MENU_LOCAL_TASK,
     'context' => MENU_CONTEXT_PAGE | MENU_CONTEXT_INLINE,
-    'file' => 'membership_entity.pages.inc',
+    'file' => 'membership_entity_term.pages.inc',
   );
-*/
 
   return $items;
+}
+
+/**
+ * Access callback to renew a membership.
+ */
+function membership_entity_term_renew_access($membership) {
+  if (user_access('administer membership terms')) {
+    return TRUE;
+  }
+  return membership_entity_access('renew', $membership);
 }
 
 /**
