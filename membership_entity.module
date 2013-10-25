@@ -240,7 +240,7 @@ function membership_entity_modal_register_access() {
  * Implements hook_menu().
  */
 function membership_entity_menu() {
-  if (!module_exists('membership_entity_types')) {
+  if (!module_exists('membership_entity_type')) {
     $items['admin/structure/memberships'] = array(
       'title' => 'Memberships',
       'page callback' => 'drupal_get_form',

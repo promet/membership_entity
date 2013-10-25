@@ -9,22 +9,23 @@
  * Implements hook_schema().
  */
 function membership_entity_type_schema() {
+  $t = get_t();
   $schema['membership_entity_type'] = array(
-    'description' => 'Stores information about all defined membership types (bundles).',
+    'description' => $t('Stores information about all defined membership types (bundles).'),
     'fields' => array(
       'id' => array(
+        'description' => $t('Primary Key: Unique profile type ID.'),
         'type' => 'serial',
         'not null' => TRUE,
-        'description' => 'Primary Key: Unique profile type ID.',
       ),
       'type' => array(
-        'description' => 'The machine-readable name of this membership entity type.',
+        'description' => $t('The machine-readable name of this membership entity type.'),
         'type' => 'varchar',
         'length' => 32,
         'not null' => TRUE,
       ),
       'label' => array(
-        'description' => 'The human-readable name of this membership entity type.',
+        'description' => $t('The human-readable name of this membership entity type.'),
         'type' => 'varchar',
         'length' => 255,
         'not null' => TRUE,
@@ -32,25 +33,24 @@ function membership_entity_type_schema() {
         'translatable' => TRUE,
       ),
       'weight' => array(
+        'description' => $t('The weight of this membership entity type in relation to others.'),
         'type' => 'int',
         'not null' => TRUE,
         'default' => 0,
-        'size' => 'tiny',
-        'description' => 'The weight of this membership entity type in relation to others.',
       ),
       'description' => array(
-        'description' => 'A brief description of this type.',
+        'description' => $t('A brief description of this type.'),
         'type' => 'text',
         'not null' => TRUE,
         'size' => 'medium',
         'translatable' => TRUE,
       ),
       'data' => array(
+        'description' => $t('A serialized array of additional settings.'),
         'type' => 'text',
         'not null' => FALSE,
         'size' => 'big',
         'serialize' => TRUE,
-        'description' => 'A serialized array of additional settings.',
       ),
       // Exportable fields.
       // @see entity_exportable_schema_fields().
@@ -59,10 +59,10 @@ function membership_entity_type_schema() {
         'not null' => TRUE,
         'default' => 0x01,
         'size' => 'tiny',
-        'description' => 'The exportable status of the entity.',
+        'description' => $t('The exportable status of the entity.'),
       ),
       'module' => array(
-        'description' => 'The name of the providing module if the entity has been defined in code.',
+        'description' => $t('The name of the providing module if the entity has been defined in code.'),
         'type' => 'varchar',
         'length' => 255,
         'not null' => FALSE,

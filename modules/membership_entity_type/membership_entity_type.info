@@ -6,5 +6,6 @@ core = 7.x
 
 dependencies[] = membership_entity
 
-files[] = membership_entity_type.install
-files[] = membership_entity_type.admin.inc
+files[] = membership_entity_type.inc
+files[] = membership_entity_type.ui.inc
+files[] = membership_entity_type.controller.inc

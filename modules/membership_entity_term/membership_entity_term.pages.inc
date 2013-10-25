@@ -36,6 +36,7 @@ function _membership_entity_term_settings_form(&$form, &$form_state) {
     '#id' => 'membership-entity-term-lengths',
     '#prefix' => '<div id="'. $wrapper_id . '">',
     '#suffix' => '</div>',
+    '#element_validate' => array('membership_entity_term_length_element_validate')
   );
 
   foreach ($form_state['available_term_lengths'] as $delta => $term_length) {
@@ -110,7 +111,10 @@ function _membership_entity_term_settings_form(&$form, &$form_state) {
     '#value' => t('Add term length'),
     '#validate' => array('membership_entity_term_length_add_validate'),
     '#submit' => array('membership_entity_term_length_add'),
-    '#limit_validation_errors' => array(array('term_lengths')),
+    '#limit_validation_errors' => array(
+      array('term_lengths', 'term_length_options'),
+      array('term_lengths', 'custom_term_length'),
+    ),
     '#ajax' => array(
       'callback' => '_membership_entity_term_ajax_callback',
       'wrapper' => $wrapper_id,
@@ -118,7 +122,7 @@ function _membership_entity_term_settings_form(&$form, &$form_state) {
     ),
   );
 
-  $form['#validate'][] = 'membership_entity_term_settings_validate';
+  $form['#validate'][] = 'membership_entity_term_settings_form_validate';
   $form['actions']['submit']['#limit_validation_errors'][] = array('available_term_lengths');
   $form['actions']['submit']['#limit_validation_errors'][] = array('term_lengths', 'available_term_lengths');
 }
@@ -171,24 +175,33 @@ function membership_entity_term_length_remove($form, &$form_state) {
 }
 
 /**
- *  Form validation handler for membership_entity_settings_form().
+ * Form validation handler for membership_entity_settings_form().
  */
-function membership_entity_term_settings_validate($form, &$form_state) {
-  $values = &$form_state['values'];
+function membership_entity_term_settings_form_validate($form, &$form_state) {
+  // Flatten available term lengths.
+  $form_state['values']['available_term_lengths'] = $form_state['values']['term_lengths']['available_term_lengths'];
+  unset($form_state['values']['term_lengths']);
+}
+
+/**
+ * Element validate callback for the available term lengths field.
+ */
+function membership_entity_term_length_element_validate($element, &$form_state, $form) {
+  $items = element_children($element);
 
   // Make sure at least one term length is selected.
-  if (empty($values['term_lengths']['available_term_lengths'])) {
-    form_set_error('term_lengths][available_term_lengths', t('You must add at least one term length.'));
+  if (empty($items)) {
+    form_error($element, t('You must add at least one term length.'));
+    return;
   }
 
   // Prepare available term_lengths.
   $term_lengths = array();
-  foreach ($values['term_lengths']['available_term_lengths'] as $item) {
-    $term_lengths[$item['weight']] = $item['term_length'];
+  foreach ($items as $delta) {
+    $term_lengths[$element[$delta]['weight']['#value']] = $element[$delta]['term_length']['#value'];
   }
   ksort($term_lengths);
-  $values['available_term_lengths'] = $term_lengths;
-  unset($values['term_lengths']);
+  form_set_value($element, $term_lengths, $form_state);
 }
 
 /**
@@ -588,11 +601,11 @@ function membership_entity_term_renew_submit($form, &$form_state) {
  * Ajax callback to update form elements.
  */
 function _membership_entity_term_ajax_callback($form, $form_state) {
-  switch ($form['#form_id']) {
-    case 'membership_entity_settings_form':
-      return $form['term_lengths']['available_term_lengths'];
+  if ($form['#membership_entity_settings_form']) {
+    return $form['term_lengths']['available_term_lengths'];
+  }
 
-    case 'membership_entity_term_edit':
-      return $form['modifiers']['list'];
+  if ($form['#form_id'] == 'membership_entity_term_edit') {
+    return $form['modifiers']['list'];
   }
 }

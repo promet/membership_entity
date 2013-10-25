@@ -9,19 +9,20 @@
  * Form builder: membership settings form.
  */
 function membership_entity_settings_form($form, &$form_state, $data = array()) {
+  $form['#membership_entity_settings_form'] = TRUE;
+
   if (empty($data)) {
     $data = variable_get('membership_entity_settings', array());
   }
 
   // Provide some defaults.
   $data += array(
-    'cardinality' => 1,
+    'cardinality' => '1',
     'show_on_profile' => 1,
     'all_edit' => 0,
     'primary_role' => '',
     'secondary_role' => '',
   );
-
   $form['#data'] = $data;
 
   $form['user_settings'] = array(
@@ -96,7 +97,6 @@ function membership_entity_settings_form($form, &$form_state, $data = array()) {
   $form['actions']['submit'] = array(
     '#type' => 'submit',
     '#value' => t('Save configuration'),
-    '#submit' => array('membership_entity_settings_form_submit'),
     '#limit_validation_errors' => array(
       array('primary_role'),
       array('secondary_role'),
@@ -106,18 +106,28 @@ function membership_entity_settings_form($form, &$form_state, $data = array()) {
     ),
   );
 
+  $form['#validate'][] = 'membership_entity_settings_form_validate';
+  if (!module_exists('membership_entity_type')) {
+    $form['actions']['submit']['#submit'] = array('membership_entity_settings_form_submit');
+  }
+
   return $form;
+}
+
+/**
+ * Validate handler for the settings form.
+ */
+function membership_entity_settings_form_validate($form, &$form_state) {
+  $values = $form_state['values'];
+  if (isset($values['secondary_role']) && $values['secondary_role'] == 'primary') {
+    form_set_value($form['user_settings']['secondary_role'], $values['primary_role'], $form_state);
+  }
 }
 
 /**
  * Form submission handler for membership_entity_settings_form().
  */
 function membership_entity_settings_form_submit($form, &$form_state) {
-  // Prepare roles.
-  if ($form_state['values']['secondary_role'] == 'primary') {
-    $form_state['values']['secondary_role'] = $form_state['values']['primary_role'];
-  }
-
   // Remove extra fields.
   form_state_values_clean($form_state);
 
