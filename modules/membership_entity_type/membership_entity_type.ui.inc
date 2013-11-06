@@ -75,6 +75,7 @@ function membership_entity_type_form($form, &$form_state, $type, $op = 'edit') {
   $form['actions']['submit']['#limit_validation_errors'][] = array('type');
   $form['actions']['submit']['#limit_validation_errors'][] = array('description');
   $form['actions']['submit']['#limit_validation_errors'][] = array('weight');
+
   return $form;
 }
 

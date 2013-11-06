@@ -23,6 +23,7 @@ function membership_entity_settings_form($form, &$form_state, $data = array()) {
     'primary_role' => '',
     'secondary_role' => '',
   );
+
   $form['#data'] = $data;
 
   $form['user_settings'] = array(
@@ -53,6 +54,7 @@ function membership_entity_settings_form($form, &$form_state, $data = array()) {
   );
 
   $roles = user_roles(TRUE);
+
   $form['user_settings']['primary_role'] = array(
     '#title' => t('Primary member role'),
     '#type' => 'select',
@@ -94,6 +96,7 @@ function membership_entity_settings_form($form, &$form_state, $data = array()) {
   );
 
   $form['actions'] = array('#type' => 'actions');
+
   $form['actions']['submit'] = array(
     '#type' => 'submit',
     '#value' => t('Save configuration'),
@@ -107,6 +110,7 @@ function membership_entity_settings_form($form, &$form_state, $data = array()) {
   );
 
   $form['#validate'][] = 'membership_entity_settings_form_validate';
+
   if (!module_exists('membership_entity_type')) {
     $form['actions']['submit']['#submit'] = array('membership_entity_settings_form_submit');
   }
@@ -434,9 +438,9 @@ function membership_entity_edit($membership) {
  * @see membership_entity_form_validate()
  * @see membership_entity_form_submit()
  */
-function membership_entity_edit_form($form, &$form_state, $membership = NULL) {
+function membership_entity_edit_form($form, &$form_state, $membership = NULL, $type = NULL) {
   if (empty($membership)) {
-    $membership = membership_entity_create();
+    $membership = membership_entity_create(array('type' => $type));
   }
 
   $form['#attributes']['class'][] = 'membership-entity-edit-form';

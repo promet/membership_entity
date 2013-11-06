@@ -19,7 +19,7 @@ function membership_entity_type_help($path, $arg) {
  */
 function membership_entity_type_entity_info() {
   $info['membership_entity_type'] = array(
-    'label' => t('Membershp type'),
+    'label' => t('Membership type'),
     'plural label' => t('Membership types'),
     'description' => t('Types of memberships.'),
     'entity class' => 'MembershipEntityType',
@@ -66,28 +66,28 @@ function membership_entity_type_permission() {
   foreach (membership_entity_type_get_types() as $type_name => $type) {
     $perms += array(
       $type_name . ' renew any membership' => array(
-        'title' => t('Renew any %type membership', array('%type' => $type->name)),
+        'title' => t('Renew any %type membership', array('%type' => $type->label)),
       ),
       $type_name . ' renew own membership' => array(
-        'title' => t('Renew own %type membership', array('%type' => $type->name)),
+        'title' => t('Renew own %type membership', array('%type' => $type->label)),
       ),
       $type_name . ' view any membership' => array(
-        'title' => t('View any %type membership', array('%type' => $type->name)),
+        'title' => t('View any %type membership', array('%type' => $type->label)),
       ),
       $type_name . ' view own membership' => array(
-        'title' => t('View own %type membership', array('%type' => $type->name)),
+        'title' => t('View own %type membership', array('%type' => $type->label)),
       ),
       $type_name . ' edit any membership' => array(
-        'title' => t('Edit any %type membership', array('%type' => $type->name)),
+        'title' => t('Edit any %type membership', array('%type' => $type->label)),
       ),
       $type_name . ' edit own membership' => array(
-        'title' => t('Edit own %type membership', array('%type' => $type->name)),
+        'title' => t('Edit own %type membership', array('%type' => $type->label)),
       ),
       $type_name . ' delete any membership' => array(
-        'title' => t('Delete any %type membership', array('%type' => $type->name)),
+        'title' => t('Delete any %type membership', array('%type' => $type->label)),
       ),
       $type_name . ' delete own membership' => array(
-        'title' => t('Delete own %type membership', array('%type' => $type->name)),
+        'title' => t('Delete own %type membership', array('%type' => $type->label)),
       ),
     );
   }
@@ -99,16 +99,19 @@ function membership_entity_type_permission() {
  */
 function membership_entity_type_menu() {
   $items = array();
-  foreach (membership_entity_type_get_types(TRUE) as $type) {
+
+  foreach (membership_entity_type_get_types() as $type) {
     $type_url_str = str_replace('_', '-', $type->type);
+
     $items['admin/memberships/add/' . $type_url_str] = array(
-      'title' => $type->name,
+      'title' => $type->label,
       'title callback' => 'check_plain',
-      'page callback' => 'membership_entity_add',
-      'page arguments' => array($type->type),
+      'page callback' => 'drupal_get_form',
+      'page arguments' => array('membership_entity_edit_form', NULL, $type->type),
       'access arguments' => array('administer memberships'),
       'description' => $type->description,
       'file' => 'membership_entity.pages.inc',
+      'file path' => drupal_get_path('module', 'membership_entity'),
     );
   }
 
@@ -119,7 +122,11 @@ function membership_entity_type_menu() {
  * Returns a list of membership types.
  */
 function membership_entity_type_get_types($type = NULL) {
-  $types = entity_load_multiple_by_name('membership_entity_type', isset($type) ? array($type) : FALSE);
+  $types = db_select('membership_entity_type', 't')
+    ->fields('t', array('id', 'type', 'label', 'description'))
+    ->execute()
+    ->fetchAllAssoc('type');
+
   return isset($type) ? reset($types) : $types;
 }
 
@@ -173,7 +180,7 @@ function membership_entity_type_get_names() {
   $types = membership_entity_type_get_types();
   $names = array();
   foreach ($types as $type) {
-    $names[$type->type] = $type->name;
+    $names[$type->type] = $type->label;
   }
   return $names;
 }
@@ -193,7 +200,7 @@ function membership_entity_type_get_name($membership) {
  * Title callback for a membership type.
  */
 function membership_entity_type_page_title($type) {
-  return $type->name;
+  return $type->label;
 }
 
 /**

@@ -20,7 +20,7 @@ function membership_entity_term_help($path, $arg) {
 function membership_entity_term_entity_info() {
   return array(
     'membership_entity_term' => array(
-      'label' => t('Membershp term'),
+      'label' => t('Membership term'),
       'plural label' => t('Membership terms'),
       'description' => t('Terms attached to a membership.'),
       'entity class' => 'MembershipEntityTerm',
@@ -394,4 +394,3 @@ function theme_membership_entity_term_modifiers($variables) {
   $output .= '</div>';
   return $output;
 }
-

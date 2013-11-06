@@ -50,7 +50,7 @@ function membership_entity_views_api() {
 function membership_entity_entity_info() {
   $info['membership_entity'] = array(
     'label' => t('Membership'),
-    'plural label' => t('Membershps'),
+    'plural label' => t('Memberships'),
     'entity class' => 'MembershipEntity',
     'controller class' => 'MembershipEntityController',
     'base table' => 'membership_entity',
@@ -82,10 +82,10 @@ function membership_entity_entity_info() {
     // Add user defined bundles.
     foreach (membership_entity_type_get_types() as $bundle => $type) {
       $info['membership_entity']['bundles'][$bundle] = array(
-        'label' => $type->name,
+        'label' => $type->label,
         'admin' => array(
-          'path' => 'admin/structure/membership-types/manage/%membership_entity_type',
-          'real path' => 'admin/structure/membership-types/manage/' . str_replace('_', '-', $type->type),
+          'path' => 'admin/structure/memberships/manage/%membership_entity_type',
+          'real path' => 'admin/structure/memberships/manage/' . $type->type,
           'bundle argument' => 4,
           'access arguments' => array('administer membership types'),
         ),
@@ -551,6 +551,7 @@ function membership_entity_next_member_id() {
   if ((bool) db_select('membership_entity', 'me')->fields('me', array('mid'))->condition('member_id', db_like($member_id), 'LIKE')->range(0, 1)->execute()->fetchField()) {
     return membership_entity_next_member_id();
   }
+
   return $member_id;
 }
 
