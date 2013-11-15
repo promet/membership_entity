@@ -1,6 +1,7 @@
 <?php
 
 /**
+ * @file
  * Theme functions for the membership_entity module.
  */
 

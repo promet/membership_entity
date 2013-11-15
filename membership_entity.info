@@ -10,6 +10,9 @@ dependencies[] = entity
 files[] = membership_entity.inc
 files[] = membership_entity.controller.inc
 
+; CTools plugin definitions.
+files[] = plugins/member_id/abstract.inc
+
 ; Views handlers.
 files[] = views/membership_entity_handler_field_mid.inc
 files[] = views/membership_entity_handler_field_link.inc

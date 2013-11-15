@@ -390,8 +390,8 @@ function membership_entity_theme() {
  */
 function membership_entity_user_view($account, $view_mode, $langcode) {
   if ($memberships = membership_entity_load_by_user($account)) {
-    foreach (membership_entity_load_by_user($account) as $mid => $membership) {
-      $account->content['memberships'][$mid] = membership_entity_view($membership, 'account');
+    foreach ($memberships as $mid => $membership) {
+      $account->content['memberships'][$mid] = membership_entity_view($membership, 'account', $langcode);
     }
   }
 }
@@ -416,15 +416,74 @@ function membership_entity_view($membership, $view_mode = 'full', $langcode = NU
     $langcode = $GLOBALS['language']->language;
   }
 
+  $entity_type = 'membership_entity';
   $membership->content = array();
 
   // Allow modules to change the view mode.
   $context = array(
-    'entity_type' => 'membership_enttiy',
+    'entity_type' => $entity_type,
     'entity' => $membership,
     'langcode' => $langcode,
   );
   drupal_alter('entity_view_mode', $view_mode, $context);
+
+  // Add the primary membership on full membership page.
+  if ($view_mode == 'full') {
+    $account = user_load($membership->uid);
+    $membership->content['uid'] = array(
+      'label' => array(
+        '#theme_wrappers' => array('container'),
+        '#attributes' => array('class' => array('membership-entity-label')),
+        '#markup' => t('Primary Member:') . '&nbsp',
+      ),
+      'link' => array(
+        '#type' => 'link',
+        '#title' => format_username($account),
+        '#href' => 'user/' . $account->uid,
+        '#options' => array(
+          'attributes' => array('class' => array('membership-entity-primary-member')),
+          'html' => FALSE,
+        ),
+      ),
+    );
+  }
+
+  if (!empty($membership->secondary_members)) {
+    $links = array();
+    foreach ($membership->secondary_members as $delta => $uid) {
+      $links[$delta] = array(
+        'title' => format_username(user_load($uid)),
+        'href' => 'user/' . $uid,
+      );
+    }
+
+    $membership->content['secondary_members'] = array(
+      'label' => array(
+        '#theme_wrappers' => array('container'),
+        '#attributes' => array('class' => array('membership-entity-label')),
+        '#markup' => format_plural(count($links), 'Secondary Member:', 'Secondary Members:') . '&nbsp',
+      ),
+    );
+    if (count($links) == 1) {
+      $link = reset($links);
+      $membership->content['secondary_members']['links'] = array(
+        '#type' => 'link',
+        '#title' => $link['title'],
+        '#href' => $link['href'],
+        '#options' => array(
+          'attributes' => array('class' => array('membership-entity-secondary-members')),
+          'html' => FALSE,
+        ),
+      );
+    }
+    else {
+      $membership->content['secondary_members']['links'] = array(
+        '#theme' => 'links',
+        '#links' => $links,
+        '#attributes' => array('class' => array('membership-entity-secondary-members')),
+      );
+    }
+  }
 
   // Build custom field content.
   field_attach_prepare_view('membership_entity', array($membership->mid => $membership), $view_mode, $langcode);
@@ -542,30 +601,83 @@ function membership_entity_get_bundle_settings($bundle = NULL) {
 }
 
 /**
- * Increment and return the next available member id.
+ * Return the next available member id.
  */
 function membership_entity_next_member_id() {
-  $member_id = membership_entity_numeric_member_id_callback();
-
-  // Make sure the member_id is unique.
-  if ((bool) db_select('membership_entity', 'me')->fields('me', array('mid'))->condition('member_id', db_like($member_id), 'LIKE')->range(0, 1)->execute()->fetchField()) {
-    return membership_entity_next_member_id();
-  }
-
-  return $member_id;
+  $data = membership_entity_get_bundle_settings();
+  return _membership_entity_member_id_get_instance($data['member_id_format'], $data['member_id_settings'])
+    ->next();
 }
 
 /**
- * Callback to generate sequential numeric member ids.
- *
- * @param $length
- *  The minimum number of charaters for the member id. Numeric ids with fewer
- *  $length digits will be padded with '0's (eg. 00001).
+ * Implements hook_ctools_plugin_type().
  */
-function membership_entity_numeric_member_id_callback($length = 5) {
-  $member_id = variable_get('membership_entity_next_member_id', 0);
-  variable_set('membership_entity_next_member_id', ++$member_id);
-  return str_pad($member_id, $length, '0', STR_PAD_LEFT);
+function membership_entity_ctools_plugin_type() {
+  return array(
+    'member_id' => array(
+      'cache' => TRUE,
+      'use hooks' => TRUE,
+      'hook' => 'membership_entity_member_id_info',
+      'classes' => array('class'),
+      'process' => 'membership_entity_member_id_plugin_process',
+    ),
+  );
+}
+
+/**
+ * CTools plugin process callback.
+ */
+function membership_entity_member_id_plugin_process(&$plugin, $info) {
+  $plugin += array(
+    'description' => '',
+  );
+}
+
+/**
+ * Get metadata for member id plugins.
+ *
+ * @param $id (optional)
+ *  Return metadata on a specific member_id plugin.
+ */
+function membership_entity_get_member_id($id = NULL) {
+  ctools_include('plugins');
+  return ctools_get_plugins('membership_entity', 'member_id', $id);
+}
+
+/**
+ * Helper to retrieve a member id plugin instance.
+ */
+function _membership_entity_member_id_get_instance($id, $settings = array()) {
+  $instances = &drupal_static(__FUNCTION__);
+
+  if (!isset($instances[$id])) {
+    $plugin = membership_entity_get_member_id($id);
+    $class = ctools_plugin_get_class($plugin, 'class');
+    $class = class_exists($class) ? $class : 'MembershipEntityMemberIdBroken';
+    $instances[$id] = new $class($settings);
+
+    // Check that plugin class has implemented the
+    // MembershipEntityMemberId interface.
+    if (!in_array('MembershipEntityMemberId', class_implements($instances[$id]))) {
+      $instances[$id] = new MembershipEntityMemberIdBroken($settings);
+    }
+  }
+
+  return $instances[$id];
+}
+
+/**
+ * Implements hook_membership_entity_member_id_info().
+ */
+function membership_entity_membership_entity_member_id_info() {
+  return array(
+    'membership_entity_numeric_member_id' => array(
+      'title' => t('Numeric ID'),
+      'description' => t('An incrementing numeric member id.'),
+      'class' => 'MembershipEntityNumericMemberId',
+      'path' => drupal_get_path('module', 'membership_entity') . '/plugins/member_id',
+    ),
+  );
 }
 
 /**
@@ -835,7 +947,9 @@ function membership_entity_member_select_validate($element, &$form_state) {
     }
   }
 
-  usort($values, '_field_sort_items_helper');
+  if ($element['#cardinality'] == 1) {
+    $values = reset($values);
+  }
   form_set_value($element, $values, $form_state);
   return $element;
 }

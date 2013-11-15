@@ -10,6 +10,11 @@
  */
 function membership_entity_settings_form($form, &$form_state, $data = array()) {
   $form['#membership_entity_settings_form'] = TRUE;
+  $form = array(
+    '#attached' => array(
+      'css' => array(drupal_get_path('module', 'membership_entity') . '/css/membership_entity_admin.css'),
+    ),
+  );
 
   if (empty($data)) {
     $data = variable_get('membership_entity_settings', array());
@@ -22,9 +27,67 @@ function membership_entity_settings_form($form, &$form_state, $data = array()) {
     'all_edit' => 0,
     'primary_role' => '',
     'secondary_role' => '',
+    'member_id_format' => 'membership_entity_numeric_member_id',
+    'member_id_settings' => array(),
   );
 
   $form['#data'] = $data;
+
+  $form['membership_settings'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('Membership options'),
+    '#collapsible' => TRUE,
+    '#collapsed' => FALSE,
+  );
+
+  $member_id_plugins = membership_entity_get_member_id();
+  $options = array();
+  foreach ($member_id_plugins as $id => $plugin) {
+    $options[$id] = '<div class="membership-entity-radio-label">' . check_plain($plugin['title']) . '<br><small>' . check_plain($plugin['description']) . '</small></div>';
+  }
+  $wrapper_id = 'membership-entity-settings-wrapper';
+
+  $default_format = !empty($form_state['membership_entity']['member_id_format']) ? $form_state['membership_entity']['member_id_format'] : $data['member_id_format'];
+  $form['membership_settings']['member_id_format'] = array(
+    '#type' => 'radios',
+    '#title' => t('Member ID Format'),
+    '#options' => $options,
+    '#default_value' => $default_format,
+    '#required' => TRUE,
+    '#element_validate' => array('membership_entity_member_id_format_validate'),
+    '#limit_validation_errors' => array(),
+    '#ajax' => array(
+      'callback'=> 'membership_entity_settings_ajax',
+      'wrapper' => $wrapper_id,
+      'effect' => 'fade',
+    ),
+  );
+
+  $form['membership_settings']['member_id_settings'] = array(
+    '#type' => 'container',
+    '#tree' => TRUE,
+    '#attributes' => array(
+      'id' => $wrapper_id,
+      'class' => array('membership-entity-member-id-settings'),
+    ),
+  );
+
+  $handler = _membership_entity_member_id_get_instance($default_format, $data['member_id_settings']);
+  $settings_form = $handler->settingsForm($form_state);
+  if (!empty($settings_form)) {
+    $form['membership_settings']['member_id_settings']['#type'] = 'fieldset';
+    $form['membership_settings']['member_id_settings']['#title'] = t('Member ID Settings');
+    $form['membership_settings']['member_id_settings'] += $settings_form;
+  }
+
+  $form['membership_settings']['member_id_submit'] = array(
+    '#type' => 'submit',
+    '#name' => 'member_id_submit',
+    '#value' => t('Change plugin'),
+    '#limit_validation_errors' => array(),
+    '#attributes' => array('class' => array('js-hide')),
+    '#submit' => array('membership_entity_settings_ajax_submit'),
+  );
 
   $form['user_settings'] = array(
     '#type' => 'fieldset',
@@ -54,7 +117,6 @@ function membership_entity_settings_form($form, &$form_state, $data = array()) {
   );
 
   $roles = user_roles(TRUE);
-
   $form['user_settings']['primary_role'] = array(
     '#title' => t('Primary member role'),
     '#type' => 'select',
@@ -96,7 +158,6 @@ function membership_entity_settings_form($form, &$form_state, $data = array()) {
   );
 
   $form['actions'] = array('#type' => 'actions');
-
   $form['actions']['submit'] = array(
     '#type' => 'submit',
     '#value' => t('Save configuration'),
@@ -106,16 +167,39 @@ function membership_entity_settings_form($form, &$form_state, $data = array()) {
       array('cardinality'),
       array('show_on_profile'),
       array('all_edit'),
+      array('member_id_format'),
+      array('member_id_settings'),
     ),
   );
 
   $form['#validate'][] = 'membership_entity_settings_form_validate';
-
   if (!module_exists('membership_entity_type')) {
     $form['actions']['submit']['#submit'] = array('membership_entity_settings_form_submit');
   }
 
   return $form;
+}
+
+/**
+ * Element validate callback for the member id format.
+ */
+function membership_entity_member_id_format_validate(&$element, &$form_state, $form) {
+  $element = $form_state['triggering_element'];
+  $form_state['membership_entity']['member_id_format'] = $element['#value'];
+}
+
+/**
+ * Ajax callback for the settings form.
+ */
+function membership_entity_settings_ajax($form, &$form_state) {
+  return $form['membership_settings']['member_id_settings'];
+}
+
+/**
+ * Ajax callback for the settings form.
+ */
+function membership_entity_settings_ajax_submit($form, &$form_state) {
+  $form_state['rebuild'] = TRUE;
 }
 
 /**
@@ -132,9 +216,8 @@ function membership_entity_settings_form_validate($form, &$form_state) {
  * Form submission handler for membership_entity_settings_form().
  */
 function membership_entity_settings_form_submit($form, &$form_state) {
-  // Remove extra fields.
+  // Remove extra fields and save the values.
   form_state_values_clean($form_state);
-
   variable_set('membership_entity_settings', $form_state['values']);
   drupal_set_message(t('The configuration options have been saved'));
 }
@@ -438,7 +521,7 @@ function membership_entity_edit($membership) {
  * @see membership_entity_form_validate()
  * @see membership_entity_form_submit()
  */
-function membership_entity_edit_form($form, &$form_state, $membership = NULL, $type = NULL) {
+function membership_entity_edit_form($form, &$form_state, $membership = NULL, $type = 'membership') {
   if (empty($membership)) {
     $membership = membership_entity_create(array('type' => $type));
   }
@@ -596,19 +679,21 @@ function membership_entity_form(&$form, &$form_state) {
     ),
   );
 
-  $form['membership']['member_id'] = array(
-    '#type' => 'textfield',
-    '#title' => !empty($membership->member_id) ? t('Membership ID') : t('Suggested Membership ID'),
-    '#description' => t('Your unique member id.'),
-    '#default_value' => !empty($membership->member_id) ? $membership->member_id : membership_entity_next_member_id(),
-    '#required' => TRUE,
-    '#disabled' => !user_access('administer memberships'),
-  );
+  if (!empty($membership->member_id)) {
+    $form['membership']['member_id'] = array(
+      '#type' => 'textfield',
+      '#title' => t('Membership ID'),
+      '#description' => t('Your unique member id.'),
+      '#default_value' => $membership->member_id,
+      '#required' => TRUE,
+      '#disabled' => !user_access('administer memberships'),
+    );
+  }
 
   $form['membership']['uid'] = array(
     '#type' => 'membership_entity_member_select',
     '#title' => t('Primary member'),
-    '#access' => !empty($membership->is_new) || user_access('administer memberships'),
+    '#access' => user_access('administer memberships'),
     '#required' => TRUE,
     '#default_value' => !empty($membership->uid) ? $membership->uid : '',
   );
@@ -655,7 +740,7 @@ function membership_entity_form_validate($form, &$form_state) {
   }
 
   // Make sure there is not already a membership for this user.
-  if (!empty($values['uid']) && $uid = current($values['uid'])) {
+  if (!empty($values['uid']) && $uid = $values['uid']) {
     if ($uid != $membership->uid && $mid = db_select('membership_entity', 'me')->fields('me', array('mid'))->condition('uid', $uid)->condition('type', $membership->type)->execute()->fetchField()) {
       form_set_error('uid', t('A membership already exists for %name. Did you want to <a href="!url">renew</a> this membership?', array(
         '%name' => format_username(user_load($uid)),
@@ -685,6 +770,11 @@ function membership_entity_edit_form_submit($form, &$form_state) {
 
   // Remove extra stuff.
   form_state_values_clean($form_state);
+
+  // Generate a new membership id.
+  if (!empty($membership->is_new)) {
+    $form_state['values']['member_id'] = membership_entity_next_member_id();
+  }
 
   entity_form_submit_build_entity('membership_entity', $membership, $form, $form_state);
   $status = membership_entity_save($membership);
