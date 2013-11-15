@@ -17,7 +17,7 @@ class MembershipEntityType extends Entity {
    * Overrides Entity::save().
    */
   public function save() {
-    parent::save();
+    return parent::save();
     field_info_cache_clear();
   }
 }

@@ -266,8 +266,7 @@ function membership_entity_menu() {
 
   $items['admin/memberships/add'] = array(
     'title' => 'Add a membership',
-    'page callback' => 'drupal_get_form',
-    'page arguments' => array('membership_entity_edit_form'),
+    'page callback' => 'membership_entity_add_page',
     'access arguments' => array('administer memberships'),
     'type' => MENU_LOCAL_ACTION,
     'file' => 'membership_entity.pages.inc',
@@ -589,22 +588,28 @@ function membership_entity_uri($membership) {
  *  The membership bundle to load settings or NULL to load defaults.
  */
 function membership_entity_get_bundle_settings($bundle = NULL) {
-  $data = empty($bundle) ? variable_get('membership_entity_settings', array()) : array();
+  if (module_exists('membership_entity_type')) {
+    $type = membership_entity_type_load($bundle);
+    $data = $type->data;
+  }
+  else {
+    $data = variable_get('membership_entity_settings', array());
+  }
+
   if (empty($data)) {
     drupal_set_message(t('The membership entity module is missing configuration settings. Please visit the <a href="!url">settings page</a> to configure the module.', array(
-      '!url' => url('admin/structure/memberships/settings', array('query' => drupal_get_destination())),
+      '!url' => url('admin/structure/memberships', array('query' => drupal_get_destination())),
     )), 'error');
     return FALSE;
   }
-
   return $data;
 }
 
 /**
  * Return the next available member id.
  */
-function membership_entity_next_member_id() {
-  $data = membership_entity_get_bundle_settings();
+function membership_entity_next_member_id($type) {
+  $data = membership_entity_get_bundle_settings($type);
   return _membership_entity_member_id_get_instance($data['member_id_format'], $data['member_id_settings'])
     ->next();
 }

@@ -8,17 +8,15 @@
 /**
  * Add term options to the membership settings form.
  */
-function _membership_entity_term_settings_form(&$form, &$form_state) {
-  $data = $form['#data'];
-
+function _membership_entity_term_settings_form(&$form, &$form_state, $data) {
   // Provide some defaults.
   $data += array(
     'available_term_lengths' => array(),
   );
 
   // Add membership term lengths.
-  if (!isset($form_state['available_term_lengths'])) {
-    $form_state['available_term_lengths'] = $data['available_term_lengths'];
+  if (!isset($form_state['membership_entity_term']['available_term_lengths'])) {
+    $form_state['membership_entity_term']['available_term_lengths'] = $data['available_term_lengths'];
   }
 
   $form['term_lengths'] = array(
@@ -39,7 +37,7 @@ function _membership_entity_term_settings_form(&$form, &$form_state) {
     '#element_validate' => array('membership_entity_term_length_element_validate')
   );
 
-  foreach ($form_state['available_term_lengths'] as $delta => $term_length) {
+  foreach ($form_state['membership_entity_term']['available_term_lengths'] as $delta => $term_length) {
     $form['term_lengths']['available_term_lengths'][$delta] = array(
       'term_length' => array(
         '#type' => 'value',
@@ -65,6 +63,7 @@ function _membership_entity_term_settings_form(&$form, &$form_state) {
           'callback' => '_membership_entity_term_ajax_callback',
           'wrapper' => $wrapper_id,
           'effect' => 'fade',
+          'element' => $form['term_lengths']['available_term_lengths'],
         ),
       ),
     );
@@ -119,6 +118,7 @@ function _membership_entity_term_settings_form(&$form, &$form_state) {
       'callback' => '_membership_entity_term_ajax_callback',
       'wrapper' => $wrapper_id,
       'effect' => 'fade',
+      'element' => $form['term_lengths']['available_term_lengths'],
     ),
   );
 
@@ -146,7 +146,7 @@ function membership_entity_term_length_add_validate($form, &$form_state) {
   }
 
   // Check for duplicates.
-  if (in_array($term_length, $form_state['available_term_lengths'])) {
+  if (in_array($term_length, $form_state['membership_entity_term']['available_term_lengths'])) {
     form_set_error('term_lengths][term_length_options', t('The term length %term_length has already been added.', array(
       '%term_length' => $term_length,
     )));
@@ -159,7 +159,7 @@ function membership_entity_term_length_add_validate($form, &$form_state) {
 function membership_entity_term_length_add($form, &$form_state) {
   $values = $form_state['values']['term_lengths'];
   $term = ($values['term_length_options'] != 'other') ? $values['term_length_options'] : $term = $values['custom_term_length'];
-  $form_state['available_term_lengths'][] = check_plain($term);
+  $form_state['membership_entity_term']['available_term_lengths'][] = check_plain($term);
   $form_state['rebuild'] = TRUE;
 }
 
@@ -169,7 +169,7 @@ function membership_entity_term_length_add($form, &$form_state) {
 function membership_entity_term_length_remove($form, &$form_state) {
   $button = $form_state['triggering_element'];
   if (isset($button['#delta'])) {
-    unset($form_state['available_term_lengths'][$button['#delta']]);
+    unset($form_state['membership_entity_term']['available_term_lengths'][$button['#delta']]);
   }
   $form_state['rebuild'] = TRUE;
 }
@@ -178,9 +178,13 @@ function membership_entity_term_length_remove($form, &$form_state) {
  * Form validation handler for membership_entity_settings_form().
  */
 function membership_entity_term_settings_form_validate($form, &$form_state) {
+  $values = &$form_state['values'];
+
   // Flatten available term lengths.
-  $form_state['values']['available_term_lengths'] = $form_state['values']['term_lengths']['available_term_lengths'];
-  unset($form_state['values']['term_lengths']);
+  if (!empty($values['term_lengths']['available_term_lengths'])) {
+    $values['available_term_lengths'] = $values['term_lengths']['available_term_lengths'];
+    unset($values['term_lengths']);
+  }
 }
 
 /**
@@ -369,6 +373,7 @@ function membership_entity_term_edit($form, &$form_state, $term) {
       'callback' => '_membership_entity_term_ajax_callback',
       'wrapper' => $wrapper_id,
       'effect' => 'fade',
+      'element' => $form['modifiers']['list'],
     ),
   );
 
@@ -492,70 +497,6 @@ function membership_entity_term_edit_form_delete($form, &$form_state) {
 }
 
 /**
- * Dispaly a confirmation page before delteing a membership.
- */
-/*
-function membership_entity_delete_confirm($form, &$form_state, $membership) {
-  $form_state['memberships'] = array(
-    $membership->mid => $membership,
-  );
-
-  $form['membership'] = array(
-    '#theme_wrappers' => array('container'),
-    '#attributes' => array(),
-    '#markup' => t('You are about to delete membership %member_id.', array(
-      '%member_id' => $membership->member_id,
-    )),
-  );
-
-  $form['#submit'][] = 'membership_entity_multiple_delete_confirm_submit';
-  return confirm_form($form, t('Are you sure you want to delete this membership?'), 'membership/' . $membership->mid, t('This action cannot be undone.'), t('Delete'), t('Cancel'));
-}
-
-/**
- * Display a confirmation page before deleting memberships.
- */
-/*
-function membership_entity_multiple_delete_confirm($form, &$form_state, $memberships) {
-  $form_state['memberships'] = $memberships;
-
-  $form['memberships'] = array(
-    '#theme' => 'item_list',
-    '#type' => 'ul',
-    '#items' => array(),
-    '#attributes' => array(),
-  );
-  foreach ($memberships as $mid => $value) {
-    $member_id = db_query('SELECT member_id FROM {membership_entity} WHERE mid = :mid', array(':mid' => $mid))
-      ->fetchField();
-    $form['memberships']['#items'][] = check_plain($member_id);
-  }
-  $form['operation'] = array(
-    '#type' => 'hidden',
-    '#value' => 'delete',
-  );
-  $form['#submit'][] = 'membership_entity_multiple_delete_confirm_submit';
-
-  $confirm_question = format_plural(count($memberships), 'Are you sure you want to delete this item?', 'Are you sure you want to delete these items?');
-  return confirm_form($form, $confirm_question, 'admin/memberships', t('This action cannot be undone.'), t('Delete'), t('Cancel'));
-}
-
-/**
- * Submit the memberships delete confirm form.
- */
-/*
-function membership_entity_multiple_delete_confirm_submit($form, &$form_state) {
-  $memberships = $form_state['memberships'];
-  if ($form_state['values']['confirm']) {
-    membership_entity_delete_multiple(array_keys($memberships));
-    $count = count($memberships);
-    drupal_set_message(format_plural($count, 'Deleted 1 membership.', 'Deleted @count memberships.'));
-  }
-  $form_state['redirect'] = 'admin/memberships';
-}
-}
-
-/**
  * Menu callback: Renew an existing membership.
  */
 function membership_entity_term_renew($form, &$form_state, $membership) {
@@ -601,11 +542,6 @@ function membership_entity_term_renew_submit($form, &$form_state) {
  * Ajax callback to update form elements.
  */
 function _membership_entity_term_ajax_callback($form, $form_state) {
-  if ($form['#membership_entity_settings_form']) {
-    return $form['term_lengths']['available_term_lengths'];
-  }
-
-  if ($form['#form_id'] == 'membership_entity_term_edit') {
-    return $form['modifiers']['list'];
-  }
+  $button = $form_state['triggering_element'];
+  return $button['#ajax']['element'];
 }

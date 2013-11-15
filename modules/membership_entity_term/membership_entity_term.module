@@ -222,17 +222,20 @@ function membership_entity_term_theme() {
 }
 
 /**
+ * Implements hook_membership_entity_settings_alter().
+ */
+function membership_entity_term_membership_entity_settings_alter(&$form, &$form_state, $data) {
+  form_load_include($form_state, 'inc', 'membership_entity_term', 'membership_entity_term.pages');
+  _membership_entity_term_settings_form($form, $form_state, $data);
+}
+
+/**
  * Implements hook_form_alter().
  */
 function membership_entity_term_form_alter(&$form, &$form_state, $form_id) {
   if (!empty($form['#membership_entity_form'])) {
     form_load_include($form_state, 'inc', 'membership_entity_term', 'membership_entity_term.pages');
     _membership_entity_term_create_form($form, $form_state);
-  }
-
-  if (!empty($form['#membership_entity_settings_form'])) {
-    form_load_include($form_state, 'inc', 'membership_entity_term', 'membership_entity_term.pages');
-    _membership_entity_term_settings_form($form, $form_state);
   }
 }
 

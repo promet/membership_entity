@@ -28,6 +28,9 @@ function membership_entity_type_form($form, &$form_state, $type, $op = 'edit') {
     $type->type .= '_clone';
   }
 
+  form_load_include($form_state, 'inc', 'membership_entity', 'membership_entity.pages');
+  $form = membership_entity_settings_form($form, $form_state, $type->data);
+
   // Make the type object available to implementations of hook_form_alter.
   $form['#membership_entity_type'] = $type;
 
@@ -66,16 +69,22 @@ function membership_entity_type_form($form, &$form_state, $type, $op = 'edit') {
     '#description' => t('When showing membership types, those with lighter (smaller) weights get listed before membership types with heavier (larger) weights.'),
   );
 
-  form_load_include($form_state, 'inc', 'membership_entity', 'membership_entity.pages');
-  $form = membership_entity_settings_form($form, $form_state, $type->data);
+  // Display fieldsets as vertical tabs.
+  $form['additional_settings'] = array(
+    '#type' => 'vertical_tabs',
+  );
+  foreach (element_children($form) as $field) {
+    if ($form[$field]['#type'] == 'fieldset') {
+      $form[$field]['#group'] = 'additional_settings';
+    }
+  }
 
   $form['#validate'][] = 'membership_entity_type_form_validate';
-  $form['actions']['submit']['#submit'][] = 'membership_entity_type_form_submit';
+  $form['actions']['submit']['#submit'] = array('membership_entity_type_form_submit');
   $form['actions']['submit']['#limit_validation_errors'][] = array('label');
   $form['actions']['submit']['#limit_validation_errors'][] = array('type');
   $form['actions']['submit']['#limit_validation_errors'][] = array('description');
   $form['actions']['submit']['#limit_validation_errors'][] = array('weight');
-
   return $form;
 }
 
@@ -120,16 +129,17 @@ function membership_entity_type_form_submit($form, &$form_state) {
   $form_state['#membership_entity_type'] = $type;
 
   $t_args = array('%label' => $type->label);
+
   switch ($status) {
     case SAVED_NEW:
-      drupal_set_message(t('The membership type %label has been created.', $t_args));
-      membership_entity_add_fields($type);
+      drupal_set_message(t('Membership type %label has been created.', $t_args));
       break;
 
     case SAVED_UPDATED:
-      drupal_set_message(t('The membership type %label has been updated.', $t_args));
+      drupal_set_message(t('Membership type %label has been updated.', $t_args));
       break;
   }
+  $form_state['redirect'] = 'admin/structure/memberships/manage/' . $type->type;
 }
 
 /**

@@ -9,7 +9,6 @@
  * Form builder: membership settings form.
  */
 function membership_entity_settings_form($form, &$form_state, $data = array()) {
-  $form['#membership_entity_settings_form'] = TRUE;
   $form = array(
     '#attached' => array(
       'css' => array(drupal_get_path('module', 'membership_entity') . '/css/membership_entity_admin.css'),
@@ -30,8 +29,6 @@ function membership_entity_settings_form($form, &$form_state, $data = array()) {
     'member_id_format' => 'membership_entity_numeric_member_id',
     'member_id_settings' => array(),
   );
-
-  $form['#data'] = $data;
 
   $form['membership_settings'] = array(
     '#type' => 'fieldset',
@@ -157,10 +154,12 @@ function membership_entity_settings_form($form, &$form_state, $data = array()) {
     ),
   );
 
+  $form['#validate'][] = 'membership_entity_settings_form_validate';
   $form['actions'] = array('#type' => 'actions');
   $form['actions']['submit'] = array(
     '#type' => 'submit',
     '#value' => t('Save configuration'),
+    '#submit' => array('membership_entity_settings_form_submit'),
     '#limit_validation_errors' => array(
       array('primary_role'),
       array('secondary_role'),
@@ -172,11 +171,8 @@ function membership_entity_settings_form($form, &$form_state, $data = array()) {
     ),
   );
 
-  $form['#validate'][] = 'membership_entity_settings_form_validate';
-  if (!module_exists('membership_entity_type')) {
-    $form['actions']['submit']['#submit'] = array('membership_entity_settings_form_submit');
-  }
-
+  // Allow other modules to add settings to the form.
+  drupal_alter('membership_entity_settings', $form, $form_state, $data);
   return $form;
 }
 
@@ -236,8 +232,7 @@ function membership_entity_admin_memberships($form, &$form_state) {
   }
   $form['filter'] = membership_entity_filter_form();
   $form['#submit'][] = 'membership_entity_filter_form_submit';
-  $form['admin'] = membership_entity_admin_list();
-
+  $form['admin'] = membership_entity_admin_list($form_state);
   return $form;
 }
 
@@ -270,7 +265,6 @@ function membership_entity_admin_list_submit($form, &$form_state) {
     }
     call_user_func_array($function, $args);
     cache_clear_all();
-    // @TODO membership_entity_cache_clear_all();
   }
   else {
     // We need to rebuild the form to go to a second step. For example, to
@@ -282,7 +276,7 @@ function membership_entity_admin_list_submit($form, &$form_state) {
 /**
  * Build the membership administration overview.
  */
-function membership_entity_admin_list() {
+function membership_entity_admin_list(&$form_state) {
   $admin = user_access('manage memberships');
   $admin_delete = user_access('delete memberships');
 
@@ -313,6 +307,11 @@ function membership_entity_admin_list() {
   // Build the sortable table header.
   $header = array(
     'member_id' => array('data' => t('Member ID'), 'field' => 'me.type'),
+  );
+  if (module_exists('membership_entity_type')) {
+    $header['type'] = array('data' => t('Type'), 'field' => 'met.type');
+  }
+  $header += array(
     'primary_member' => array('data' => t('Primary Member'), 'field' => 'me.uid'),
     'status' => array('data' => t('Status'), 'field' => 'me.status'),
     'created' => array('data' => t('Created'), 'field' => 'me.created', 'sort' => 'desc'),
@@ -341,6 +340,12 @@ function membership_entity_admin_list() {
     foreach ($memberships as $membership) {
       $options[$membership->mid] = array(
         'member_id' => l(check_plain($membership->member_id), 'membership/' . $membership->mid),
+      );
+      if (module_exists('membership_entity_type')) {
+        $type = membership_entity_type_load($membership->type);
+        $options[$membership->mid]['type'] = check_plain($type->label);
+      }
+      $options[$membership->mid] += array(
         'primary_member' => theme('username', array('account' => user_load($membership->uid))),
         'status' => $statuses[$membership->status],
         'created' => format_date($membership->created, 'short'),
@@ -353,6 +358,14 @@ function membership_entity_admin_list() {
         'href' => 'membership/' . $membership->mid . '/edit',
         'query' => $destination,
       );
+
+      if (module_exists('membership_entity_term')) {
+        $operations['renew'] = array(
+          'title' => t('renew'),
+          'href' => 'membership' . $membership->mid . '/renew',
+          'query' => $destination,
+        );
+      }
 
       if ($admin_delete) {
         $operations['delete'] = array(
@@ -499,12 +512,61 @@ function membership_entity_filter_form_submit($form, &$form_state) {
  */
 function membership_entity_filters() {
   $filters['status'] = array(
-    'title' => t('status'),
+    'title' => t('Status'),
     'options' => array(
       '[any]' => t('any'),
     ) + membership_entity_get_status_list(),
   );
+
+  if (module_exists('membership_entity_type')) {
+    $filters['type'] = array(
+      'title' => t('Type'),
+      'options' => array(
+        '[any]' => t('any'),
+      ) + membership_entity_type_get_names(),
+    );
+  }
   return $filters;
+}
+
+/**
+ * Menu callback: Displays add membership links.
+ */
+function membership_entity_add_page() {
+  if (module_exists('membership_entity_type')) {
+    $types = membership_entity_type_get_types();
+
+    $build = array();
+    if (!empty($types)) {
+      if (count($types) == 1) {
+        // Only one membership type. Go directly there (do not pass go,
+        // do not collect $200).
+        $type = current($types);
+        drupal_goto('admin/memberships/add/' . str_replace('_', '-', $type->type));
+      }
+
+      $build['membership_types'] = array(
+        '#theme' => 'item_list__membership_types',
+        '#type' => 'ul',
+        '#items' => array(),
+        '#attributes' => array(
+          'class' => array('admin-list', 'membership-types-list'),
+        ),
+      );
+
+      foreach ($types as $type) {
+        $path = 'admin/memberships/add/' . str_replace('_', '-', $type->type);
+        $build['membership_types']['#items'][] = l($type->label, $path) . '<div class="description">' . filter_xss_admin($type->description) . '</div>';
+      }
+    }
+    else {
+      $build = array(
+        '#markup' => '<p>' . t('You have not created any membership types yet. Go to the <a href="@url">membership type creation page</a> to add a new membership type.', array('@url' => url('admin/structure/memberships/add'))) . '</p>',
+      );
+    }
+    return $build;
+  }
+  return drupal_get_form('membership_entity_edit_form');
 }
 
 /**
@@ -533,7 +595,7 @@ function membership_entity_edit_form($form, &$form_state, $membership = NULL, $t
 
   // Add the membership entity form fields.
   $form['#membership_entity'] = $membership;
-  $form['#bundle_settings'] = membership_entity_get_bundle_settings();
+  $form['#bundle_settings'] = membership_entity_get_bundle_settings($membership->type);
   if (empty($form['#bundle_settings'])) {
     return '';
   }
@@ -773,7 +835,7 @@ function membership_entity_edit_form_submit($form, &$form_state) {
 
   // Generate a new membership id.
   if (!empty($membership->is_new)) {
-    $form_state['values']['member_id'] = membership_entity_next_member_id();
+    $form_state['values']['member_id'] = membership_entity_next_member_id($membership->type);
   }
 
   entity_form_submit_build_entity('membership_entity', $membership, $form, $form_state);
@@ -1044,10 +1106,8 @@ function _membership_entity_build_filter_query(SelectQueryInterface $query) {
   $filter_data = isset($_SESSION['membership_entity_overview_filter']) ? $_SESSION['membership_entity_overview_filter'] : array();
   foreach ($filter_data as $index => $filter) {
     list($key, $value) = $filter;
-    switch ($key) {
-      case 'status':
-        $query->condition('me.' . $key, $value);
-        break;
+    if (in_array($key, array('status', 'type'))) {
+      $query->condition('me.' . $key, $value);
     }
   }
 }
