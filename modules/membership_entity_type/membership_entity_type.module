@@ -36,6 +36,8 @@ function membership_entity_type_entity_info() {
     'access callback' => 'membership_entity_type_admin_ui_access',
     'module' => 'membership_entity_type',
     'admin ui' => array(
+      // This will override the path defined in membership_entity_menu().
+      // @see membership_entity_type_menu_alter().
       'path' => 'admin/structure/memberships',
       'file' => 'membership_entity_type.ui.inc',
       'menu wildcard' => '%membership_entity_type',
@@ -66,6 +68,9 @@ function membership_entity_type_permission() {
 
   foreach (membership_entity_type_get_types() as $type_name => $type) {
     $perms += array(
+      $type_name . ' join' => array(
+        'title' => t('Join as a %type member', array('%type' => $type->label)),
+      ),
       $type_name . ' renew any membership' => array(
         'title' => t('Renew any %type membership', array('%type' => $type->label)),
       ),
@@ -96,7 +101,7 @@ function membership_entity_type_permission() {
 }
 
 /**
- *  Implements hook_menu().
+ * Implements hook_menu().
  */
 function membership_entity_type_menu() {
   $items = array();
@@ -114,9 +119,53 @@ function membership_entity_type_menu() {
       'file' => 'membership_entity.pages.inc',
       'file path' => drupal_get_path('module', 'membership_entity'),
     );
+
+    $items['user/join/' . $type_url_str] = array(
+      'title' => $type->label,
+      'title callback' => 'check_plain',
+      'description' => $type->description,
+      'page callback' => 'drupal_get_form',
+      'page arguments' => array('membership_entity_join_form'),
+      'access callback' => 'membership_entity_access',
+      'access arguments' => array('join', $type->type),
+      'file' => 'membership_entity.pages.inc',
+      'file path' => drupal_get_path('module', 'membership_entity'),
+    );
+  }
+  return $items;
+}
+
+/**
+ * Implements hook_menu_alter().
+ */
+function membership_entity_type_menu_alter(&$items) {
+  // I reject your settings and substitue my own.
+  unset($items['admin/structure/memberships/settings']);
+  $path = 'admin/structure/memberships';
+  $ui = entity_ui_controller('membership_entity_type')->hook_menu();
+  if (isset($ui[$path])) {
+    $items[$path] = $ui[$path];
+    $items[$path]['module'] = 'entity';
   }
 
-  return $items;
+  // Override the membership add page.
+  $path = 'admin/memberships/add';
+  $items[$path] = array_merge($items[$path], array(
+    'page callback' => 'membership_entity_type_membership_add_page',
+    'page arguments' => array(),
+    'file' => 'membership_entity_type.pages.inc',
+    'module' => 'membership_entity_type',
+    'type' => MENU_NORMAL_ITEM,
+  ));
+
+  // Override the join page.
+  $path = 'user/join';
+  $items[$path] = array_merge($items[$path], array(
+    'page callback' => 'membership_entity_type_membership_add_page',
+    'access callback' => TRUE,
+    'file' => 'membership_entity_type.pages.inc',
+    'module' => 'membership_entity_type',
+  ));
 }
 
 /**
@@ -132,6 +181,18 @@ function membership_entity_type_admin_menu_map() {
       'arguments' => array(
         array('%membership_entity_type' => array_keys(membership_entity_type_get_types())),
       ),
+    ),
+  );
+}
+
+/**
+ * Implements hook_theme().
+ */
+function membership_entity_type_theme($existing, $type, $theme, $path) {
+  return array(
+    'membership_entity_type_add_list' => array(
+      'variables' => array('content' => NULL),
+      'file' => 'membership_entity_type.pages.inc',
     ),
   );
 }

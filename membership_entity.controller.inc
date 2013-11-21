@@ -31,9 +31,9 @@ class MembershipEntityController extends EntityAPIController {
   public function load($mids = array(), $conditions = array()) {
     $memberships = parent::load($mids, $conditions);
 
-    if (!$memberships) {
+    if (empty($memberships)) {
       // Early exit if membership loading failed.
-      return FALSE;
+      return array();
     }
 
     // Load secondary members.

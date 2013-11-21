@@ -115,12 +115,12 @@ function membership_entity_permission() {
       'title' => t('Administer memberships'),
       'restrict access' => TRUE,
     ),
-    'access join page' => array(
-      'title' => t('Join @site', array('@site' => variable_get('site_name', ''))),
-    ),
   );
 
   if (!module_exists('membership_entity_type')) {
+    $permissions['membership join'] = array(
+      'title' => t('Join @site', array('@site' => variable_get('site_name', ''))),
+    );
     $permissions['membership view any membership'] = array(
       'title' => t('View any membership.'),
     );
@@ -150,10 +150,9 @@ function membership_entity_permission() {
  * Membership entity access callback.
  *
  * @param $op
- *  The membership operations. Valid values are 'join', 'renew', 'manage',
- *  'view', 'edit', or 'delete'.
+ *  The membership operations.
  * @param $membership
- *  The membership object.
+ *  The membership object or type name if $op == 'join'.
  * @param $account
  *  The user account to check access. Defaults to logged in user.
  * @return boolean
@@ -182,18 +181,13 @@ function membership_entity_access($op, $membership = NULL, $account = NULL) {
  */
 function membership_entity_membership_entity_access($op, $membership = NULL, $account = NULL) {
   $user = isset($account) ? $account : $GLOBALS['user'];
-  $bundle_settings = membership_entity_get_bundle_settings();
 
   // Join page access.
   if ($op == 'join') {
-    // See if a membership exists for this user.
-    $efq = new EntityFieldQuery();
-    $results = $efq->entityCondition('entity_type', 'membership_entity')
-      ->propertyCondition('uid', $user->uid)
-      ->propertyCondition('uid', 0, '<>')
-      ->range(0, 1)
-      ->execute();
-    if (empty($results['membership_entity']) && user_access('access join page')) {
+    $type = str_replace('-', '_', $membership);
+    // Check if a membership already exists for this user.
+    $exists = (bool) db_query('SELECT mid FROM {membership_entity} WHERE uid = :uid AND uid <> 0 AND type = :type', array(':uid' => $user->uid, ':type' => $type))->rowCount();
+    if (!$exists && user_access("$type join", $user)) {
       return TRUE;
     }
   }
@@ -215,6 +209,7 @@ function membership_entity_membership_entity_access($op, $membership = NULL, $ac
       ->fetchAllAssoc('mid');
     if (!empty($results) && in_array($membership->mid, array_keys($results))) {
       // Can secondary members edit the membership?
+      $bundle_settings = membership_entity_get_bundle_settings($type_name);
       if ($op == 'edit' && $bundle_settings['all_edit'] && user_access("$type edit own membership", $user)) {
         return TRUE;
       }
@@ -240,21 +235,19 @@ function membership_entity_modal_register_access() {
  * Implements hook_menu().
  */
 function membership_entity_menu() {
-  if (!module_exists('membership_entity_type')) {
-    $items['admin/structure/memberships'] = array(
-      'title' => 'Memberships',
-      'page callback' => 'drupal_get_form',
-      'page arguments' => array('membership_entity_settings_form'),
-      'access arguments' => array('administer memberships'),
-      'file' => 'membership_entity.pages.inc',
-    );
+  $items['admin/structure/memberships'] = array(
+    'title' => 'Memberships',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('membership_entity_settings_form'),
+    'access arguments' => array('administer memberships'),
+    'file' => 'membership_entity.pages.inc',
+  );
 
-    $items['admin/structure/memberships/settings'] = array(
-      'title' => 'Settings',
-      'type' => MENU_DEFAULT_LOCAL_TASK,
-      'weight' => -10,
-    );
-  }
+  $items['admin/structure/memberships/settings'] = array(
+    'title' => 'Settings',
+    'type' => MENU_DEFAULT_LOCAL_TASK,
+    'weight' => -10,
+  );
 
   $items['admin/memberships'] = array(
     'title' => 'Memberships',
@@ -266,7 +259,8 @@ function membership_entity_menu() {
 
   $items['admin/memberships/add'] = array(
     'title' => 'Add a membership',
-    'page callback' => 'membership_entity_add_page',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('membership_entity_edit_form'),
     'access arguments' => array('administer memberships'),
     'type' => MENU_LOCAL_ACTION,
     'file' => 'membership_entity.pages.inc',
@@ -274,9 +268,10 @@ function membership_entity_menu() {
 
   $items['user/join'] = array(
     'title' => 'Join',
-    'page callback' => 'membership_entity_join',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('membership_entity_join_form'),
     'access callback' => 'membership_entity_access',
-    'access arguments' => array('join'),
+    'access arguments' => array('join', 'membership'),
     'type' => MENU_LOCAL_TASK,
     'weight' => -9999, // Me first!
     'file' => 'membership_entity.pages.inc',
@@ -587,7 +582,7 @@ function membership_entity_uri($membership) {
  * @param $bundle
  *  The membership bundle to load settings or NULL to load defaults.
  */
-function membership_entity_get_bundle_settings($bundle = NULL) {
+function membership_entity_get_bundle_settings($bundle = 'membership') {
   if (module_exists('membership_entity_type')) {
     $type = membership_entity_type_load($bundle);
     $data = $type->data;

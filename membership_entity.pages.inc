@@ -530,46 +530,6 @@ function membership_entity_filters() {
 }
 
 /**
- * Menu callback: Displays add membership links.
- */
-function membership_entity_add_page() {
-  if (module_exists('membership_entity_type')) {
-    $types = membership_entity_type_get_types();
-
-    $build = array();
-    if (!empty($types)) {
-      if (count($types) == 1) {
-        // Only one membership type. Go directly there (do not pass go,
-        // do not collect $200).
-        $type = current($types);
-        drupal_goto('admin/memberships/add/' . str_replace('_', '-', $type->type));
-      }
-
-      $build['membership_types'] = array(
-        '#theme' => 'item_list__membership_types',
-        '#type' => 'ul',
-        '#items' => array(),
-        '#attributes' => array(
-          'class' => array('admin-list', 'membership-types-list'),
-        ),
-      );
-
-      foreach ($types as $type) {
-        $path = 'admin/memberships/add/' . str_replace('_', '-', $type->type);
-        $build['membership_types']['#items'][] = l($type->label, $path) . '<div class="description">' . filter_xss_admin($type->description) . '</div>';
-      }
-    }
-    else {
-      $build = array(
-        '#markup' => '<p>' . t('You have not created any membership types yet. Go to the <a href="@url">membership type creation page</a> to add a new membership type.', array('@url' => url('admin/structure/memberships/add'))) . '</p>',
-      );
-    }
-    return $build;
-  }
-  return drupal_get_form('membership_entity_edit_form');
-}
-
-/**
  * Menu callback: Edit a membership.
  */
 function membership_entity_edit($membership) {
@@ -633,9 +593,9 @@ function membership_entity_edit_form($form, &$form_state, $membership = NULL, $t
 }
 
 /**
- * Menu callback: Join as member of the site.
+ * Form builder for the join form.
  */
-function membership_entity_join() {
+function membership_entity_join_form($form, &$form_state, $bundle = 'membership') {
   if (!user_is_logged_in()) {
     drupal_set_title(t('Create account or log in to continue'));
 
@@ -678,24 +638,18 @@ function membership_entity_join() {
     $form['login']['form'] = drupal_get_form('user_login');
     return $form;
   }
-  else {
-    drupal_set_title(t('Join'));
-    return drupal_get_form('membership_entity_join_form');
-  }
-}
 
-/**
- * Form builder for the join form.
- */
-function membership_entity_join_form($form, &$form_state) {
-  $form['#membership_entity'] = membership_entity_create(array('uid' => $GLOBALS['user']->uid));
-  $form['#bundle_settings'] = membership_entity_get_bundle_settings();
+  drupal_set_title(t('Join'));
+  $form['#membership_entity'] = membership_entity_create(array(
+    'uid' => $GLOBALS['user']->uid,
+    'type' => $bundle,
+  ));
+  $form['#bundle_settings'] = membership_entity_get_bundle_settings($bundle);
   if (empty($form['#bundle_settings'])) {
     return '';
   }
 
   membership_entity_form($form, $form_state);
-  //$form['membership']['uid']['#access'] = FALSE;
   $form['#validate'][] = 'membership_entity_form_validate';
 
   $form['actions'] = array(
