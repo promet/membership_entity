@@ -650,8 +650,15 @@ function membership_entity_join_form($form, &$form_state, $bundle = 'membership'
   }
 
   membership_entity_form($form, $form_state);
-  $form['#validate'][] = 'membership_entity_form_validate';
 
+  // Hide fields where the 'membership_entity_join_form' setting is turned off.
+  foreach (field_info_instances('membership_entity', $bundle) as $field_name => $instance) {
+    if (empty($instance['settings']['membership_entity_join_form'])) {
+      $form[$field_name]['#access'] = FALSE;
+    }
+  }
+
+  $form['#validate'][] = 'membership_entity_form_validate';
   $form['actions'] = array(
     '#type' => 'actions',
     '#weight' => 9999,

@@ -552,6 +552,16 @@ function membership_entity_view($membership, $view_mode = 'full', $langcode = NU
 }
 
 /**
+ * Implements hook_field_info_alter().
+ */
+function membership_entity_field_info_alter(&$info) {
+  // Add the 'membership_entity_join_form' instance setting to all field types.
+  foreach ($info as $field_type => $field_type_info) {
+    $info[$field_type]['instance_settings']['membership_entity_join_form'] = FALSE;
+  }
+}
+
+/**
  * Implements hook_field_extra_fields().
  */
 function membership_entity_field_extra_fields() {
@@ -565,6 +575,45 @@ function membership_entity_field_extra_fields() {
     ),
   );
   return $fields;
+}
+
+/**
+ * Implements hook_form_FORM_ID_alter().
+ *
+ * Add a checkbox for the 'membership_entity_join_form' setting.
+ */
+function membership_entity_form_field_ui_field_edit_form_alter(&$form, &$form_state, $form_id) {
+  $instance = $form['#instance'];
+  if ($instance['entity_type'] == 'membership_entity' && !$form['#field']['locked']) {
+    $form['instance']['settings']['membership_entity_join_form'] = array(
+      '#type' => 'checkbox',
+      '#title' => t('Display on join form.'),
+      '#description' => t("This is compulsory for 'required' fields."),
+      '#default_value' => $instance['settings']['membership_entity_join_form'] || $instance['required'],
+      '#weight' => $form['instance']['required']['#weight'] + .1,
+      '#states' => array(
+        'enabled' => array('input[name="instance[required]"]' => array('checked' => FALSE)),
+      ),
+      '#attached' => array(
+        'js' => array(drupal_get_path('module', 'membership_entity') . '/js/membership-entity.js'),
+      ),
+    );
+
+    array_unshift($form['#submit'], 'membership_entity_form_field_ui_field_edit_form_submit');
+  }
+}
+
+/**
+ * Additional submit handler for the 'Edit field instance' form.
+ *
+ * Make sure the 'membership_entity_join_form' setting is set for
+ * required fields.
+ */
+function membership_entity_form_field_ui_field_edit_form_submit($form, &$form_state) {
+  $instance = $form_state['values']['instance'];
+  if (!empty($instance['required'])) {
+    form_set_value($form['instance']['settings']['membership_entity_join_form'], 1, $form_state);
+  }
 }
 
 /**
@@ -799,7 +848,7 @@ function membership_entity_member_select_process($element, &$form_state, $comple
   ctools_include('ajax');
   ctools_include('modal');
   ctools_modal_add_js();
-  drupal_add_js(drupal_get_path('module', 'membership_entity') . '/js/membership-entity-ajax.js');
+  drupal_add_js(drupal_get_path('module', 'membership_entity') . '/js/membership-entity.js');
 
   $multiple = ($element['#cardinality'] > 1 || $element['#cardinality'] == FIELD_CARDINALITY_UNLIMITED);
   $wrapper_id = drupal_html_id($element['#id'] . '-add-more-wrapper');
