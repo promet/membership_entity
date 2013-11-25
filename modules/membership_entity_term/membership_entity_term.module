@@ -94,6 +94,16 @@ function membership_entity_term_menu() {
 }
 
 /**
+ * Implements hook_membership_entity_load().
+ */
+function membership_entity_term_membership_entity_load($memberships) {
+  // Load membership terms.
+  foreach ($memberships as &$membership) {
+    $membership->terms = membership_entity_term_load_by_membership($membership);
+  }
+}
+
+/**
  * Access callback to renew a membership.
  */
 function membership_entity_term_renew_access($membership) {
@@ -123,8 +133,7 @@ function membership_entity_term_field_extra_fields() {
  * Implements hook_membership_entity_view().
  */
 function membership_entity_term_membership_entity_view($membership, $view_mode, $langcode) {
-  $terms = membership_entity_term_load_by_membership($membership);
-  $membership->content['membership_terms'] = membership_entity_terms_view($terms, $view_mode, $langcode);
+  $membership->content['membership_terms'] = membership_entity_terms_view($membership->terms, $view_mode, $langcode);
 }
 
 /**

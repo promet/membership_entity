@@ -46,4 +46,3 @@ class MembershipEntityTermController extends EntityAPIController {
     return $this->load($ids);
   }
 }
-
