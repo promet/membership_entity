@@ -742,6 +742,9 @@ function membership_entity_form(&$form, &$form_state) {
 
   // Add field UI items.
   field_attach_form('membership_entity', $membership, $form, $form_state);
+
+  // Allow other modules to alter the form.
+  drupal_alter('membership_entity_form', $form, $form_state, $membership);
 }
 
 /**

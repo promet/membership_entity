@@ -213,15 +213,13 @@ function membership_entity_term_length_element_validate($element, &$form_state, 
  */
 function _membership_entity_term_create_form(&$form, &$form_state) {
   $membership = $form['#membership_entity'];
-  $bundle_settings = $form['#bundle_settings'];
-
   if (!empty($membership->is_new)) {
     $form['membership']['term_length'] = array(
       '#type' => 'radios',
       '#title' => t('Term length'),
       '#description' => t('Select the desired membership term length.'),
       '#required' => TRUE,
-      '#options' => drupal_map_assoc($bundle_settings['available_term_lengths']),
+      '#options' => drupal_map_assoc($form['#bundle_settings']['available_term_lengths']),
     );
 
     $form['actions']['submit']['#submit'][] = 'membership_entity_term_create_form_submit';
@@ -388,12 +386,6 @@ function membership_entity_term_edit($form, &$form_state, $term) {
       '#value' => t('Save'),
       '#submit' => array('membership_entity_term_edit_form_submit'),
     ),
-    'delete' => array(
-      '#type' => 'submit',
-      '#value' => t('Delete'),
-      '#limit_validation_errors' => array(),
-      '#submit' => array('membership_entity_term_edit_form_delete'),
-    ),
   );
 
   return $form;
@@ -481,29 +473,12 @@ function membership_entity_term_edit_form_submit($form, &$form_state) {
 }
 
 /**
- * Submit handler to delete a membership term.
- */
-function membership_entity_term_edit_form_delete($form, &$form_state) {
-  $destination = array();
-  if (isset($_GET['destination'])) {
-    $destination = drupal_get_destination();
-    unset($_GET['destination']);
-  }
-  $membership = $form['#membership_entity'];
-  $form_state['redirect'] = array(
-    'membership/' . $membership->mid . '/delete',
-    array('query' => $destination),
-  );
-}
-
-/**
  * Menu callback: Renew an existing membership.
  */
 function membership_entity_term_renew($form, &$form_state, $membership) {
   drupal_set_title(t('Renew membership @member_id', array('@member_id' => $membership->member_id)));
-
   $form['#membership_entity'] = $membership;
-  $bundle_settings = membership_entity_get_bundle_settings();
+  $form['#bundle_settings'] = $bundle_settings = membership_entity_get_bundle_settings($membership->type);
   if (empty($bundle_settings)) {
     return '';
   }
@@ -516,13 +491,27 @@ function membership_entity_term_renew($form, &$form_state, $membership) {
     '#options' => drupal_map_assoc($bundle_settings['available_term_lengths']),
   );
 
+  form_load_include($form_state, 'inc', 'membership_entity', 'membership_entity.pages');
+  membership_entity_form($form, $form_state);
+
+  // Hide fields where the 'membership_entity_join_form' setting is turned off.
+  foreach (field_info_instances('membership_entity', $membership->type) as $field_name => $instance) {
+    if (empty($instance['settings']['membership_entity_join_form'])) {
+      $form[$field_name]['#access'] = FALSE;
+    }
+  }
+
+  $form['#validate'][] = 'membership_entity_form_validate';
   $form['actions'] = array(
     '#type' => 'actions',
     '#weight' => 9999,
     'submit' => array(
       '#type' => 'submit',
       '#value' => t('Renew'),
-      '#submit' => array('membership_entity_term_renew_submit'),
+      '#submit' => array(
+        'membership_entity_edit_form_submit',
+        'membership_entity_term_renew_submit',
+      ),
     ),
   );
 
@@ -530,12 +519,27 @@ function membership_entity_term_renew($form, &$form_state, $membership) {
 }
 
 /**
- * [$membership description]
- * @var [type]
+ * Submit handler to renew a membership.
  */
 function membership_entity_term_renew_submit($form, &$form_state) {
   $membership = $form['#membership_entity'];
-  $bundle_settings = $form['#bundle_settings'];
+
+  // Add the new membership term.
+  $term_length = $form_state['values']['term_length'];
+  $expiration = membership_entity_term_get_expiration($membership);
+
+  $now = new DateObject('now', 'UTC');
+  $start = date_format_date($now, 'custom', DATE_FORMAT_DATETIME);
+  if ($expiration > $now) {
+    $start = $expiration;
+  }
+
+  $term = membership_entity_term_create(array(
+    'mid' => $membership->mid,
+    'term' => $term_length,
+    'start' => $start,
+  ));
+  membership_entity_term_save($term);
 }
 
 /**

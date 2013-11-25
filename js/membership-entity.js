@@ -6,13 +6,6 @@
 (function($) {
 
   /**
-   * AJAX command to change an elment attribute.
-   */
-  Drupal.ajax.prototype.commands.membership_entity_attr = function(ajax, response, status) {
-    $(response.selector).attr(response.attribute, response.value);
-  }
-
-  /**
    * Field instance settings screen: force the 'Display on join form.'
    * checkbox checked whenever 'Required' is checked.
    */
