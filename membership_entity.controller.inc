@@ -56,20 +56,27 @@ class MembershipEntityController extends EntityAPIController {
    *
    * @param $account
    *  A user account object or uid.
+   * @param $type
+   *  The membership bundle to load.
+   * @return An array of all memberships for the given user account, keyed by
+   *  bundle. Or a single membership object if $bundle is provided.
    */
-  public function load_by_user($account) {
+  public function load_by_user($account, $bundle = NULL) {
     // Support uid or entire user object.
     $uid = is_object($account) ? $account->uid : $account;
-    $mids = array();
+    $memberships = $this->load(FALSE, array('uid' => $uid));
 
-    $efq = new EntityFieldQuery();
-    $result = $efq->entityCondition('entity_type', 'membership_entity')
-      ->propertyCondition('uid', $uid)
-      ->execute();
-    if (!empty($result)) {
-      $mids = array_merge($mids, array_keys($result['membership_entity']));
+    if (empty($memberships)) {
+      // Early exist if no memberships found.
+      return array();
     }
-    return $this->load($mids);
+
+    $bundles = array();
+    foreach ($memberships as $mid => $membership) {
+      $bundles[] = $membership->type;
+    }
+    $return = array_combine($bundles, $memberships);
+    return !empty($bundle) ? $return[$bundle] : $return;
   }
 
   /**

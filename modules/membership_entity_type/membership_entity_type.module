@@ -49,6 +49,25 @@ function membership_entity_type_entity_info() {
 }
 
 /**
+ * Implements hook_entity_info_alter().
+ */
+function membership_entity_type_entity_info_alter(&$entity_info) {
+  // Remove the default bundle and add user defined bundles.
+  unset($entity_info['membership_entity']['bundles']);
+  foreach (membership_entity_type_get_types() as $bundle => $type) {
+    $entity_info['membership_entity']['bundles'][$bundle] = array(
+      'label' => $type->label,
+      'admin' => array(
+        'path' => 'admin/structure/memberships/manage/%membership_entity_type',
+        'real path' => 'admin/structure/memberships/manage/' . $type->type,
+        'bundle argument' => 4,
+        'access arguments' => array('administer membership types'),
+      ),
+    );
+  }
+}
+
+/**
  *  Access callback for membership entity type admin ui.
  */
 function membership_entity_type_admin_ui_access($op, $type = NULL, $account = NULL) {

@@ -59,6 +59,13 @@ class MembershipEntity extends Entity {
   }
 
   /**
+   * Overrides Entity::uri.
+   */
+  public function uri() {
+    return array('path' => 'membership/' . $this->mid);
+  }
+
+  /**
    * Saves membership_entity fields using drupal_write_record().
    *
    * @param $membership

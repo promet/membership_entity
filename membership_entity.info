@@ -10,23 +10,8 @@ dependencies[] = entity
 files[] = membership_entity.inc
 files[] = membership_entity.controller.inc
 
+; Entity metadata info.
+files[] = membership_entity.info.inc
+
 ; CTools plugin definitions.
 files[] = plugins/member_id/abstract.inc
-
-; Views handlers.
-files[] = views/membership_entity_handler_field_mid.inc
-files[] = views/membership_entity_handler_field_link.inc
-files[] = views/membership_entity_handler_field_link_delete.inc
-files[] = views/membership_entity_handler_field_link_edit.inc
-files[] = views/membership_entity_handler_field_link_renew.inc
-files[] = views/membership_entity_handler_field_status.inc
-files[] = views/membership_entity_handler_filter_type.inc
-files[] = views/membership_entity_handler_filter_status.inc
-files[] = views/membership_entity_handler_field_type.inc
-files[] = views/membership_entity_handler_field_terms_date.inc
-files[] = views/membership_entity_handler_filter_terms_date.inc
-files[] = views/membership_entity_handler_filter_terms_date_date.inc
-
-; Extending views functionality.
-files[] = views/membership_entity_views_join_derived_table.inc
-

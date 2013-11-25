@@ -35,21 +35,12 @@ function membership_entity_help($path, $arg) {
 }
 
 /**
- * Implements hook_views_api().
- */
-function membership_entity_views_api() {
-  return array(
-    'api' => 3,
-    'path' => drupal_get_path('module', 'membership_entity') . '/views',
-  );
-}
-
-/**
  * Implements hook_entity_info().
  */
 function membership_entity_entity_info() {
   $info['membership_entity'] = array(
     'label' => t('Membership'),
+    'module' => 'membership_entity',
     'plural label' => t('Memberships'),
     'entity class' => 'MembershipEntity',
     'controller class' => 'MembershipEntityController',
@@ -65,7 +56,15 @@ function membership_entity_entity_info() {
       'bundle' => 'type',
     ),
     'static cache' => TRUE,
-    'bundles' => array(),
+    'bundles' => array(
+      'membership' => array(
+        'label' => t('Membership'),
+        'admin' => array(
+          'path' => 'admin/structure/memberships',
+          'access arguments' => array('administer memberships'),
+        ),
+      ),
+    ),
     'view modes' => array(
       'full' => array(
         'label' => t('Full Membership'),
@@ -76,34 +75,29 @@ function membership_entity_entity_info() {
         'custom settings' =>  FALSE,
       ),
     ),
+    'metadata controller class' => 'MembershipEntityMetadataController',
   );
 
-  if (module_exists('membership_entity_type')) {
-    // Add user defined bundles.
-    foreach (membership_entity_type_get_types() as $bundle => $type) {
-      $info['membership_entity']['bundles'][$bundle] = array(
-        'label' => $type->label,
-        'admin' => array(
-          'path' => 'admin/structure/memberships/manage/%membership_entity_type',
-          'real path' => 'admin/structure/memberships/manage/' . $type->type,
-          'bundle argument' => 4,
-          'access arguments' => array('administer membership types'),
-        ),
-      );
-    }
-  }
-  else {
-    // Add a default bundle.
-    $info['membership_entity']['bundles']['membership'] = array(
-      'label' => t('Membership'),
-      'admin' => array(
-        'path' => 'admin/structure/memberships',
-        'access arguments' => array('administer memberships'),
-      ),
-    );
-  }
-
   return $info;
+}
+
+/**
+ * Entity metadata callback to load membership properties.
+ */
+function membership_entity_get_properties($membership, array $options, $name, $entity_type) {
+  switch ($name) {
+    case 'edit_url':
+      return url('membership/' . $membership->mid . '/edit', $options);
+  }
+}
+
+/**
+ * Entity metadata callback to load memberships for a user account.
+ */
+function membership_entity_user_get_properties($account, array $options, $name, $entity_type) {
+  // Remove the leading 'profile_' from the property name to get the type name.
+  $membership = membership_entity_load_by_user($account, 'membership');
+  return !empty($membership) ? $membership : NULL;
 }
 
 /**
@@ -384,8 +378,8 @@ function membership_entity_theme() {
  */
 function membership_entity_user_view($account, $view_mode, $langcode) {
   if ($memberships = membership_entity_load_by_user($account)) {
-    foreach ($memberships as $mid => $membership) {
-      $account->content['memberships'][$mid] = membership_entity_view($membership, 'account', $langcode);
+    foreach ($memberships as $type => $membership) {
+      $account->content['memberships'][$type] = membership_entity_view($membership, 'account', $langcode);
     }
   }
 }
@@ -617,15 +611,6 @@ function membership_entity_form_field_ui_field_edit_form_submit($form, &$form_st
 }
 
 /**
- * Entity uri callback.
- */
-function membership_entity_uri($membership) {
-  return array(
-    'path' => 'membership/' . $membership->mid,
-  );
-}
-
-/**
  * Load bundle settings for a membership.
  *
  * @param $bundle
@@ -771,9 +756,11 @@ function membership_entity_user_cancel($edit, $account, $method) {
 function membership_entity_user_delete($account) {
   // Delete primary memberships.
   $memberships = membership_entity_load_by_user($account->uid);
-  membership_entity_delete_multiple(array_keys($memberships));
+  foreach ($memberships as $bundle => $membership) {
+    membership_entity_delete($membership->mid);
+  }
 
-  // Delete secondary memberships.
+  // Delete secondary member records.
   db_delete('membership_entity_secondary_member')
     ->condition('uid', $account->uid)
     ->execute();
@@ -1033,12 +1020,12 @@ function membership_entity_load($mid = NULL, $reset = FALSE) {
 /**
  * Load all memberships for a given user.
  */
-function membership_entity_load_by_user($account, $reset = FALSE) {
+function membership_entity_load_by_user($account, $type = NULL, $reset = FALSE) {
   $controller = entity_get_controller('membership_entity');
   if ($reset) {
     $controller->resetCache();
   }
-  return $controller->load_by_user($account);
+  return $controller->load_by_user($account, $type);
 }
 
 /**
