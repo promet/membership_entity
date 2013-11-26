@@ -396,14 +396,24 @@ function membership_entity_term_save($term) {
  * usort() callback to sort by end date.
  *
  * @see membership_entity_term_get_expiration().
+ *
+ * @param object $a
+ *   The first term object to sort against.
+ *
+ * @param object $b
+ *   The second term object to sort against.
+ *
+ * @return array
+ *   Returns an array of sorted objects by term expiration date.
  */
 function _membership_entity_term_sort_by_end_date($a, $b) {
-  $a = isset($a->end) ? $a->end : '';
-  $b = isset($b->end) ? $b->end : '';
-  if ($a == $b) {
+  $c = isset($a->end) ? $a->end : '';
+  $d = isset($b->end) ? $b->end : '';
+
+  if ($c == $d) {
     return 0;
   }
-  return ($a < $b) ? -1 : 1;
+  return ($c < $d) ? -1 : 1;
 }
 
 /**
