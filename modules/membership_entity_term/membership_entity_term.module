@@ -29,6 +29,7 @@ function membership_entity_term_entity_info() {
       'label callback' => 'entity_class_label',
       'uri callback' => 'entity_class_uri',
       'fieldable' => FALSE,
+      'module' => 'membership_entity_term',
       'entity keys' => array(
         'id' => 'id',
       ),
@@ -38,8 +39,28 @@ function membership_entity_term_entity_info() {
           'custom settings' => FALSE,
         ),
       ),
+      'metadata controller class' => 'MembershipEntityTermMetadataController',
     ),
   );
+}
+
+/**
+ * Entity metadata callback to load membership term properties.
+ */
+function membership_entity_term_get_properties($entity, array $options, $name, $entity_type) {
+  switch ($name) {
+    case 'end':
+      return strtotime($entity->start);
+
+    case 'start':
+      return strtotime($entity->start);
+
+    case 'expiration':
+      return strtotime(membership_entity_term_get_expiration($entity));
+
+    case 'renew_url':
+      return url('membership/' . $entity->mid . '/renew', $options);
+  }
 }
 
 /**
