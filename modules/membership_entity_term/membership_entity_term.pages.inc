@@ -55,15 +55,14 @@ function _membership_entity_term_settings_form(&$form, &$form_state, $data) {
       'remove' => array(
         '#type' => 'submit',
         '#value' => t('Remove'),
-        '#name' => 'remove_' . $delta,
+        '#name' => 'available_term_lengths_remove_' . $delta,
         '#delta' => $delta,
         '#submit' => array('membership_entity_term_length_remove'),
         '#limit_validation_errors' => array(),
         '#ajax' => array(
-          'callback' => '_membership_entity_term_ajax_callback',
+          'callback' => 'membership_entity_term_length_ajax_callback',
           'wrapper' => $wrapper_id,
           'effect' => 'fade',
-          'element' => $form['term_lengths']['available_term_lengths'],
         ),
       ),
     );
@@ -115,16 +114,22 @@ function _membership_entity_term_settings_form(&$form, &$form_state, $data) {
       array('term_lengths', 'custom_term_length'),
     ),
     '#ajax' => array(
-      'callback' => '_membership_entity_term_ajax_callback',
+      'callback' => 'membership_entity_term_length_ajax_callback',
       'wrapper' => $wrapper_id,
       'effect' => 'fade',
-      'element' => $form['term_lengths']['available_term_lengths'],
     ),
   );
 
   $form['#validate'][] = 'membership_entity_term_settings_form_validate';
   $form['actions']['submit']['#limit_validation_errors'][] = array('available_term_lengths');
   $form['actions']['submit']['#limit_validation_errors'][] = array('term_lengths', 'available_term_lengths');
+}
+
+/**
+ * Ajax callback to update term lengths.
+ */
+function membership_entity_term_length_ajax_callback($form, $form_state) {
+  return $form['term_lengths']['available_term_lengths'];
 }
 
 /**
@@ -213,6 +218,7 @@ function membership_entity_term_length_element_validate($element, &$form_state, 
  */
 function _membership_entity_term_create_form(&$form, &$form_state) {
   $membership = $form['#membership_entity'];
+
   if (!empty($membership->is_new)) {
     $form['membership']['term_length'] = array(
       '#type' => 'radios',
@@ -320,12 +326,12 @@ function membership_entity_term_edit($form, &$form_state, $term) {
       'remove' => array(
         '#type' => 'submit',
         '#value' => t('Remove'),
-        '#name' => 'remove_' . $delta,
+        '#name' => 'modifiers_remove_' . $delta,
         '#delta' => $delta,
         '#submit' => array('membership_entity_term_modifier_remove'),
         '#limit_validation_errors' => array(),
         '#ajax' => array(
-          'callback' => '_membership_entity_term_ajax_callback',
+          'callback' => 'membership_entity_term_modifier_ajax_callback',
           'wrapper' => $wrapper_id,
           'effect' => 'fade',
         ),
@@ -368,10 +374,9 @@ function membership_entity_term_edit($form, &$form_state, $term) {
     '#submit' => array('membership_entity_term_modifier_add'),
     '#limit_validation_errors' => array(array('modifiers')),
     '#ajax' => array(
-      'callback' => '_membership_entity_term_ajax_callback',
+      'callback' => 'membership_entity_term_modifier_ajax_callback',
       'wrapper' => $wrapper_id,
       'effect' => 'fade',
-      'element' => $form['modifiers']['list'],
     ),
   );
 
@@ -395,6 +400,13 @@ function membership_entity_term_edit($form, &$form_state, $term) {
   );
 
   return $form;
+}
+
+/**
+ * Ajax callback to update term modifiers.
+ */
+function membership_entity_term_modifier_ajax_callback($form, $form_state) {
+  return $form['modifiers']['list'];
 }
 
 /**
@@ -583,12 +595,4 @@ function membership_entity_term_delete_confirm_submit($form, &$form_state) {
     drupal_set_message(t('Deleted 1 membership term.'));
   }
   $form_state['redirect'] = 'membership/' . $term->mid;
-}
-
-/**
- * Ajax callback to update form elements.
- */
-function _membership_entity_term_ajax_callback($form, $form_state) {
-  $button = $form_state['triggering_element'];
-  return $button['#ajax']['element'];
 }

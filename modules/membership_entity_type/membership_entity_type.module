@@ -144,7 +144,7 @@ function membership_entity_type_menu() {
       'title callback' => 'check_plain',
       'description' => $type->description,
       'page callback' => 'drupal_get_form',
-      'page arguments' => array('membership_entity_join_form'),
+      'page arguments' => array('membership_entity_join_form', $type->type),
       'access callback' => 'membership_entity_access',
       'access arguments' => array('join', $type->type),
       'file' => 'membership_entity.pages.inc',
