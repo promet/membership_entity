@@ -249,7 +249,7 @@ function membership_entity_term_edit($form, &$form_state, $term) {
   $form['#entity_type'] = 'membership_entity_term';
   $membership = $form['#membership_entity'] = membership_entity_load($term->mid);
   $form['#attributes']['class'][] = 'membership-entity-term-edit-form';
-  $bundle_settings = $form['#bundle_settings'] = membership_entity_get_bundle_settings();
+  $bundle_settings = $form['#bundle_settings'] = membership_entity_get_bundle_settings($membership->type);
 
   if (empty($form['#bundle_settings'])) {
     return '';
@@ -385,6 +385,12 @@ function membership_entity_term_edit($form, &$form_state, $term) {
       '#type' => 'submit',
       '#value' => t('Save'),
       '#submit' => array('membership_entity_term_edit_form_submit'),
+    ),
+    'delete' => array(
+      '#type' => 'submit',
+      '#value' => t('Delete'),
+      '#limit_validation_errors' => array(),
+      '#submit' => array('membership_entity_term_edit_form_delete'),
     ),
   );
 
@@ -540,6 +546,43 @@ function membership_entity_term_renew_submit($form, &$form_state) {
     'start' => $start,
   ));
   membership_entity_term_save($term);
+}
+
+/**
+ * Submit handler to delete a membership term.
+ */
+function membership_entity_term_edit_form_delete($form, &$form_state) {
+  $destination = array();
+  if (isset($_GET['destination'])) {
+    $destination = drupal_get_destination();
+    unset($_GET['destination']);
+  }
+  $term = $form['#membership_entity_term'];
+  $form_state['redirect'] = array(
+    'membership-term/' . $term->id . '/delete',
+    array('query' => $destination),
+  );
+}
+
+/**
+ * Dispaly a confirmation page before delteing a membership term.
+ */
+function membership_entity_term_delete_confirm($form, &$form_state, $term) {
+  $form_state['term'] = $term;
+  $form['#submit'][] = 'membership_entity_term_delete_confirm_submit';
+  return confirm_form($form, t('Are you sure you want to delete this membership term?'), 'membership-term/' . $term->id . '/edit', t('This action cannot be undone.'), t('Delete'), t('Cancel'));
+}
+
+/**
+ * Submit the membership term delete confirm form.
+ */
+function membership_entity_term_delete_confirm_submit($form, &$form_state) {
+  $term = $form_state['term'];
+  if ($form_state['values']['confirm']) {
+    membership_entity_term_delete($term->id);
+    drupal_set_message(t('Deleted 1 membership term.'));
+  }
+  $form_state['redirect'] = 'membership/' . $term->mid;
 }
 
 /**

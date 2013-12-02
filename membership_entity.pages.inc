@@ -599,10 +599,11 @@ function membership_entity_join_form($form, &$form_state, $bundle = 'membership'
   if (!user_is_logged_in()) {
     drupal_set_title(t('Create account or log in to continue'));
 
-    $form = array(
-      '#attached' => array(
-        'css' => array(drupal_get_path('module', 'membership_entity') . '/css/membership_entity_join.css'),
-      ),
+    $form['#attached']['css'][] = drupal_get_path('module', 'membership_entity') . '/css/membership_entity_join.css';
+
+    $form['redirect'] = array(
+      '#type' => 'value',
+      '#value' => drupal_get_destination(),
     );
 
     $form['create'] = array(
@@ -633,9 +634,33 @@ function membership_entity_join_form($form, &$form_state, $bundle = 'membership'
       '#attributes' => array(
         'class' => array('membership-entity-join-column'),
       ),
+      'name' => array(
+        '#type' => 'textfield',
+        '#title' => t('Username'),
+        '#description' => t('Enter your @s username.', array('@s' => variable_get('site_name', 'Drupal'))),
+        '#size' => 60,
+        '#maxlength' => USERNAME_MAX_LENGTH,
+        '#required' => TRUE,
+      ),
+      'pass' => array(
+        '#type' => 'password',
+        '#title' => t('Password'),
+        '#description' => t('Enter the password that accompanies your username.'),
+        '#required' => TRUE,
+      ),
+      'actions' => array(
+        '#type' => 'actions',
+        'submit' => array(
+          '#type' => 'submit',
+          '#value' => t('Log in'),
+          '#submit' => array(
+            'user_login_submit',
+            'membership_entity_user_login_submit',
+          ),
+        ),
+      ),
     );
-
-    $form['login']['form'] = drupal_get_form('user_login');
+    $form['#validate'] = user_login_default_validators();
     return $form;
   }
 
@@ -670,6 +695,13 @@ function membership_entity_join_form($form, &$form_state, $bundle = 'membership'
   );
 
   return $form;
+}
+
+/**
+ * Submit handler to redirect to membership join pages.
+ */
+function membership_entity_user_login_submit($form, &$form_state) {
+  $form_state['redirect'] = $form_state['values']['redirect']['destination'];
 }
 
 /**

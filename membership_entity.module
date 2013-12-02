@@ -184,6 +184,7 @@ function membership_entity_membership_entity_access($op, $membership = NULL, $ac
     if (!$exists && user_access("$type join", $user)) {
       return TRUE;
     }
+    return FALSE;
   }
 
   if (isset($membership) && $type_name = $membership->type) {

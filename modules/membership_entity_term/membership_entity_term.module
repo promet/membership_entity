@@ -143,12 +143,26 @@ function membership_entity_term_permission() {
  * Implements hook_menu().
  */
 function membership_entity_term_menu() {
-  $items['membership-term/%membership_entity_term/edit'] = array(
-    'title' => 'Edit',
+  $items['membership-term/%membership_entity_term'] = array(
     'page callback' => 'drupal_get_form',
     'page arguments' => array('membership_entity_term_edit', 1),
     'access arguments' => array('administer membership terms'),
-    'type' => MENU_NORMAL_ITEM,
+  );
+
+  $items['membership-term/%membership_entity_term/edit'] = array(
+    'title' => 'Edit',
+    'type' => MENU_DEFAULT_LOCAL_TASK,
+    'context' => MENU_CONTEXT_PAGE | MENU_CONTEXT_INLINE,
+    'file' => 'membership_entity_term.pages.inc',
+  );
+
+  $items['membership-term/%membership_entity_term/delete'] = array(
+    'title' => 'Delete',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('membership_entity_term_delete_confirm', 1),
+    'access arguments' => array('administer membership terms'),
+    'type' => MENU_LOCAL_TASK,
+    'context' => MENU_CONTEXT_INLINE,
     'file' => 'membership_entity_term.pages.inc',
   );
 
@@ -165,6 +179,45 @@ function membership_entity_term_menu() {
   );
 
   return $items;
+}
+
+/**
+ * Implements hook_membership_entity_term_insert().
+ */
+function membership_entity_term_membership_entity_term_insert($term) {
+  _membership_entity_term_insert_update($term);
+}
+
+/**
+ * Implements hook_membership_entity_term_update().
+ */
+function membership_entity_term_membership_entity_term_update($term) {
+  _membership_entity_term_insert_update($term);
+}
+
+/**
+ * Implements hook_membership_entity_term_delete().
+ */
+function membership_entity_term_membership_entity_term_delete($term) {
+  _membership_entity_term_insert_update($term);
+}
+
+/**
+ * Helper for membership term insert/update hooks.
+ */
+function _membership_entity_term_insert_update($term) {
+  $membership = membership_entity_load($term->mid);
+
+  // Update membership status when a term is saved.
+  $expiration = strtotime(membership_entity_term_get_expiration($membership));
+  if ($membership->status == MEMBERSHIP_ENTITY_ACTIVE && $expiration < REQUEST_TIME) {
+    $membership->status = MEMBERSHIP_ENTITY_EXPIRED;
+    $membership->save();
+  }
+  else if ($membership->status == MEMBERSHIP_ENTITY_EXPIRED && $expiration >= REQUEST_TIME) {
+    $membership->status = MEMBERSHIP_ENTITY_ACTIVE;
+    $membership->save();
+  }
 }
 
 /**
@@ -391,6 +444,20 @@ function membership_entity_term_get_expiration($membership) {
  */
 function membership_entity_term_load_multiple($ids = FALSE, $conditions = array(), $reset = FALSE) {
   return entity_load('membership_entity_term', $ids, $conditions, $reset);
+}
+
+/**
+ * Delete a membership term.
+ */
+function membership_entity_term_delete($id) {
+  membership_entity_term_delete_multiple(array($id));
+}
+
+/**
+ * Delete multiple membership terms.
+ */
+function membership_entity_term_delete_multiple($ids) {
+  entity_delete_multiple('membership_entity_term', $ids);
 }
 
 /**
