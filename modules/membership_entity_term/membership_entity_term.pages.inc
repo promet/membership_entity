@@ -220,12 +220,14 @@ function _membership_entity_term_create_form(&$form, &$form_state) {
   $membership = $form['#membership_entity'];
 
   if (!empty($membership->is_new)) {
+    $options = drupal_map_assoc($form['#bundle_settings']['available_term_lengths']);
     $form['membership']['term_length'] = array(
       '#type' => 'radios',
       '#title' => t('Term length'),
       '#description' => t('Select the desired membership term length.'),
       '#required' => TRUE,
-      '#options' => drupal_map_assoc($form['#bundle_settings']['available_term_lengths']),
+      '#options' => $options,
+      '#default_value' => count($options) < 2 ? reset($options) : NULL,
     );
 
     $form['actions']['submit']['#submit'][] = 'membership_entity_term_create_form_submit';
@@ -281,16 +283,18 @@ function membership_entity_term_edit($form, &$form_state, $term) {
     '#date_text_parts' => array('year'),
   );
 
+  $options = drupal_map_assoc($bundle_settings['available_term_lengths']);
   $form['term'] = array(
     '#type' => 'radios',
     '#title' => t('Term length'),
     '#description' => t('Select the new membership term length.'),
     '#default_value' => $term->term,
     '#required' => TRUE,
-    '#options' => drupal_map_assoc($bundle_settings['available_term_lengths']),
+    '#options' => $options,
+    '#default_value' => count($options) < 2 ? reset($options) : NULL,
   );
 
-   // Add term modifiers.
+  // Add term modifiers.
   if (!isset($form_state['modifiers'])) {
     $form_state['modifiers'] = $term->modifiers;
   }
@@ -501,12 +505,14 @@ function membership_entity_term_renew($form, &$form_state, $membership) {
     return '';
   }
 
+  $options = drupal_map_assoc($bundle_settings['available_term_lengths']);
   $form['term_length'] = array(
     '#type' => 'radios',
     '#title' => t('Renewal term length'),
     '#description' => t('Select the desired renewal term length.'),
     '#required' => TRUE,
-    '#options' => drupal_map_assoc($bundle_settings['available_term_lengths']),
+    '#options' => $options,
+    '#default_value' => count($options) < 2 ? reset($options) : NULL,
   );
 
   form_load_include($form_state, 'inc', 'membership_entity', 'membership_entity.pages');
