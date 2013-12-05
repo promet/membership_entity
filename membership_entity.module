@@ -1069,7 +1069,7 @@ function _membership_entity_update_roles($roles) {
       $account->roles[$rid]= $rid;
       user_save($account);
     }
-    elseif (isset($account->roles[$rid])) {
+    elseif ($roles[$uid]['op'] == 'remove' && isset($account->roles[$rid])) {
       unset($account->roles[$rid]);
       user_save($account);
     }
