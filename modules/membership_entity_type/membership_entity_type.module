@@ -289,7 +289,7 @@ function membership_entity_type_get_names() {
  *  The membership object to get the type name.
  */
 function membership_entity_type_get_name($membership) {
-  $names = membership_entity_get_type_names();
+  $names = membership_entity_type_get_names();
   return isset($names[$membership->type]) ? $names[$membership->type] : '';
 }
 
