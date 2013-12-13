@@ -26,7 +26,8 @@ function membership_entity_term_entity_info() {
       'entity class' => 'MembershipEntityTerm',
       'controller class' => 'MembershipEntityTermController',
       'base table' => 'membership_entity_term',
-      'label callback' => 'entity_class_label',
+      'label callback' => 'membership_entity_term_label',
+      'access callback' => 'membership_entity_term_access',
       'uri callback' => 'entity_class_uri',
       'fieldable' => FALSE,
       'module' => 'membership_entity_term',
@@ -42,6 +43,28 @@ function membership_entity_term_entity_info() {
       'metadata controller class' => 'MembershipEntityTermMetadataController',
     ),
   );
+}
+
+/**
+ * Access callback for a membership term.
+ *
+ * A term inherits access from the membership.
+ */
+function membership_entity_term_access($term, $op, $account = NULL) {
+  $membership = membership_entity_load($term->mid);
+  return membership_entity_access($membership, $op, $account);
+}
+
+/**
+ * Label callback for membership entity terms.
+ */
+function membership_entity_term_label($term, $entity_type) {
+  $membership = membership_entity_load($term->mid);
+  return t('@member_id (@term starting @start)', array(
+    '@member_id' => $membership->member_id,
+    '@term' => $term->term,
+    '@start' => format_date(strtotime($term->start), 'short'),
+  ));
 }
 
 /**

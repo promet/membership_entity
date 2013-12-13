@@ -47,10 +47,12 @@ function membership_entity_entity_info() {
     'base table' => 'membership_entity',
     'label callback' => 'entity_class_label',
     'uri callback' => 'entity_class_uri',
+    'access callback' => 'membership_entity_access',
     'fieldable' => TRUE,
     'entity keys' => array(
       'id' => 'mid' ,
       'bundle' => 'type',
+      'label' => 'member_id',
     ),
     'bundle keys' => array(
       'bundle' => 'type',
