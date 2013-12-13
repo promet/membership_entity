@@ -362,7 +362,7 @@ function membership_entity_admin_list(&$form_state) {
       if (module_exists('membership_entity_term')) {
         $operations['renew'] = array(
           'title' => t('renew'),
-          'href' => 'membership' . $membership->mid . '/renew',
+          'href' => 'membership/' . $membership->mid . '/renew',
           'query' => $destination,
         );
       }
@@ -769,7 +769,7 @@ function membership_entity_form(&$form, &$form_state) {
     '#options' => membership_entity_get_status_list(),
     '#default_value' => $membership->status,
     '#required' => TRUE,
-    '#access' => user_access('administer memberships'),
+    '#access' => user_access('administer memberships') && !module_exists('membership_entity_term'),
   );
 
   // Add field UI items.

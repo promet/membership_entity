@@ -288,10 +288,17 @@ function membership_entity_term_edit($form, &$form_state, $term) {
     '#type' => 'radios',
     '#title' => t('Term length'),
     '#description' => t('Select the new membership term length.'),
-    '#default_value' => $term->term,
+    '#default_value' => count($options) <= 1 ? reset($options) : $term->term,
     '#required' => TRUE,
     '#options' => $options,
-    '#default_value' => count($options) < 2 ? reset($options) : NULL,
+  );
+
+  $form['status'] = array(
+    '#type' => 'radios',
+    '#title' => t('Status'),
+    '#options' => membership_entity_get_status_list(),
+    '#default_value' => $term->status,
+    '#required' => TRUE,
   );
 
   // Add term modifiers.
@@ -550,12 +557,12 @@ function membership_entity_term_renew_submit($form, &$form_state) {
 
   // Add the new membership term.
   $term_length = $form_state['values']['term_length'];
-  $expiration = membership_entity_term_get_expiration($membership);
 
+  $latest_term = end($membership->terms);
   $now = new DateObject('now', 'UTC');
   $start = date_format_date($now, 'custom', DATE_FORMAT_DATETIME);
-  if ($expiration > $now) {
-    $start = $expiration;
+  if ($latest_term->status == MEMBERSHIP_ENTITY_ACTIVE && $latest_term->end > $now) {
+    $start = $latest_term->end;
   }
 
   $term = membership_entity_term_create(array(

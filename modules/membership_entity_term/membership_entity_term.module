@@ -41,6 +41,7 @@ function membership_entity_term_entity_info() {
         ),
       ),
       'metadata controller class' => 'MembershipEntityTermMetadataController',
+      'views controller class' => 'MembershipEntityTermViewsController',
     ),
   );
 }
@@ -72,12 +73,6 @@ function membership_entity_term_label($term, $entity_type) {
  */
 function membership_entity_term_get_properties($entity, array $options, $name, $entity_type) {
   switch ($name) {
-    case 'end':
-      return strtotime($entity->start);
-
-    case 'start':
-      return strtotime($entity->start);
-
     case 'expiration':
       return strtotime(membership_entity_term_get_expiration($entity));
 
@@ -90,28 +85,20 @@ function membership_entity_term_get_properties($entity, array $options, $name, $
  * Implements hook_cron().
  */
 function membership_entity_term_cron() {
-  // Find all expired memberships.
-  $subquery = db_select('membership_entity_term', 't');
-  $subquery->addField('t', 'mid');
-  $subquery->addField('t', 'term');
-  $subquery->addExpression('MIN(end)', 'min_end');
-  $subquery->addExpression('MAX(end)', 'max_end');
-  $subquery->groupBy('t.mid');
-
-  $query = db_select('membership_entity', 'm');
-  $query->join($subquery, 't', 'm.mid=t.mid');
-  $query->addField('m', 'mid');
-  $query->condition('m.status', MEMBERSHIP_ENTITY_ACTIVE);
-
+  // Find all expired membership terms.
   $now = new DateObject('now', 'UTC');
-  $query->condition('t.max_end', date_format_date($now, 'custom', DATE_FORMAT_DATETIME), '<');
-  $query->condition('t.term', 'lifetime', '<>');
-  $result = $query->execute()->fetchAllAssoc('mid');
+  $result = db_select('membership_entity_term', 't')
+    ->fields('t', array('id'))
+    ->condition('end', date_format_date($now, 'custom', DATE_FORMAT_DATETIME), '<')
+    ->condition('status', MEMBERSHIP_ENTITY_ACTIVE)
+    ->condition('term', 'lifetime', '<>')
+    ->execute()
+    ->fetchAllAssoc('id');
 
   // Queue them up for expiration.
   $queue = DrupalQueue::get('membership_entity_term_expire');
-  foreach (array_keys($result) as $mid) {
-    $queue->createItem($mid);
+  foreach (array_keys($result) as $id) {
+    $queue->createItem($id);
   }
 }
 
@@ -130,12 +117,12 @@ function membership_entity_term_cron_queue_info() {
  * Worker callback to process membership expirations.
  */
 function membership_entity_term_expire_worker($data) {
-  $membership = membership_entity_load($data);
-  $membership->status = MEMBERSHIP_ENTITY_EXPIRED;
-  membership_entity_save($membership);
-  watchdog('membership_entity_term', 'Membership <a href="!url">@member_id</a> has expired.', array(
-    '!url' => url('membership/' . $membership->mid),
-    '@member_id' => $membership->member_id,
+  $term = membership_entity_term_load($data);
+  $term->status = MEMBERSHIP_ENTITY_EXPIRED;
+  membership_entity_term_save($term);
+  watchdog('membership_entity_term', 'Membership term <a href="!url">@id</a> has expired.', array(
+    '!url' => url('membership/' . $term->mid),
+    '@member_id' => $term->id,
   ), WATCHDOG_INFO);
 }
 
@@ -232,14 +219,23 @@ function _membership_entity_term_insert_update($term) {
   $membership = membership_entity_load($term->mid);
 
   // Update membership status when a term is saved.
-  $expiration = strtotime(membership_entity_term_get_expiration($membership));
-  if ($membership->status == MEMBERSHIP_ENTITY_ACTIVE && $expiration < REQUEST_TIME) {
-    $membership->status = MEMBERSHIP_ENTITY_EXPIRED;
-    $membership->save();
-  }
-  else if ($membership->status == MEMBERSHIP_ENTITY_EXPIRED && $expiration >= REQUEST_TIME) {
-    $membership->status = MEMBERSHIP_ENTITY_ACTIVE;
-    $membership->save();
+  $latest_term = end($membership->terms);
+  switch ($latest_term->status) {
+    case MEMBERSHIP_ENTITY_ACTIVE:
+    case MEMBERSHIP_ENTITY_EXPIRED:
+    case MEMBERSHIP_ENTITY_CANCELLED:
+      if ($membership->status != $latest_term->status) {
+        $membership->status = $latest_term->status;
+        $membership->save();
+      }
+      break;
+
+    case MEMBERSHIP_ENTITY_PENDING:
+      if (count($membership->terms) <= 1) {
+        $membership->status = MEMBERSHIP_ENTITY_PENDING;
+        $membership->save();
+      }
+      break;
   }
 }
 
@@ -303,11 +299,13 @@ function membership_entity_terms_view($terms, $view_mode = 'full', $langocode = 
     array('data' => t('Term Length')),
     array('data' => t('Start')),
     array('data' => t('End')),
+    array('data' => t('Status')),
   );
   if (user_access('administer membership terms')) {
     $header[] = array('data' => t('Operations'));
   }
 
+  $statuses = membership_entity_get_status_list();
   $rows = array();
   foreach ($terms as $id => $term) {
     $start = new DateObject($term->start, 'UTC');
@@ -322,6 +320,7 @@ function membership_entity_terms_view($terms, $view_mode = 'full', $langocode = 
       array('data' => check_plain($term->term)),
       array('data' => date_format_date($start, 'medium')),
       array('data' => ($term->term != 'lifetime') ? date_format_date($end, 'medium') : t('N/A')),
+      array('data' => $statuses[$term->status]),
     );
 
     // Add modifiers.

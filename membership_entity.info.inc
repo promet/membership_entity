@@ -47,7 +47,7 @@ class MembershipEntityMetadataController extends EntityDefaultMetadataController
     );
 
     $properties['status'] = array(
-      'label' => t('Status'),
+      'label' => t('Membership Status'),
       'description' => t('The membership status.'),
       'options list' => 'membership_entity_get_status_list',
     ) + $properties['status'];

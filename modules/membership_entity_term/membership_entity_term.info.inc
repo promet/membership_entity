@@ -35,22 +35,26 @@ class MembershipEntityTermMetadataController extends EntityDefaultMetadataContro
       'description' => t('The membership term length.'),
     ) + $properties['term'];
 
+     $properties['status'] = array(
+      'label' => t('Term Status'),
+      'description' => t('The membership term status.'),
+      'options list' => 'membership_entity_get_status_list',
+    ) + $properties['status'];
+
     $properties['start'] = array(
       'type' => 'date',
       'label' => t('Start date'),
-      'description' => t('The date the membership term began.'),
-      'getter callback' =>  'membership_entity_term_get_properties',
-      'computed' => TRUE,
-      'entity views field' => TRUE,
+      'description' => t('The date the membership term begins.'),
+      'required' => TRUE,
+      'schema field' => 'start',
     );
 
     $properties['end'] = array(
       'type' => 'date',
       'label' => t('End date'),
-      'description' => t('The date membership term will end.'),
-      'getter callback' =>  'membership_entity_term_get_properties',
-      'computed' => TRUE,
-      'entity views field' => TRUE,
+      'description' => t('The date membership term ends.'),
+      'required' => TRUE,
+      'schema field' => 'end',
     );
 
     return $info;

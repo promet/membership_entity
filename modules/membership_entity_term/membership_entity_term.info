@@ -11,5 +11,8 @@ dependencies[] = membership_entity
 files[] = 'membership_entity_term.inc'
 files[] = 'membership_entity_term.controller.inc'
 
+; Entity views info.
+files[] = membership_entity_term.views_controller.inc
+
 ; Entity metadata info.
 files[] = membership_entity_term.info.inc
