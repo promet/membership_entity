@@ -202,9 +202,15 @@ function membership_entity_settings_ajax_submit($form, &$form_state) {
  * Validate handler for the settings form.
  */
 function membership_entity_settings_form_validate($form, &$form_state) {
-  $values = $form_state['values'];
+  $values = &$form_state['values'];
   if (isset($values['secondary_role']) && $values['secondary_role'] == 'primary') {
     form_set_value($form['user_settings']['secondary_role'], $values['primary_role'], $form_state);
+  }
+
+  // Make sure member_id_settings are set even if the chosen plugin does not
+  // define a settings form.
+  if (empty($values['member_id_settings'])) {
+    $values['member_id_settings'] = array();
   }
 }
 
