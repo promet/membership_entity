@@ -58,16 +58,14 @@ class MembershipEntityTerm extends Entity {
       return;
     }
 
-    $end = new DateObject($this->start, new DateTimezone('UTC'));
-
     // Add the term length.
-    $end->add(DateInterval::createFromDateString($this->term));
+    $end = new DateObject($this->start, new DateTimezone('UTC'));
+    $end = _membership_entity_term_modify_date($end, $this->term);
 
     // Add modifiers.
     foreach ($this->modifiers as $modifier) {
-      $end->add(DateInterval::createFromDateString($modifier));
+      $end = _membership_entity_term_modify_date($end, $modifier);
     }
     $this->end = date_format_date($end, 'custom', DATE_FORMAT_DATETIME);
   }
 }
-

@@ -514,6 +514,34 @@ function _membership_entity_term_sort_by_end_date($a, $b) {
 }
 
 /**
+ * Helper to correctly handle relative modifiers to a date object.
+ *
+ * PHP date handling does not correctly support month opperations for months
+ * with a different number of days or leap years.
+ *
+ * @param DateObject $date
+ *   The date object to modify.
+ * @param string $modifier
+ *   The relative date modifier.
+ * @return DateObject
+ *   The modified date object.
+ */
+function _membership_entity_term_modify_date($date, $modifier) {
+  $start_day = $date->format('j');
+  $date->modify($modifier);
+
+  // Check if we are dealing with months or leap years.
+  if (preg_match('/^[\+-]?(\d+ (month|year)s?)$/i', $modifier)) {
+    $end_day = $date->format('j');
+    if ($start_day != $end_day) {
+      $date->modify('last day of last month');
+    }
+  }
+
+  return $date;
+}
+
+/**
  * Returns HTML for the available term lengths form element.
  *
  * @param $variables
