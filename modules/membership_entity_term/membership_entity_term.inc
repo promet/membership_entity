@@ -45,19 +45,20 @@ class MembershipEntityTerm extends Entity {
    * Overrides Entity::save().
    */
   public function save() {
-    $this->calculateEndDate();
-    return parent::save();
+    // Check for valid term length that is understood by DateTime::modify().
+   if (preg_match(MEMBERHSIP_ENTITY_TERM_LENGTH_REGEX, $this->term)) {
+     $this->calculateEndDate();
+   }
+   else if ($this->term = 'lifetime') {
+    $this->end = NULL;
+   }
+   return parent::save();
   }
 
   /**
    * Calculate the term end date.
    */
   protected function calculateEndDate() {
-    if ($this->term == 'lifetime') {
-      $this->end = NULL;
-      return;
-    }
-
     // Add the term length.
     $end = new DateObject($this->start, new DateTimezone('UTC'));
     $end = _membership_entity_term_modify_date($end, $this->term);

@@ -142,8 +142,7 @@ function membership_entity_term_length_add_validate($form, &$form_state) {
   // Validate a custom term length.
   if ($term_length == 'other') {
     $term_length = trim($values['custom_term_length']);
-    $regex = '/^((\d+ (sec|second|min|minute|hour|day|week|month|year)s?)\s?)$/i';
-    if (!preg_match($regex, $term_length)) {
+    if (!preg_match(MEMBERHSIP_ENTITY_TERM_LENGTH_REGEX, $term_length)) {
       form_set_error('term_lengths][custom_term_length', t('%term_length is not a valid term length. Please enter term lengths as a number and unit (eg. 15 years)', array(
         '%term_length' => $term_length,
       )));
@@ -431,8 +430,7 @@ function membership_entity_term_modifier_add_validate($form, &$form_state) {
   if ($modifier == 'other') {
     $modifier = trim($values['modifiers']['custom']);
     // Multiple intervals in one string (eg. +1 month 1 day) are not supported.
-    $regex = '/^[\+-]((\d+ (sec|second|min|minute|hour|day|week|month|year)s?)\s?)$/i';
-    if (!preg_match($regex, $modifier)) {
+    if (!preg_match(MEMBERSHIP_ENTITY_ACTIVE_MODIFIER_REGEX, $modifier)) {
       form_set_error('modifiers][custom', t('%modifier is not a valid term modifier. Please enter term lengths as a sign (+-), number, and unit (eg. +1 month)', array(
         '%modifier' => $modifier,
       )));

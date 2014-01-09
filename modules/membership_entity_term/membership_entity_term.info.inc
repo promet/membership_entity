@@ -68,6 +68,15 @@ function membership_entity_term_entity_property_info_alter(&$info) {
   // Add term based membership entity properties.
   $properties = &$info['membership_entity']['properties'];
 
+  $properties['join'] = array(
+    'type' => 'date',
+    'label' => t('Join Date'),
+    'description' => t('The date the member joined.'),
+    'getter callback' => 'membership_entity_term_get_properties',
+    'computed' => TRUE,
+    'entity views field' => TRUE,
+  );
+
   $properties['expiration'] = array(
     'type' => 'date',
     'label' => t('Expiration date'),
@@ -86,4 +95,3 @@ function membership_entity_term_entity_property_info_alter(&$info) {
     'entity views field' => TRUE,
   );
 }
-

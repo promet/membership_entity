@@ -6,6 +6,16 @@
  */
 
 /**
+ * Regex to validate a term length option.
+ */
+define('MEMBERHSIP_ENTITY_TERM_LENGTH_REGEX', '/^((\d+ (sec|second|min|minute|hour|day|week|month|year)s?)\s?)$/i');
+
+/**
+ * Regex to validate a term length modifier.
+ */
+define('MEMBERSHIP_ENTITY_TERM_MODIFIER_REGEX', '/^[\+-]((\d+ (sec|second|min|minute|hour|day|week|month|year)s?)\s?)$/i');
+
+/**
  * Implements hook_help().
  */
 function membership_entity_term_help($path, $arg) {
@@ -73,6 +83,9 @@ function membership_entity_term_label($term, $entity_type) {
  */
 function membership_entity_term_get_properties($entity, array $options, $name, $entity_type) {
   switch ($name) {
+    case 'join':
+      return strtotime(membership_entity_term_get_join($entity));
+
     case 'expiration':
       return strtotime(membership_entity_term_get_expiration($entity));
 
@@ -317,7 +330,7 @@ function membership_entity_terms_view($terms, $view_mode = 'full', $langocode = 
     }
 
     $rows[$id] = array(
-      array('data' => check_plain($term->term)),
+      array('data' => ($term->term != 'lifetime') ? check_plain($term->term) : t('Lifetime')),
       array('data' => date_format_date($start, 'medium')),
       array('data' => ($term->term != 'lifetime') ? date_format_date($end, 'medium') : t('N/A')),
       array('data' => $statuses[$term->status]),
@@ -440,6 +453,29 @@ function membership_entity_term_load_by_membership($membership, $reset = FALSE) 
 }
 
 /**
+ * Returns the join date of the first membership term.
+ *
+ * @param $membership
+ *  A fully loaded membership object or mid.
+ */
+function membership_entity_term_get_join($membership) {
+  // Support membership object or mid.
+  if (is_numeric($membership)) {
+    $membership = membership_entity_load($membership);
+  }
+
+  // Find and return the first term start date.
+  if (!empty($membership->terms)) {
+    $terms = $membership->terms;
+    uasort($terms, '_membership_entity_term_sort_by_start_date');
+    $first = reset($terms);
+    return $first->start;
+  }
+
+  return '';
+}
+
+/**
  * Returns the end date of the last membership term.
  *
  * @param $membership
@@ -451,12 +487,12 @@ function membership_entity_term_get_expiration($membership) {
     $membership = membership_entity_load($membership);
   }
 
-  // Find and return the lastest end date.
+  // Find and return the lastest active term end date.
   if (!empty($membership->terms)) {
-    $terms = $membership->terms;
+    $terms = array_filter($membership->terms, '_membership_entity_term_array_filter_active');
     uasort($terms, '_membership_entity_term_sort_by_end_date');
     $last = end($terms);
-    return $last->end;
+    return ($last->term == 'lifetime') ? t('N/A') : $last->end;
   }
   return '';
 }
@@ -490,6 +526,39 @@ function membership_entity_term_save($term) {
 }
 
 /**
+ * array_filter() callback to filter by term status.
+ *
+ * @see membership_entity_term_get_expiration().
+ */
+function _membership_entity_term_array_filter_active($term) {
+  return ($term->status == MEMBERSHIP_ENTITY_ACTIVE);
+}
+
+/**
+ * usort() callback to sort by start date.
+ *
+ * @see membership_entity_term_get_join().
+ *
+ * @param object $a
+ *   The first term object to sort against.
+ *
+ * @param object $b
+ *   The second term object to sort against.
+ *
+ * @return array
+ *   Returns an array of sorted objects by term join date.
+ */
+function _membership_entity_term_sort_by_start_date($a, $b) {
+  $c = isset($a->start) ? $a->start : '';
+  $d = isset($b->start) ? $b->start : '';
+
+  if ($c == $d) {
+    return 0;
+  }
+  return ($c < $d) ? -1 : 1;
+}
+
+/**
  * usort() callback to sort by end date.
  *
  * @see membership_entity_term_get_expiration().
@@ -504,6 +573,15 @@ function membership_entity_term_save($term) {
  *   Returns an array of sorted objects by term expiration date.
  */
 function _membership_entity_term_sort_by_end_date($a, $b) {
+  // Lifetime terms trump all.
+  if ($a->term == 'lifetime') {
+    return 1;
+  }
+
+  if ($b->term == 'lifetime') {
+    return -1;
+  }
+
   $c = isset($a->end) ? $a->end : '';
   $d = isset($b->end) ? $b->end : '';
 
