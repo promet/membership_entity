@@ -801,7 +801,7 @@ function membership_entity_element_info() {
       '#input' => TRUE,
       '#title' => '',
       '#description' => '',
-      '#default_value' => '',
+      '#default_value' => array(),
       '#disabled' => FALSE,
       '#cardinality' => 1,
       '#required' => FALSE,
@@ -817,8 +817,7 @@ function membership_entity_element_info() {
  */
 function form_type_membership_entity_member_select_value($element, $input, &$form_state) {
   if ($input === FALSE && !empty($element['#default_value'])) {
-    $defaults = is_array($element['#default_value']) ? $element['#default_value'] : array($element['#default_value']);
-    foreach ($defaults as $delta => $uid) {
+    foreach ($element['#default_value'] as $delta => $uid) {
       // Expand the raw uid into username.
       $value[$delta] = array(
         'value' => check_plain(db_select('users')->fields('users', array('name'))->condition('uid', $uid)->range(0, 1)->execute()->fetchField()),
@@ -883,7 +882,7 @@ function membership_entity_member_select_process($element, &$form_state, $comple
       '#disabled' => $element['#disabled'],
       '#description' => filter_xss($element['#description']),
       '#autocomplete_path' => $element['#autocomplete_path'],
-      '#default_value' => is_array($element['#default_value']) ? (isset($element['#default_value'][$delta]) ? $element['#default_value'][$delta] : '') : $element['#default_value'],
+      '#default_value' => isset($element['#default_value'][$delta]) ? $element['#default_value'][$delta] : '',
       '#value_callback' => 'membership_entity_uid_value',
       // Only the first item should be required.
       '#required' => $delta == 0 && $element['#required'],
@@ -986,9 +985,6 @@ function membership_entity_member_select_validate($element, &$form_state) {
     }
   }
 
-  if ($element['#cardinality'] == 1) {
-    $values = reset($values);
-  }
   form_set_value($element, $values, $form_state);
   return $element;
 }

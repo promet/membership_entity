@@ -756,7 +756,7 @@ function membership_entity_form(&$form, &$form_state) {
     '#title' => t('Primary member'),
     '#access' => user_access('administer memberships'),
     '#required' => TRUE,
-    '#default_value' => !empty($membership->uid) ? $membership->uid : '',
+    '#default_value' => !empty($membership->uid) ? array($membership->uid) : array(),
   );
 
   $cardinality = (int) $bundle_settings['cardinality'];
@@ -803,8 +803,9 @@ function membership_entity_form_validate($form, &$form_state) {
     }
   }
 
-  // Make sure there is not already a membership for this user.
-  if (!empty($values['uid']) && $uid = $values['uid']) {
+  // Flatten the primary member field and make sure there is not already a
+  // membership for this user.
+  if (!empty($values['uid']) && $uid = reset($values['uid'])) {
     if ($uid != $membership->uid && $mid = db_select('membership_entity', 'me')->fields('me', array('mid'))->condition('uid', $uid)->condition('type', $membership->type)->execute()->fetchField()) {
       form_set_error('uid', t('A membership already exists for %name. Did you want to <a href="!url">renew</a> this membership?', array(
         '%name' => format_username(user_load($uid)),
