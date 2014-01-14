@@ -770,29 +770,6 @@ function membership_entity_user_delete($account) {
 }
 
 /**
- * Creates a Drupal Ajax attribute command.
- *
- * The attribute command uses jQuery.attr() to apply an arbitrary attribute
- * to each element matched by the given selector. Why this isn't in core, I
- * don't know!
- *
- * @param $selector
- *  A jQuery selector string.
- * @param $attribute
- *  The HTML attribute to add or change.
- * @param $value
- *  The new value of the attribute.
- */
-function membership_entity_ajax_command_attr($selector, $attribute, $value) {
-  return array(
-    'command' => 'membership_entity_attr',
-    'selector' => $selector,
-    'attribute' => $attribute,
-    'value' => $value,
-  );
-}
-
-/**
  * Implements hook_element_info().
  */
 function membership_entity_element_info() {

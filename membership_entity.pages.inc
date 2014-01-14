@@ -1094,9 +1094,11 @@ function membership_entity_modal_user_register_form_submit($form, &$form_state) 
   }
 
   // Close the modal and return to the previous form.
+  $selector = '#' . $form_state['return_id'];
   $form_state['ajax_commands'][] = ctools_modal_command_dismiss();
   $form_state['ajax_commands'][] = ajax_command_append('.messages', theme('status_messages'));
-  $form_state['ajax_commands'][] = membership_entity_ajax_command_attr('#' . $form_state['return_id'], 'value', $form_state['user']->name);
+  $form_state['ajax_commands'][] = ajax_command_invoke($selector, 'attr', array('value', $form_state['user']->name));
+  $form_state['ajax_commands'][] = ajax_command_invoke($selector, 'change');
 }
 
 /**
