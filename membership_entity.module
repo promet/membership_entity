@@ -814,7 +814,6 @@ function membership_entity_member_select_process($element, &$form_state, $comple
   ctools_include('ajax');
   ctools_include('modal');
   ctools_modal_add_js();
-  drupal_add_js(drupal_get_path('module', 'membership_entity') . '/js/membership-entity-ajax.js');
 
   $multiple = ($element['#cardinality'] > 1 || $element['#cardinality'] == FIELD_CARDINALITY_UNLIMITED);
   $wrapper_id = drupal_html_id($element['#id'] . '-add-more-wrapper');
