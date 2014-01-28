@@ -470,7 +470,7 @@ function membership_entity_term_edit_form_validate($form, &$form_state) {
     form_set_value($form['modifiers'], array(), $form_state);
   }
   else {
-    $modifiers = array_map(function($a){return $a['value'];}, $values['modifiers']['list']);
+    $modifiers = array_map('_membership_entity_term_modifier_array_map', $values['modifiers']['list']);
     form_set_value($form['modifiers'], $modifiers, $form_state);
   }
 
@@ -478,6 +478,13 @@ function membership_entity_term_edit_form_validate($form, &$form_state) {
   $start = new DateObject($values['start'], $form['start']['#date_timezone']);
   $start->setTimezone(new DateTimeZone('UTC'));
   form_set_value($form['start'], date_format_date($start, 'custom', DATE_FORMAT_DATETIME), $form_state);
+}
+
+/**
+ * Array map callback to return a modifier value.
+ */
+function _membership_entity_term_modifier_array_map($a) {
+  return $a['value'];
 }
 
 /**
