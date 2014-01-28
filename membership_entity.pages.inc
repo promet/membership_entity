@@ -741,14 +741,26 @@ function membership_entity_form(&$form, &$form_state) {
   );
 
   if (!empty($membership->member_id)) {
-    $form['membership']['member_id'] = array(
-      '#type' => 'textfield',
-      '#title' => t('Membership ID'),
-      '#description' => t('Your unique member id.'),
-      '#default_value' => $membership->member_id,
-      '#required' => TRUE,
-      '#disabled' => !user_access('administer memberships'),
-    );
+    if (user_access('administer memberships')) {
+      $form['membership']['member_id'] = array(
+        '#type' => 'textfield',
+        '#title' => t('Membership ID'),
+        '#description' => t('Unique membership id.'),
+        '#default_value' => $membership->member_id,
+        '#required' => TRUE,
+      );
+    }
+    else {
+      $form['membership']['member_id'] = array(
+        '#type' => 'value',
+        '#value' => $membership->member_id,
+      );
+
+      $form['membership']['member_id_display'] = array(
+        '#type' => 'markup',
+        '#markup' => t('Unique membership id: %id', array('%id' => $membership->member_id)),
+      );
+    }
   }
 
   $form['membership']['uid'] = array(
