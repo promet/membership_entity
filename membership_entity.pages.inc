@@ -180,8 +180,10 @@ function membership_entity_settings_form($form, &$form_state, $data = array()) {
  * Element validate callback for the member id format.
  */
 function membership_entity_member_id_format_validate(&$element, &$form_state, $form) {
-  $element = $form_state['triggering_element'];
-  $form_state['membership_entity']['member_id_format'] = $element['#value'];
+  $trigger = $form_state['triggering_element'];
+  if ($trigger['#name'] == 'member_id_format') {
+    $form_state['membership_entity']['member_id_format'] = $trigger['#value'];
+  }
 }
 
 /**
