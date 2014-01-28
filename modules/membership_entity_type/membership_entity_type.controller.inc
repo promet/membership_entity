@@ -29,4 +29,17 @@ class MembershipEntityTypeController extends EntityAPIControllerExportable {
     );
     return parent::create($values);
   }
+
+  /**
+   * Overrides EntityAPIControllerExportable::save().
+   */
+  public function save($type, DatabaseTransaction $transaction = NULL) {
+    $status = parent::save($type, $transaction);
+
+    // Clear field info ane menu caches.
+    field_info_cache_clear();
+    menu_rebuild();
+
+    return $status;
+  }
 }
