@@ -380,9 +380,13 @@ function membership_entity_theme() {
  * Add membership data to the user page.
  */
 function membership_entity_user_view($account, $view_mode, $langcode) {
-  if ($memberships = membership_entity_load_by_user($account)) {
-    foreach ($memberships as $type => $membership) {
-      $account->content['memberships'][$type] = membership_entity_view($membership, 'account', $langcode);
+  // @TODO We should make this configurable on the Manage Display page
+  //       via hook_extra_fields.
+  if ($view_mode == 'full') {
+    if ($memberships = membership_entity_load_by_user($account)) {
+      foreach ($memberships as $type => $membership) {
+        $account->content['memberships'][$type] = membership_entity_view($membership, 'account', $langcode);
+      }
     }
   }
 }
