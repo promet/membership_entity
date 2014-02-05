@@ -85,13 +85,4 @@ function membership_entity_term_entity_property_info_alter(&$info) {
     'computed' => TRUE,
     'entity views field' => TRUE,
   );
-
-  $properties['renew_url'] = array(
-    'type' => 'uri',
-    'label' => t('Renew URL'),
-    'description' => t("The URL of the membership's renew page."),
-    'getter callback' => 'membership_entity_term_get_properties',
-    'computed' => TRUE,
-    'entity views field' => TRUE,
-  );
 }

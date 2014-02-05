@@ -84,7 +84,7 @@ class MembershipEntityController extends EntityAPIController {
    */
   public function save($membership, DatabaseTransaction $transaction = NULL) {
     $transaction = isset($transaction) ? $transaction : db_transaction();
-    $data = variable_get('membership_entity_settings', array());
+    $data = membership_entity_get_bundle_settings($membership->type);
 
     try {
       $roles = array();

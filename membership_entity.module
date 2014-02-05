@@ -78,28 +78,10 @@ function membership_entity_entity_info() {
       ),
     ),
     'metadata controller class' => 'MembershipEntityMetadataController',
+    'views controller class' => 'MembershipEntityViewsController',
   );
 
   return $info;
-}
-
-/**
- * Entity metadata callback to load membership properties.
- */
-function membership_entity_get_properties($membership, array $options, $name, $entity_type) {
-  switch ($name) {
-    case 'edit_url':
-      return url('membership/' . $membership->mid . '/edit', $options);
-  }
-}
-
-/**
- * Entity metadata callback to load memberships for a user account.
- */
-function membership_entity_user_get_properties($account, array $options, $name, $entity_type) {
-  // Remove the leading 'profile_' from the property name to get the type name.
-  $membership = membership_entity_load_by_user($account, 'membership');
-  return !empty($membership) ? $membership : NULL;
 }
 
 /**

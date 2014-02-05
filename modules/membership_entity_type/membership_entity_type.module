@@ -25,6 +25,7 @@ function membership_entity_type_entity_info() {
     'entity class' => 'MembershipEntityType',
     'controller class' => 'MembershipEntityTypeController',
     'base table' => 'membership_entity_type',
+    'uri callback' => 'entity_class_uri',
     'fieldable' => FALSE,
     'bundle of' => 'membership_entity',
     'exportable' => TRUE,
@@ -43,6 +44,8 @@ function membership_entity_type_entity_info() {
       'menu wildcard' => '%membership_entity_type',
       'controller class' => 'MembershipEntityTypeUIController',
     ),
+    'metadata controller class' => 'MembershipEntityTypeMetadataController',
+    'views controller class' => 'MembershipEntityTypeViewsController',
   );
 
   return $info;

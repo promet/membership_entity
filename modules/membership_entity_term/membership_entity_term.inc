@@ -42,6 +42,29 @@ class MembershipEntityTerm extends Entity {
   }
 
   /**
+   * Returns the full url to the membership term.
+   */
+  public function url() {
+    $uri = $this->uri();
+    return url($uri['path'], $uri);
+  }
+
+  /**
+   * Returns the Drupal path to the membership term.
+   */
+  public function path() {
+    $uri = $this->uri();
+    return $uri['path'];
+  }
+
+  /**
+   * Overrides Entity::defaultUri().
+   */
+  public function defaultUri() {
+    return array('path' => 'membership-term/' . $this->id);
+  }
+
+  /**
    * Overrides Entity::save().
    */
   public function save() {

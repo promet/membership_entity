@@ -59,9 +59,41 @@ class MembershipEntity extends Entity {
   }
 
   /**
-   * Overrides Entity::uri.
+   * Returns the primary member.
    */
-  public function uri() {
+  public function primaryMember() {
+    return user_load($this->uid);
+  }
+
+  /**
+   * Set the primary member for the membership.
+   *
+   * @param $account The primary member uid or loaded account object.
+   */
+  public function setPrimaryMember($account) {
+    $this->uid = is_object($account) ? $account->uid : $account;
+  }
+
+  /**
+   * Returns the full url to the membership.
+   */
+  public function url() {
+    $uri = $this->uri();
+    return url($uri['path'], $uri);
+  }
+
+  /**
+   * Returns the Drupal path to the membership.
+   */
+  public function path() {
+    $uri = $this->uri();
+    return $uri['path'];
+  }
+
+  /**
+   * Overrides Entity::defaultUri().
+   */
+  public function defaultUri() {
     return array('path' => 'membership/' . $this->mid);
   }
 

@@ -61,9 +61,9 @@ function membership_entity_term_entity_info() {
  *
  * A term inherits access from the membership.
  */
-function membership_entity_term_access($term, $op, $account = NULL) {
+function membership_entity_term_access($op, $term, $account = NULL) {
   $membership = membership_entity_load($term->mid);
-  return membership_entity_access($membership, $op, $account);
+  return membership_entity_access($op, $membership, $account);
 }
 
 /**
@@ -88,9 +88,6 @@ function membership_entity_term_get_properties($entity, array $options, $name, $
 
     case 'expiration':
       return strtotime(membership_entity_term_get_expiration($entity));
-
-    case 'renew_url':
-      return url('membership/' . $entity->mid . '/renew', $options);
   }
 }
 
