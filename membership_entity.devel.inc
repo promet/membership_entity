@@ -58,10 +58,10 @@ function membership_entity_devel_generate_memberships_form_submit($form, &$form_
  * Generate some random memberships.
  *
  * @param $values
- *  An assoicative array with the following keys:
- *  - num: Number of users to generate.
- *  - kill: Boolean that indicates if existing users should be removed first.
- *  - time_range: The max join date of each membership term in seconds.
+ *   An assoicative array with the following keys:
+ *   - num: Number of users to generate.
+ *   - kill: Boolean that indicates if existing users should be removed first.
+ *   - time_range: The max join date of each membership term in seconds.
  */
 function membership_entity_devel_create_memberships($values) {
   // Load some devel generate helpers.

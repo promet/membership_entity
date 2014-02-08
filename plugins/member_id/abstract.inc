@@ -1,13 +1,14 @@
 <?php
 
 /**
+ * @file
  * Contains the abstract member_id plugin class.
  */
 
 /**
  * Additional member_id formats for a membership type.
  */
-interface MembershipEntityMemberId {
+interface MembershipEntityMemberIdInterface {
   public function __construct($settings);
 
   /**
@@ -24,7 +25,7 @@ interface MembershipEntityMemberId {
 /**
  * An abstract implementation of MembershipEntityMemberId.
  */
-abstract class MembershipEntityMemberIdAbstract implements MembershipEntityMemberId {
+abstract class MembershipEntityMemberIdAbstract implements MembershipEntityMemberIdInterface {
   /**
    * The settings options.
    */
@@ -52,4 +53,3 @@ class MembershipEntityMemberIdBroken extends MembershipEntityMemberIdAbstract {
     return $form;
   }
 }
-

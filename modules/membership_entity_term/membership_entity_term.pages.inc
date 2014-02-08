@@ -32,9 +32,9 @@ function _membership_entity_term_settings_form(&$form, &$form_state, $data) {
   $form['term_lengths']['available_term_lengths'] = array(
     '#theme' => 'membership_entity_term_available_term_lengths_element',
     '#id' => 'membership-entity-term-lengths',
-    '#prefix' => '<div id="'. $wrapper_id . '">',
+    '#prefix' => '<div id="' . $wrapper_id . '">',
     '#suffix' => '</div>',
-    '#element_validate' => array('membership_entity_term_length_element_validate')
+    '#element_validate' => array('membership_entity_term_length_element_validate'),
   );
 
   foreach ($form_state['membership_entity_term']['available_term_lengths'] as $delta => $term_length) {
@@ -96,7 +96,7 @@ function _membership_entity_term_settings_form(&$form, &$form_state, $data) {
     '#description' => t('Enter a term length including number and unit (eg. 15 years).'),
     '#states' => array(
       'visible' => array(
-       ':input[name="term_lengths[term_length_options]"]' => array('value' => 'other'),
+        ':input[name="term_lengths[term_length_options]"]' => array('value' => 'other'),
       ),
       'required' => array(
         ':input[name="term_lengths[term_length_options]"]' => array('value' => 'other'),
@@ -142,7 +142,7 @@ function membership_entity_term_length_add_validate($form, &$form_state) {
   // Validate a custom term length.
   if ($term_length == 'other') {
     $term_length = trim($values['custom_term_length']);
-    if (!preg_match(MEMBERHSIP_ENTITY_TERM_LENGTH_REGEX, $term_length)) {
+    if (!preg_match(MEMBERSHIP_ENTITY_TERM_LENGTH_REGEX, $term_length)) {
       form_set_error('term_lengths][custom_term_length', t('%term_length is not a valid term length. Please enter term lengths as a number and unit (eg. 15 years)', array(
         '%term_length' => $term_length,
       )));
@@ -314,7 +314,7 @@ function membership_entity_term_edit($form, &$form_state, $term) {
     '#tree' => TRUE,
     '#states' => array(
       'invisible' => array(
-       ':input[name="term"]' => array('value' => 'lifetime'),
+        ':input[name="term"]' => array('value' => 'lifetime'),
       ),
     ),
   );
@@ -323,7 +323,7 @@ function membership_entity_term_edit($form, &$form_state, $term) {
   $form['modifiers']['list'] = array(
     '#theme' => 'membership_entity_term_modifiers_element',
     '#id' => 'membership-entity-term-modifiers',
-    '#prefix' => '<div id="'. $wrapper_id . '">',
+    '#prefix' => '<div id="' . $wrapper_id . '">',
     '#suffix' => '</div>',
   );
 
@@ -369,7 +369,7 @@ function membership_entity_term_edit($form, &$form_state, $term) {
     '#description' => t('Enter a term modifer sign (+-), number, and unit (eg. +1 month).'),
     '#states' => array(
       'visible' => array(
-       ':input[name="modifiers[options]"]' => array('value' => 'other'),
+        ':input[name="modifiers[options]"]' => array('value' => 'other'),
       ),
       'required' => array(
         ':input[name="modifiers[options]"]' => array('value' => 'other'),

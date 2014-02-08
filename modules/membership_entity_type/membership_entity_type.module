@@ -9,9 +9,7 @@
  * Implements hook_help().
  */
 function membership_entity_type_help($path, $arg) {
-  switch ($path) {
-    // @TODO add help documentation
-  }
+  // @TODO add help documentation
 }
 
 /**
@@ -71,7 +69,7 @@ function membership_entity_type_entity_info_alter(&$entity_info) {
 }
 
 /**
- *  Access callback for membership entity type admin ui.
+ * Access callback for membership entity type admin ui.
  */
 function membership_entity_type_admin_ui_access($op, $type = NULL, $account = NULL) {
   return user_access('administer membership types', $account);
@@ -289,7 +287,7 @@ function membership_entity_type_get_names() {
  * Returns the human readable name of a membership object type.
  *
  * @param $membership
- *  The membership object to get the type name.
+ *   The membership object to get the type name.
  */
 function membership_entity_type_get_name($membership) {
   $names = membership_entity_type_get_names();

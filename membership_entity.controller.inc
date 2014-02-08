@@ -55,11 +55,12 @@ class MembershipEntityController extends EntityAPIController {
    * Load all memberships for a given user.
    *
    * @param $account
-   *  A user account object or uid.
-   * @param $type
-   *  The membership bundle to load.
+   *   A user account object or uid.
+   * @param $bundle
+   *   The membership bundle to load.
    * @return An array of all memberships for the given user account, keyed by
-   *  bundle. Or a single membership object if $bundle is provided.
+   *   bundle. Or a single membership object if $bundle is provided.
+   *
    */
   public function load_by_user($account, $bundle = NULL) {
     // Support uid or entire user object.
@@ -131,7 +132,8 @@ class MembershipEntityController extends EntityAPIController {
       // Update secondary members.
       db_delete('membership_entity_secondary_member')->condition('mid', $membership->mid)->execute();
       if (!empty($membership->secondary_members)) {
-        $query = db_insert('membership_entity_secondary_member')->fields(array('mid', 'uid', 'weight'));
+        $query = db_insert('membership_entity_secondary_member')
+          ->fields(array('mid', 'uid', 'weight'));
         foreach ($membership->secondary_members as $weight => $uid) {
           $query->values(array(
             'mid' => $membership->mid,

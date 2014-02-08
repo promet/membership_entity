@@ -40,7 +40,7 @@ function membership_entity_settings_form($form, &$form_state, $data = array()) {
   $member_id_plugins = membership_entity_get_member_id();
   $options = array();
   foreach ($member_id_plugins as $id => $plugin) {
-    $options[$id] = '<div class="membership-entity-radio-label">' . check_plain($plugin['title']) . '<br><small>' . check_plain($plugin['description']) . '</small></div>';
+    $options[$id] = '<div class="membership-entity-radio-label">' . check_plain($plugin['title']) . '<br /><small>' . check_plain($plugin['description']) . '</small></div>';
   }
   $wrapper_id = 'membership-entity-settings-wrapper';
 
@@ -54,7 +54,7 @@ function membership_entity_settings_form($form, &$form_state, $data = array()) {
     '#element_validate' => array('membership_entity_member_id_format_validate'),
     '#limit_validation_errors' => array(),
     '#ajax' => array(
-      'callback'=> 'membership_entity_settings_ajax',
+      'callback' => 'membership_entity_settings_ajax',
       'wrapper' => $wrapper_id,
       'effect' => 'fade',
     ),
@@ -131,7 +131,7 @@ function membership_entity_settings_form($form, &$form_state, $data = array()) {
     '#description' => t('Select the role that will be assigned to secondary members when the membership is active.'),
     '#states' => array(
       'invisible' => array(
-       ':input[name="cardinality"]' => array('value' => '1'),
+        ':input[name="cardinality"]' => array('value' => '1'),
       ),
     ),
   );
@@ -149,7 +149,7 @@ function membership_entity_settings_form($form, &$form_state, $data = array()) {
     '#description' => t('If not checked, only the primary member will be able to edit membership fields.'),
     '#states' => array(
       'invisible' => array(
-       ':input[name="cardinality"]' => array('value' => '1'),
+        ':input[name="cardinality"]' => array('value' => '1'),
       ),
     ),
   );
@@ -320,11 +320,26 @@ function membership_entity_admin_list(&$form_state) {
     $header['type'] = array('data' => t('Type'), 'field' => 'met.type');
   }
   $header += array(
-    'primary_member' => array('data' => t('Primary Member'), 'field' => 'me.uid'),
-    'status' => array('data' => t('Status'), 'field' => 'me.status'),
-    'created' => array('data' => t('Created'), 'field' => 'me.created', 'sort' => 'desc'),
-    'changed' => array('data' => t('Last Updated'), 'field' => 'me.updated'),
-    'operations' => array('data' => t('Operations')),
+    'primary_member' => array(
+      'data' => t('Primary Member'),
+      'field' => 'me.uid',
+    ),
+    'status' => array(
+      'data' => t('Status'),
+      'field' => 'me.status',
+    ),
+    'created' => array(
+      'data' => t('Created'),
+      'field' => 'me.created',
+      'sort' => 'desc',
+    ),
+    'changed' => array(
+      'data' => t('Last Updated'),
+      'field' => 'me.updated',
+    ),
+    'operations' => array(
+      'data' => t('Operations'),
+    ),
   );
 
   // Build the query.
@@ -619,7 +634,7 @@ function membership_entity_join_form($form, &$form_state, $bundle = 'membership'
       '#attributes' => array(
         'class' => array('membership-entity-join-column'),
       ),
-      '#title' => t('Don\'t have an account yet?'),
+      '#title' => t("Don't have an account yet?"),
       'title' => array(
         '#markup' => t('Click the button below to create a new account.'),
         '#prefix' => '<p>',
@@ -961,9 +976,9 @@ function membership_entity_multiple_delete_confirm_submit($form, &$form_state) {
  * Open the register form in a new modal window.
  *
  * @param $js
- *  ctools javascript status (nojs or ajax)
- * @param  $return_id
- *  The form element HTML id to fill with the new user id.
+ *   ctools javascript status (nojs or ajax)
+ * @param $return_id
+ *   The form element HTML id to fill with the new user id.
  */
 function membership_entity_modal_register($js = NULL, $return_id = NULL) {
   // Fall back if paramters are not set.
@@ -994,7 +1009,7 @@ function membership_entity_modal_register($js = NULL, $return_id = NULL) {
  * any secondary members they want to add to the membership. The default
  * register_form will not allow a logged in non-admin to register new accounts.
  *
- * @see user_register_form().
+ * @see user_register_form()
  */
 function membership_entity_modal_user_register_form($form, &$form_state) {
   $user = $GLOBALS['user'];
@@ -1076,12 +1091,18 @@ function membership_entity_modal_user_register_form_submit($form, &$form_state) 
   $form_state['user'] = $account;
   $form_state['values']['uid'] = $account->uid;
 
-  watchdog('user', 'New user: %name (%email).', array('%name' => $form_state['values']['name'], '%email' => $form_state['values']['mail']), WATCHDOG_NOTICE, l(t('edit'), 'user/' . $account->uid . '/edit'));
+  watchdog('user', 'New user: %name (%email).', array(
+    '%name' => $form_state['values']['name'],
+    '%email' => $form_state['values']['mail'],
+  ), WATCHDOG_NOTICE, l(t('edit'), 'user/' . $account->uid . '/edit'));
 
   $account->password = $pass;
   $uri = entity_uri('user', $account);
   if ($admin && !$notify) {
-    drupal_set_message(t('Created a new user account for <a href="@url">%name</a>. No e-mail has been sent.', array('@url' => url($uri['path'], $uri['options']), '%name' => $account->name)));
+    drupal_set_message(t('Created a new user account for <a href="@url">%name</a>. No e-mail has been sent.', array(
+      '@url' => url($uri['path'], $uri['options']),
+      '%name' => $account->name,
+    )));
   }
   elseif (!$admin && !variable_get('user_email_verification', TRUE) && $account->status) {
     _user_mail_notify('register_no_approval_required', $account);
@@ -1118,7 +1139,7 @@ function membership_entity_modal_user_register_form_submit($form, &$form_state) 
 /**
  * Apply filters for membership administration list based on session.
  *
- * @param $query
+ * @param SelectQueryInterface $query
  *   A SelectQuery to which the filters should be applied.
  */
 function _membership_entity_build_filter_query(SelectQueryInterface $query) {

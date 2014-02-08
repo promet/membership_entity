@@ -8,7 +8,7 @@
 /**
  * Regex to validate a term length option.
  */
-define('MEMBERHSIP_ENTITY_TERM_LENGTH_REGEX', '/^((\d+ (sec|second|min|minute|hour|day|week|month|year)s?)\s?)$/i');
+define('MEMBERSHIP_ENTITY_TERM_LENGTH_REGEX', '/^((\d+ (sec|second|min|minute|hour|day|week|month|year)s?)\s?)$/i');
 
 /**
  * Regex to validate a term length modifier.
@@ -19,9 +19,7 @@ define('MEMBERSHIP_ENTITY_TERM_MODIFIER_REGEX', '/^[\+-]((\d+ (sec|second|min|mi
  * Implements hook_help().
  */
 function membership_entity_term_help($path, $arg) {
-  switch ($path) {
-    // @TODO add help documentation
-  }
+  // @TODO add help documentation.
 }
 
 /**
@@ -331,7 +329,7 @@ function membership_entity_terms_view($terms, $view_mode = 'full', $langocode = 
         'data' => array(
           '#type' => 'link',
           '#title' => t('edit'),
-          '#href' => 'membership-term/'. $term->id . '/edit',
+          '#href' => 'membership-term/' . $term->id . '/edit',
           '#options' => array('query' => $destination),
         ),
       );
@@ -372,7 +370,7 @@ function membership_entity_term_theme() {
       'variables' => array(
         'modifiers' => array(),
       ),
-    )
+    ),
   );
 }
 
@@ -440,7 +438,7 @@ function membership_entity_term_load_by_membership($membership, $reset = FALSE) 
  * Returns the join date of the first membership term.
  *
  * @param $membership
- *  A fully loaded membership object or mid.
+ *   A fully loaded membership object or mid.
  */
 function membership_entity_term_get_join($membership) {
   // Support membership object or mid.
@@ -463,7 +461,7 @@ function membership_entity_term_get_join($membership) {
  * Returns the end date of the last membership term.
  *
  * @param $membership
- *  A fully loaded membership object or mid.
+ *   A fully loaded membership object or mid.
  */
 function membership_entity_term_get_expiration($membership) {
   // Support membership object or mid.
@@ -512,7 +510,7 @@ function membership_entity_term_save($term) {
 /**
  * array_filter() callback to filter by term status.
  *
- * @see membership_entity_term_get_expiration().
+ * @see membership_entity_term_get_expiration()
  */
 function _membership_entity_term_array_filter_active($term) {
   return ($term->status == MEMBERSHIP_ENTITY_ACTIVE);
@@ -521,7 +519,7 @@ function _membership_entity_term_array_filter_active($term) {
 /**
  * usort() callback to sort by start date.
  *
- * @see membership_entity_term_get_join().
+ * @see membership_entity_term_get_join()
  *
  * @param object $a
  *   The first term object to sort against.
@@ -545,7 +543,7 @@ function _membership_entity_term_sort_by_start_date($a, $b) {
 /**
  * usort() callback to sort by end date.
  *
- * @see membership_entity_term_get_expiration().
+ * @see membership_entity_term_get_expiration()
  *
  * @param object $a
  *   The first term object to sort against.
@@ -583,8 +581,10 @@ function _membership_entity_term_sort_by_end_date($a, $b) {
  *
  * @param DateObject $date
  *   The date object to modify.
+ *
  * @param string $modifier
  *   The relative date modifier.
+ *
  * @return DateObject
  *   The modified date object.
  */
@@ -625,7 +625,11 @@ function theme_membership_entity_term_available_term_lengths_element($variables)
   }
 
   $table_id = 'available-term-lengths';
-  $header = array(t('Available Term Lengths'), t('Example (relative to now)'), '');
+  $header = array(
+    t('Available Term Lengths'),
+    t('Example (relative to now)'),
+    '',
+  );
   $rows = array();
 
   if (!empty($items)) {
@@ -717,7 +721,7 @@ function theme_membership_entity_term_modifiers($variables) {
   drupal_add_css(drupal_get_path('module', 'membership_entity_term') . '/membership_entity_term.css');
   $modifiers = $variables['modifiers'];
   $output = '<div class="membership-entity-term-modifiers">';
-  $output .= implode('<br>', array_map('check_plain', $modifiers));
+  $output .= implode('<br />', array_map('check_plain', $modifiers));
   $output .= '</div>';
   return $output;
 }

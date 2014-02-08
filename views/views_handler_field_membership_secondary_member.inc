@@ -9,19 +9,19 @@
  * Field handler to provide a list of secondary members.
  */
 class views_handler_field_membership_secondary_member extends views_handler_field_prerender_list {
-  function init(&$view, $options) {
+  public function init(&$view, $options) {
     parent::init($view, $options);
     $this->additional_fields['mid'] = array('table' => 'membership_entity', 'field' => 'mid');
   }
 
-  function option_definition() {
+  public function option_definition() {
     $options = parent::option_definition();
     $options['display'] = array('default' => 'label');
     $options['link_to_user'] = array('default' => TRUE, 'bool' => TRUE);
     return $options;
   }
 
-  function options_form(&$form, &$form_state) {
+  public function options_form(&$form, &$form_state) {
     parent::options_form($form, $form_state);
 
     $form['type']['#options'] += array(
@@ -40,7 +40,7 @@ class views_handler_field_membership_secondary_member extends views_handler_fiel
       '#default_value' => $this->options['display'],
     );
 
-     $form['link_to_user'] = array(
+    $form['link_to_user'] = array(
       '#type' => 'checkbox',
       '#title' => t('Link to user'),
       '#description' => t('Link this field to the user.'),
@@ -48,12 +48,12 @@ class views_handler_field_membership_secondary_member extends views_handler_fiel
     );
   }
 
-  function query() {
+  public function query() {
     $this->add_additional_fields();
     $this->field_alias = $this->aliases['mid'];
   }
 
-  function pre_render(&$values) {
+  public function pre_render(&$values) {
     if (empty($values)) {
       return;
     }
@@ -73,11 +73,11 @@ class views_handler_field_membership_secondary_member extends views_handler_fiel
     }
   }
 
-  function render_item($count, $item) {
+  public function render_item($count, $item) {
     return $item['uid'];
   }
 
-  function render_items($values) {
+  public function render_items($values) {
     if (empty($values)) {
       return;
     }
@@ -101,7 +101,6 @@ class views_handler_field_membership_secondary_member extends views_handler_fiel
       case 'ol':
         $type = $this->options['type'];
         // Fall through.
-
       default:
         return theme('item_list', array(
           'title' => NULL,
@@ -111,7 +110,7 @@ class views_handler_field_membership_secondary_member extends views_handler_fiel
     }
   }
 
-  function render_link($value) {
+  public function render_link($value) {
     $account = user_load($value);
     if ($this->options['display'] == 'label') {
       $value = format_username($account);
@@ -124,4 +123,3 @@ class views_handler_field_membership_secondary_member extends views_handler_fiel
     return $render;
   }
 }
-

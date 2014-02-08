@@ -20,7 +20,7 @@ class MembershipEntityTypeUIController extends EntityDefaultUIController {
 }
 
 /**
- *  Creates the membership entity type edit form.
+ * Creates the membership entity type edit form.
  */
 function membership_entity_type_form($form, &$form_state, $type, $op = 'edit') {
   if ($op == 'clone') {
@@ -160,5 +160,4 @@ function membership_entity_type_confirm_delete_submit($form, &$form_state) {
   membership_entity_type_delete($type);
   drupal_set_message(t('The membership type %name has been deleted.', array('%name' => $type->name)));
   $form_state['redirect'] = 'admin/structure/membership-types';
-  return;
 }

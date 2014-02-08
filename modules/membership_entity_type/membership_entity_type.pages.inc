@@ -42,7 +42,7 @@ function theme_membership_entity_type_add_list($variables) {
     }
     $output .= '</dl>';
   }
-  else if (user_access('administer membership types')) {
+  elseif (user_access('administer membership types')) {
     $output = '<p>' . t('You have not created any membership types yet. Go to the <a href="@create-content">membership type creation page</a> to add a new membership type.', array(
       ' @create-content' => url('admin/structure/memberships/add'),
     )) . '</p>';

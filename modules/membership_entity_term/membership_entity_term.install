@@ -63,7 +63,8 @@ function membership_entity_term_schema() {
         'pgsql_type' => 'timestamp without time zone',
         'sqlite_type' => 'varchar',
         'sqlsrv_type' => 'smalldatetime',
-        'not null' => FALSE, // Null value for lifetime terms.
+        // Null value for lifetime terms.
+        'not null' => FALSE,
         'sortable' => TRUE,
       ),
     ),

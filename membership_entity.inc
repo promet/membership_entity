@@ -68,7 +68,8 @@ class MembershipEntity extends Entity {
   /**
    * Set the primary member for the membership.
    *
-   * @param $account The primary member uid or loaded account object.
+   * @param $account
+   *   The primary member uid or loaded account object.
    */
   public function setPrimaryMember($account) {
     $this->uid = is_object($account) ? $account->uid : $account;
@@ -98,11 +99,7 @@ class MembershipEntity extends Entity {
   }
 
   /**
-   * Saves membership_entity fields using drupal_write_record().
-   *
-   * @param $membership
-   *  The membership object to save. If $membership->mid is omitted or is 0, a
-   *  new membership will be created.
+   * Overrides Entity::save().
    */
   public function save() {
     if (!empty($this->is_new)) {

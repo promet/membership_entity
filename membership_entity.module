@@ -29,9 +29,7 @@ function membership_entity_get_status_list() {
  * Implements hook_help().
  */
 function membership_entity_help($path, $arg) {
-  switch ($path) {
-    // @TODO add help documentation
-  }
+  // @TODO add help documentation
 }
 
 /**
@@ -70,11 +68,11 @@ function membership_entity_entity_info() {
     'view modes' => array(
       'full' => array(
         'label' => t('Full Membership'),
-        'custom settings' =>  FALSE,
+        'custom settings' => FALSE,
       ),
       'account' => array(
         'label' => t('User account page'),
-        'custom settings' =>  FALSE,
+        'custom settings' => FALSE,
       ),
     ),
     'metadata controller class' => 'MembershipEntityMetadataController',
@@ -128,13 +126,13 @@ function membership_entity_permission() {
  * Membership entity access callback.
  *
  * @param $op
- *  The membership operations.
+ *   The membership operations.
  * @param $membership
- *  The membership object or type name if $op == 'join'.
+ *   The membership object or type name if $op == 'join'.
  * @param $account
- *  The user account to check access. Defaults to logged in user.
- * @return boolean
- *  TRUE if the user has access for the given operation.
+ *   The user account to check access. Defaults to logged in user.
+ * @return bool
+ *   TRUE if the user has access for the given operation.
  */
 function membership_entity_access($op, $membership = NULL, $account = NULL) {
   if (user_access('administer memberships', $account)) {
@@ -204,7 +202,7 @@ function membership_entity_membership_entity_access($op, $membership = NULL, $ac
 /**
  * Access callback for the modal register form.
  *
- * @see  user_register_access().
+ * @see user_register_access()
  */
 function membership_entity_modal_register_access() {
   return user_access('administer users') || variable_get('user_register', USER_REGISTER_VISITORS_ADMINISTRATIVE_APPROVAL);
@@ -252,7 +250,7 @@ function membership_entity_menu() {
     'access callback' => 'membership_entity_access',
     'access arguments' => array('join', 'membership'),
     'type' => MENU_LOCAL_TASK,
-    'weight' => -9999, // Me first!
+    'weight' => -9999,
     'file' => 'membership_entity.pages.inc',
   );
 
@@ -363,7 +361,7 @@ function membership_entity_theme() {
  */
 function membership_entity_user_view($account, $view_mode, $langcode) {
   // @TODO We should make this configurable on the Manage Display page
-  //       via hook_extra_fields.
+  // via hook_extra_fields.
   if ($view_mode == 'full') {
     if ($memberships = membership_entity_load_by_user($account)) {
       foreach ($memberships as $type => $membership) {
@@ -603,7 +601,7 @@ function membership_entity_form_field_ui_field_edit_form_submit($form, &$form_st
  * Load bundle settings for a membership.
  *
  * @param $bundle
- *  The membership bundle to load settings or NULL to load defaults.
+ *   The membership bundle to load settings or NULL to load defaults.
  */
 function membership_entity_get_bundle_settings($bundle = 'membership') {
   if (module_exists('membership_entity_type')) {
@@ -659,8 +657,8 @@ function membership_entity_member_id_plugin_process(&$plugin, $info) {
 /**
  * Get metadata for member id plugins.
  *
- * @param $id (optional)
- *  Return metadata on a specific member_id plugin.
+ * @param $id
+ *   (optional) Return metadata on a specific member_id plugin.
  */
 function membership_entity_get_member_id($id = NULL) {
   ctools_include('plugins');
@@ -704,7 +702,7 @@ function membership_entity_membership_entity_member_id_info() {
 }
 
 /**
- * Implements hook_form_FORM_ID_alter() for the user_login() form.
+ * Implements hook_form_FORM_ID_alter() for user_login().
  */
 function membership_entity_form_user_login_alter(&$form, &$form_state, $form_id) {
   if ($form['#action'] == '/user/join') {
@@ -876,7 +874,7 @@ function membership_entity_member_select_process($element, &$form_state, $comple
   if ($element['#cardinality'] == FIELD_CARDINALITY_UNLIMITED && empty($form_state['programmed'])) {
     $field_element['add_more'] = array(
       '#type' => 'submit',
-      '#name' => strtr($element['#id'],'-', '_') . '_add_more',
+      '#name' => strtr($element['#id'], '-', '_') . '_add_more',
       '#value' => t('Add another'),
       '#field_name' => $element['#name'],
       '#attributes' => array('class' => array('field-add-more-submit')),
@@ -905,7 +903,7 @@ function membership_entity_member_select_add_more_submit($form, &$form_state) {
 /**
  * Ajax callback to add another member select widget.
  *
- * @see membership_entity_member_select_add_more_submit().
+ * @see membership_entity_member_select_add_more_submit()
  */
 function membership_entity_member_select_add_more_js($form, $form_state) {
   $button = $form_state['triggering_element'];
@@ -954,7 +952,7 @@ function membership_entity_member_select_validate($element, &$form_state) {
 /**
  * Value callback to display the username of a given user.
  */
-function membership_entity_uid_value($element, $input = FALSE, $form_state) {
+function membership_entity_uid_value($element, $input = FALSE, $form_state = array()) {
   if ($input === FALSE && !empty($element['#default_value'])) {
     // Expand the raw uid into username.
     $uid = $element['#default_value'];
@@ -1026,7 +1024,7 @@ function _membership_entity_update_roles($roles) {
   foreach ($accounts as $uid => $account) {
     $rid = $roles[$uid]['rid'];
     if ($roles[$uid]['op'] == 'add' && !isset($account->roles[$rid])) {
-      $account->roles[$rid]= $rid;
+      $account->roles[$rid] = $rid;
       user_save($account);
     }
     elseif ($roles[$uid]['op'] == 'remove' && isset($account->roles[$rid])) {

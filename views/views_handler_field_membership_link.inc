@@ -10,7 +10,6 @@
  */
 class views_handler_field_membership_link extends views_handler_field_entity {
   public $entity_info;
-
   public $op;
 
   public function init(&$view, $options) {
@@ -23,13 +22,13 @@ class views_handler_field_membership_link extends views_handler_field_entity {
     $this->additional_fields[$key] = $key;
   }
 
-  function option_definition() {
+  public function option_definition() {
     $options = parent::option_definition();
     $options['text'] = array('default' => $this->op, 'translatable' => TRUE);
     return $options;
   }
 
-  function options_form(&$form, &$form_state) {
+  public function options_form(&$form, &$form_state) {
     $form['text'] = array(
       '#type' => 'textfield',
       '#title' => t('Text to display'),
@@ -42,19 +41,19 @@ class views_handler_field_membership_link extends views_handler_field_entity {
     $form['alter']['external'] = array('#access' => FALSE);
   }
 
-  function query() {
+  public function query() {
     $this->ensure_my_table();
     $this->add_additional_fields();
   }
 
   // An example of field level access control.
-  function render($values) {
+  public function render($values) {
     if ($entity = $this->get_value($values)) {
       return $this->render_link($entity, $values);
     }
   }
 
-  function render_link($entity, $values) {
+  public function render_link($entity, $values) {
     if (entity_access('view', $this->entity_type, $entity)) {
       $this->options['alter']['make_link'] = TRUE;
       $uri = entity_uri($this->entity_type, $entity);

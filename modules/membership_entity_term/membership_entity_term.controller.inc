@@ -29,7 +29,7 @@ class MembershipEntityTermController extends EntityAPIController {
    * Load all terms for a given membership.
    *
    * @param $membership
-   *  A membership object or mid.
+   *   A membership object or mid.
    */
   public function load_by_membership($membership) {
     // Support mid or entire membership object.
