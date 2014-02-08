@@ -18,7 +18,7 @@ class MembershipEntityTypeMetadataController extends EntityDefaultMetadataContro
 
     unset($properties['url']);
 
-    $properties['id']['label'] = t('Internal id'),
+    $properties['id']['label'] = t('Internal id');
 
     return $info;
   }

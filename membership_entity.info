@@ -19,4 +19,5 @@ files[] = plugins/member_id/abstract.inc
 ; Custom views handlers.
 files[] = views/membership_entity.views.inc
 files[] = views/views_handler_field_membership_primary_member.inc
+files[] = views/views_handler_field_membership_secondary_member.inc
 files[] = views/views_handler_field_membership_link.inc

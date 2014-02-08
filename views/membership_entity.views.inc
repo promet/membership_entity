@@ -17,10 +17,18 @@ class MembershipEntityViewsController extends EntityDefaultViewsController {
     $data = &$info['membership_entity'];
 
     $data['primary_member']['title'] = t('Primary member');
+    $data['primary_member']['relationship']['label'] = t('Primary member');
     $data['primary_member']['field'] = array(
       'type' => 'user',
       'handler' => 'views_handler_field_membership_primary_member',
-      'click sortable' => TRUE,
+    );
+
+    $data['secondary_members'] = array(
+      'title' => t('Secondary members'),
+      'help' => t('Secondary members that belong to the membership.'),
+      'field' => array(
+        'handler' => 'views_handler_field_membership_secondary_member',
+      ),
     );
 
     $data['url'] = array(
@@ -49,6 +57,30 @@ class MembershipEntityViewsController extends EntityDefaultViewsController {
         'handler' => 'views_handler_field_membership_link',
       ),
     );
+
+    $info['membership_entity_secondary_member'] = array(
+      'table' => array(
+        'group' => t('Secondary members'),
+      ),
+    );
+
+    $info['membership_entity_secondary_member']['weight'] = array(
+      'title' => t('Weight'),
+      'help' => t('The secondary member weight field.'),
+      'field' => array(
+        'handler' => 'views_handler_field_numeric',
+      ),
+      'filter' => array(
+        'handler' => 'views_handler_filter_numeric',
+      ),
+      'sort' => array(
+        'handler' => 'views_handler_sort',
+      ),
+    );
+
+    $user = &$info['users'];
+    $user['membership_entity']['title'] = t('Primary membership');
+    $user['membership_entity']['relationship']['label'] = t('Primary membership');
 
     return $info;
   }

@@ -67,16 +67,6 @@ class MembershipEntityMetadataController extends EntityDefaultMetadataController
     ) + $properties['changed'];
 
     unset($properties['url']);
-    $properties['secondary_members'] = array(
-      'type' => 'list<user>',
-      'label' => t('Secondary members'),
-      'description' => t('Secondary members that belong to the membership.'),
-      'getter callback' => 'entity_property_verbatim_get',
-      'setter callback' => 'entity_property_verbatim_set',
-      'computed' => TRUE,
-      'entity views field' => TRUE,
-    );
-
     return $info;
   }
 }

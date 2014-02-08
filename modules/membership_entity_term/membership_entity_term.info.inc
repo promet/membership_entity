@@ -60,29 +60,3 @@ class MembershipEntityTermMetadataController extends EntityDefaultMetadataContro
     return $info;
   }
 }
-
-/**
- * Implements hook_entity_property_info_alter().
- */
-function membership_entity_term_entity_property_info_alter(&$info) {
-  // Add term based membership entity properties.
-  $properties = &$info['membership_entity']['properties'];
-
-  $properties['join'] = array(
-    'type' => 'date',
-    'label' => t('Join Date'),
-    'description' => t('The date the member joined.'),
-    'getter callback' => 'membership_entity_term_get_properties',
-    'computed' => TRUE,
-    'entity views field' => TRUE,
-  );
-
-  $properties['expiration'] = array(
-    'type' => 'date',
-    'label' => t('Expiration date'),
-    'description' => t('The date the latest membership term will expire.'),
-    'getter callback' => 'membership_entity_term_get_properties',
-    'computed' => TRUE,
-    'entity views field' => TRUE,
-  );
-}

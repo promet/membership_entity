@@ -79,19 +79,6 @@ function membership_entity_term_label($term, $entity_type) {
 }
 
 /**
- * Entity metadata callback to load membership term properties.
- */
-function membership_entity_term_get_properties($entity, array $options, $name, $entity_type) {
-  switch ($name) {
-    case 'join':
-      return strtotime(membership_entity_term_get_join($entity));
-
-    case 'expiration':
-      return strtotime(membership_entity_term_get_expiration($entity));
-  }
-}
-
-/**
  * Implements hook_cron().
  */
 function membership_entity_term_cron() {
