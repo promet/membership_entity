@@ -69,7 +69,7 @@ class MembershipEntityTerm extends Entity {
    */
   public function save() {
     // Check for valid term length that is understood by DateTime::modify().
-    if (preg_match(MEMBERHSIP_ENTITY_TERM_LENGTH_REGEX, $this->term)) {
+    if (preg_match(MEMBERSHIP_ENTITY_TERM_LENGTH_REGEX, $this->term)) {
       $this->calculateEndDate();
     }
     else if ($this->term = 'lifetime') {

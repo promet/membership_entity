@@ -546,16 +546,18 @@ function membership_entity_field_info_alter(&$info) {
  * Implements hook_field_extra_fields().
  */
 function membership_entity_field_extra_fields() {
-  $fields['membership_entity']['membership'] = array(
-    'form' => array(
-      'membership' => array(
-        'label' => t('Membership Information'),
-        'description' => t('Primary and secondary members, status, term length, etc.'),
-        'weight' => 0,
+  if (!module_exists('membership_entity_type')) {
+    $fields['membership_entity']['membership'] = array(
+      'form' => array(
+        'membership' => array(
+          'label' => t('Membership Information'),
+          'description' => t('Primary and secondary members, status, term length, etc.'),
+          'weight' => 0,
+        ),
       ),
-    ),
-  );
-  return $fields;
+    );
+    return $fields;
+  }
 }
 
 /**
@@ -677,9 +679,8 @@ function _membership_entity_member_id_get_instance($id, $settings = array()) {
     $class = class_exists($class) ? $class : 'MembershipEntityMemberIdBroken';
     $instances[$id] = new $class($settings);
 
-    // Check that plugin class has implemented the
-    // MembershipEntityMemberId interface.
-    if (!in_array('MembershipEntityMemberId', class_implements($instances[$id]))) {
+    // Check that plugin has implemented MembershipEntityMemberIdInterface.
+    if (!in_array('MembershipEntityMemberIdInterface', class_implements($instances[$id]))) {
       $instances[$id] = new MembershipEntityMemberIdBroken($settings);
     }
   }

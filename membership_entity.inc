@@ -102,7 +102,7 @@ class MembershipEntity extends Entity {
    * Overrides Entity::save().
    */
   public function save() {
-    if (!empty($this->is_new)) {
+    if (empty($this->created)) {
       $this->created = REQUEST_TIME;
     }
     $this->changed = REQUEST_TIME;

@@ -9,35 +9,67 @@
  * Form builder to generate membership content.
  */
 function membership_entity_devel_generate_memberships_form($form, &$form_state) {
-  $form['#bundle_settings'] = membership_entity_get_bundle_settings();
-  if (empty($form['#bundle_settings'])) {
-    return;
-  }
   $form['num'] = array(
     '#type' => 'textfield',
     '#title' => t('How many memberships would you like to generate?'),
-    '#description' => t('You must have at least the same number of user object available. Click <a href="!url">here</a> to generate users.', array(
+    '#description' => t('You must have at least the same number of user objects available. Click <a href="!url">here</a> to generate users.', array(
       '!url' => url('admin/config/development/generate/user'),
     )),
     '#default_value' => 50,
+    '#element_validate' => array('element_validate_integer_positive'),
     '#size' => 10,
   );
+
   $form['kill'] = array(
     '#type' => 'checkbox',
     '#title' => t('Delete all memberships before generating new memberships.'),
     '#default_value' => FALSE,
   );
+
+  if (module_exists('membership_entity_type')) {
+    foreach (membership_entity_type_get_types() as $type) {
+      $types[$type->type] = $type->label;
+    }
+    $form['type'] = array(
+      '#type' => 'checkboxes',
+      '#title' => t('Membership types'),
+      '#description' => t('Select the membership types to select from when generating memberships.'),
+      '#options' => $types,
+      '#default_value' => array_keys($types),
+    );
+
+    $form['multiple_types'] = array(
+      '#type' => 'checkbox',
+      '#title' => t('Allow users to belong to multiple memberships (of different types).'),
+      '#default_value' => FALSE,
+    );
+  }
+
+  if (module_exists('membership_entity_term')) {
+    $form['term_count'] = array(
+      '#type' => 'textfield',
+      '#title' => t('Max number of terms to create per membership'),
+      '#description' => t('Enter the maximum number of terms that should be generated for each membership. The actual number of terms for a given membership will be somewhere between 1 and this value.'),
+      '#default_value' => 1,
+      '#element_validate' => array('element_validate_integer_positive'),
+      '#size' => 10,
+    );
+  }
+
   $options = array(1 => t('Now'));
   foreach (array(86400, 604800, 2592000, 31536000, 63072000, 94608000, 126144000, 157680000, 315360000, 473040000) as $interval) {
     $options[$interval] = format_interval($interval, 1) . ' ' . t('ago');
   }
+
   $form['time_range'] = array(
     '#type' => 'select',
     '#title' => t('How old should memberships be?'),
     '#description' => t('Memberships will be distributed randomly from the current time, back to the selected time.'),
+    '#required' => TRUE,
     '#options' => $options,
     '#default_value' => 94608000,
   );
+
   $form['submit'] = array(
     '#type' => 'submit',
     '#value' => t('Generate'),
@@ -62,6 +94,9 @@ function membership_entity_devel_generate_memberships_form_submit($form, &$form_
  *   - num: Number of users to generate.
  *   - kill: Boolean that indicates if existing users should be removed first.
  *   - time_range: The max join date of each membership term in seconds.
+ *   - type: An array of memberships types to create.
+ *   - multiple_type: Whether or not to allow a user to belong to multiple
+ *     membership types.
  */
 function membership_entity_devel_create_memberships($values) {
   // Load some devel generate helpers.
@@ -77,38 +112,95 @@ function membership_entity_devel_create_memberships($values) {
     drupal_set_message(format_plural(count($mids), '1 membership deleted', '@count memberships deleted'));
   }
 
-  $result = db_select('users', 'u')
+  $results = db_select('users', 'u')
     ->fields('u', array('uid'))
     ->condition('u.uid', 0, '<>')
     ->execute()
     ->fetchAllAssoc('uid');
-  $users = drupal_map_assoc(array_keys($result));
+  $users = drupal_map_assoc(array_keys($results));
+
+  $used_users = array();
+  $resutls = db_select('membership_entity', 'me')
+    ->fields('me', array('uid', 'type'))
+    ->execute()
+    ->fetchAllAssoc('type');
+  foreach ($resutls as $type => $result) {
+    $used_users[$type][$result->uid] = $result->uid;
+  }
+
+  if (!module_exists('membership_entity_type')) {
+    $values['type'] = array('membership' => 'membership');
+  }
+  $types = array_filter($values['type']);
 
   $num = min(count($users), $values['num']);
-  for ($i = 0; $i < $num; $i++) {
-    $created = REQUEST_TIME - mt_rand(0, $values['time_range']);
+  for ($count = 0; $count < $num; $count++) {
+    $type = array_rand($types);
+    $bundle_settings = membership_entity_get_bundle_settings($type);
+    if (!empty($used_users[$type])) {
+      $users = array_diff($users, $used_users[$type]);
+    }
     $uid = array_rand($users);
-    unset($users[$uid]);
+    if (!$uid) {
+      // No user was found so we're done.
+      break;
+    }
+    if (empty($values['multiple_types'])) {
+      // Only one membershp type per user.
+      unset($users[$uid]);
+    }
+    $used_users[$type][$uid] = $uid;
 
-    // Create the user.
-    $name = devel_generate_word(mt_rand(6, 12));
-    $membership = (object) array(
+    // Create the membership.
+    $created = REQUEST_TIME - mt_rand(0, $values['time_range']);
+    $membership = membership_entity_create(array(
       'mid' => NULL,
       'uid' => $uid,
-      'member_id' => membership_entity_next_member_id(),
-      'type' => 'membership',
+      'member_id' => membership_entity_next_member_id($type),
+      'type' => $type,
       'created' => $created,
       'status' => MEMBERSHIP_ENTITY_ACTIVE,
-    );
+    ));
 
     // Populate all core fields on behalf of field.module
     devel_generate_fields($membership, 'membership_entity', $membership->type);
+    $membership->save();
 
-    // Save the membership.
-    membership_entity_save($membership);
+    if (module_exists('membership_entity_term') && !empty($values['term_count'])) {
+      $terms = array();
+      $available_terms = drupal_map_assoc($bundle_settings['available_term_lengths']);
+      $term_count = rand(1, $values['term_count']);
+      for ($i = 0; $i < $term_count; $i++) {
+        $term_length = array_rand($available_terms);
+
+        if ($i == 0) {
+          // First term starts when the membership was created.
+          $start = format_date($created,'custom', DATE_FORMAT_DATETIME);
+        }
+        elseif ($terms[$i - 1]->term == 'lifetime') {
+          // Don't add anymore terms after a liftime term.
+          break;
+        }
+        else {
+          $term_start = REQUEST_TIME - mt_rand(0, $values['time_range']);
+          if ($term_start <= strtotime($terms[$i - 1]->end)) {
+            $start = $terms[$i - 1]->end;
+          }
+          else {
+            $start = format_date($term_start, 'custom', DATE_FORMAT_DATETIME);
+          }
+        }
+        $terms[$i] = membership_entity_term_create(array(
+          'mid' => $membership->mid,
+          'term' => $term_length,
+          'start' => $start,
+        ));
+        $terms[$i]->save();
+      }
+    }
   }
 
-  drupal_set_message(t('!num created.', array(
-    '!num' => format_plural($num, '1 membership', '@count memberships'),
+  drupal_set_message(t('!num generated.', array(
+    '!num' => format_plural($count, '1 membership', '@count memberships'),
   )));
 }

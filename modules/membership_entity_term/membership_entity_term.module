@@ -258,15 +258,18 @@ function membership_entity_term_renew_access($membership) {
  * Implements hook_field_extra_fields().
  */
 function membership_entity_term_field_extra_fields() {
-  $fields['membership_entity']['membership'] = array(
-    'display' => array(
-      'membership_terms' => array(
-        'label' => t('Membership Terms'),
-        'description' => t('A list of terms for the membership.'),
-        'weight' => 99,
+  $types = module_exists('membership_entity_type') ? array_keys(membership_entity_type_get_types()) : array('membership');
+  foreach ($types as $type) {
+    $fields['membership_entity'][$type] = array(
+      'display' => array(
+        'membership_terms' => array(
+          'label' => t('Membership Terms'),
+          'description' => t('A list of terms for the membership.'),
+          'weight' => 99,
+        ),
       ),
-    ),
-  );
+    );
+  }
   return $fields;
 }
 

@@ -285,8 +285,7 @@ function membership_entity_admin_list_submit($form, &$form_state) {
  * Build the membership administration overview.
  */
 function membership_entity_admin_list(&$form_state) {
-  $admin = user_access('manage memberships');
-  $admin_delete = user_access('delete memberships');
+  $admin = user_access('administer memberships');
 
   // Build the 'Update options' form.
   $form['options'] = array(
@@ -390,7 +389,7 @@ function membership_entity_admin_list(&$form_state) {
         );
       }
 
-      if ($admin_delete) {
+      if (membership_entity_access('delete', $membership)) {
         $operations['delete'] = array(
           'title' => t('delete'),
           'href' => 'membership/' . $membership->mid . '/delete',
