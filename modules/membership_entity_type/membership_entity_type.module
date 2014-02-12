@@ -206,6 +206,21 @@ function membership_entity_type_admin_menu_map() {
 }
 
 /**
+ * Implements hook_membership_entity_view_alter().
+ */
+function membership_entity_type_membership_entity_view_alter(&$build) {
+  $view_mode = $build['#view_mode'];
+  if ($view_mode == 'account') {
+    $membership = $build['#membership_entity'];
+    $type = membership_entity_type_load($membership->type);
+    $build['#title'] = t('@type @member_id', array(
+      '@type' => $type->label,
+      '@member_id' => $membership->member_id,
+    ));
+  }
+}
+
+/**
  * Implements hook_theme().
  */
 function membership_entity_type_theme($existing, $type, $theme, $path) {
