@@ -165,16 +165,16 @@ class MembershipEntityController extends EntityAPIController {
 
     try {
       // Remove roles.
-      $data = variable_get('membership_entity_settings', array());
       $roles = array();
       foreach ($memberships as $membership) {
+        $bundle_settings = membership_entity_get_bundle_settings($membership->type);
         $roles[$membership->uid] = array(
-          'rid' => $data['primary_role'],
+          'rid' => $bundle_settings['primary_role'],
           'op' => 'remove',
         );
         foreach ($membership->secondary_members as $uid) {
           $roles[$uid] = array(
-            'rid' => $data['secondary_role'],
+            'rid' => $bundle_settings['secondary_role'],
             'op' => 'remove',
           );
         }

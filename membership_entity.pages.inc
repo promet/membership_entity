@@ -231,12 +231,23 @@ function membership_entity_settings_form_submit($form, &$form_state) {
  */
 function membership_entity_admin_memberships($form, &$form_state) {
   if (isset($form_state['values']['operation']) && $form_state['values']['operation'] == 'delete') {
-    if (user_access('delete memberships')) {
-      return membership_entity_multiple_delete_confirm($form, $form_state, array_filter($form_state['values']['memberships']));
+    $memberships = membership_entity_load_multiple(array_filter($form_state['values']['memberships']));
+    foreach ($memberships as $mid => $membership) {
+      if (!membership_entity_access('delete', $membership)) {
+        if (module_exists('membership_entity_type')) {
+          $type = membership_entity_type_load($membership->type);
+          dpm($type);
+          drupal_set_message(t('You do not have permission to delete @type memberships.', array(
+            '@type' => $type->label,
+          )), 'error');
+        }
+        else {
+          drupal_set_message(t('You do not have permission to delete memberships.'), 'error');
+        }
+        return;
+      }
     }
-    else {
-      drupal_set_message(t('You do not have permission to delete memberships.'), 'error');
-    }
+    return membership_entity_multiple_delete_confirm($form, $form_state, array_filter($form_state['values']['memberships']));
   }
   $form['filter'] = membership_entity_filter_form();
   $form['#submit'][] = 'membership_entity_filter_form_submit';
