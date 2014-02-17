@@ -283,7 +283,7 @@ function membership_entity_term_membership_entity_view($membership, $view_mode, 
 /**
  * View a table of membership terms.
  */
-function membership_entity_terms_view($terms, $view_mode = 'full', $langocode = NULL, $timezone = NULL) {
+function membership_entity_terms_view($terms, $view_mode = 'full', $langcode = NULL, $timezone = NULL) {
   if (!isset($timezone)) {
     $timezone = date_default_timezone();
   }
@@ -405,7 +405,6 @@ function membership_entity_term_membership_entity_settings_alter(&$form, &$form_
  * Implements hook_form_FORM_ID_alter().
  */
 function membership_entity_term_form_field_ui_field_edit_form_alter(&$form, &$form_state, $form_id) {
-  $instance = $form['#instance'];
   if (isset($form['instance']['settings']['membership_entity_join_form'])) {
     $form['instance']['settings']['membership_entity_join_form']['#title'] = t('Display on join and renew forms.');
   }
@@ -511,7 +510,7 @@ function membership_entity_term_save($term) {
 }
 
 /**
- * array_filter() callback to filter by term status.
+ * Callback for array_filter() to filter by term status.
  *
  * @see membership_entity_term_get_expiration()
  */
@@ -520,7 +519,7 @@ function _membership_entity_term_array_filter_active($term) {
 }
 
 /**
- * usort() callback to sort by start date.
+ * Callback for usort() to sort by start date.
  *
  * @see membership_entity_term_get_join()
  *
@@ -544,7 +543,7 @@ function _membership_entity_term_sort_by_start_date($a, $b) {
 }
 
 /**
- * usort() callback to sort by end date.
+ * Callback for usort() to sort by end date.
  *
  * @see membership_entity_term_get_expiration()
  *

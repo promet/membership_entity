@@ -1,7 +1,6 @@
 name = Membership Entity
 description = Create membership entities and attach user accounts to a membership.
 package = Memberships
-version = 7.x-1.x-dev
 core = 7.x
 
 dependencies[] = ctools

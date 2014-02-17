@@ -37,7 +37,7 @@ class MembershipEntityController extends EntityAPIController {
     }
 
     // Load secondary members.
-    foreach ($memberships as $mid => $membership) {
+    foreach ($memberships as $membership) {
       $membership->secondary_members = array();
       $secondary_members = db_select('membership_entity_secondary_member')
         ->fields('membership_entity_secondary_member', array('uid', 'weight'))
@@ -58,9 +58,9 @@ class MembershipEntityController extends EntityAPIController {
    *   A user account object or uid.
    * @param $bundle
    *   The membership bundle to load.
+   *
    * @return An array of all memberships for the given user account, keyed by
    *   bundle. Or a single membership object if $bundle is provided.
-   *
    */
   public function load_by_user($account, $bundle = NULL) {
     // Support uid or entire user object.
@@ -73,7 +73,7 @@ class MembershipEntityController extends EntityAPIController {
     }
 
     $bundles = array();
-    foreach ($memberships as $mid => $membership) {
+    foreach ($memberships as $membership) {
       $bundles[] = $membership->type;
     }
     $return = array_combine($bundles, $memberships);

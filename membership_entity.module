@@ -131,6 +131,7 @@ function membership_entity_permission() {
  *   The membership object or type name if $op == 'join'.
  * @param $account
  *   The user account to check access. Defaults to logged in user.
+ *
  * @return bool
  *   TRUE if the user has access for the given operation.
  */
@@ -733,7 +734,7 @@ function membership_entity_user_cancel($edit, $account, $method) {
   switch ($method) {
     case 'user_cancel_block_unpublish':
       $memberships = membership_entity_load_by_user($account->uid);
-      foreach ($memberships as $mid => $membership) {
+      foreach ($memberships as $membership) {
         $membership->status = MEMBERSHIP_ENTITY_CANCELLED;
         membership_entity_save($membership);
       }
@@ -751,7 +752,7 @@ function membership_entity_user_cancel($edit, $account, $method) {
 function membership_entity_user_delete($account) {
   // Delete primary memberships.
   $memberships = membership_entity_load_by_user($account->uid);
-  foreach ($memberships as $bundle => $membership) {
+  foreach ($memberships as $membership) {
     membership_entity_delete($membership->mid);
   }
 
@@ -870,7 +871,7 @@ function membership_entity_member_select_process($element, &$form_state, $comple
         '#title' => t('Weight for row @number', array('@number' => $delta + 1)),
         '#title_display' => 'invisible',
         '#delta' => $max,
-        '#default_value' => isset($items[$delta]['_weight']) ? $items[$delta]['_weight'] : $delta,
+        '#default_value' => $delta,
         '#weight' => 100,
       );
     }

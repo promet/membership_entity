@@ -72,8 +72,8 @@ class MembershipEntityTerm extends Entity {
     if (preg_match(MEMBERSHIP_ENTITY_TERM_LENGTH_REGEX, $this->term)) {
       $this->calculateEndDate();
     }
-    else if ($this->term = 'lifetime') {
-     $this->end = NULL;
+    elseif ($this->term = 'lifetime') {
+      $this->end = NULL;
     }
     return parent::save();
   }

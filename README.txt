@@ -18,12 +18,12 @@ individual user accounts. This provides several advantages for managing
 membership sites.
 
   * Memberships are fieldable separately from users.
-  * X number of users may belong to a single membership. (eg. Primary and secondary
-    members)
-  * When a membership is activated all users attached to the membership are given
-    the active role.
-  * When a membership expires all users attached to the membership are given the
-    expired role.
+  * X number of users may belong to a single membership. (eg. Primary and
+    secondary members)
+  * When a membership is activated all users attached to the membership are
+    given the active role.
+  * When a membership expires all users attached to the membership are given
+    the expired role.
   * Keeps track of membership terms.
 
 INSTALLATION
@@ -60,7 +60,7 @@ Issues and feature requests should be reported at
 https://drupal.org/project/issues/1875930.
 
 Issues will be reviewed as quickly as is reasonable with the understanding that
-the maintainers have personal and professional responsiblities outside of this
+the maintainers have personal and professional responsibilities outside of this
 module.
 
 Feature requests will generally only be developed as the need arises for

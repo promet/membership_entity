@@ -178,7 +178,7 @@ function membership_entity_devel_create_memberships($values) {
           $start = format_date($created,'custom', DATE_FORMAT_DATETIME);
         }
         elseif ($terms[$i - 1]->term == 'lifetime') {
-          // Don't add anymore terms after a liftime term.
+          // Don't add anymore terms after a lifetime term.
           break;
         }
         else {

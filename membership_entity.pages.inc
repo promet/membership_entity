@@ -232,11 +232,10 @@ function membership_entity_settings_form_submit($form, &$form_state) {
 function membership_entity_admin_memberships($form, &$form_state) {
   if (isset($form_state['values']['operation']) && $form_state['values']['operation'] == 'delete') {
     $memberships = membership_entity_load_multiple(array_filter($form_state['values']['memberships']));
-    foreach ($memberships as $mid => $membership) {
+    foreach ($memberships as $membership) {
       if (!membership_entity_access('delete', $membership)) {
         if (module_exists('membership_entity_type')) {
           $type = membership_entity_type_load($membership->type);
-          dpm($type);
           drupal_set_message(t('You do not have permission to delete @type memberships.', array(
             '@type' => $type->label,
           )), 'error');
@@ -372,7 +371,7 @@ function membership_entity_admin_list(&$form_state) {
   if (!empty($memberships)) {
     foreach ($memberships as $membership) {
       $options[$membership->mid] = array(
-        'member_id' => l(check_plain($membership->member_id), 'membership/' . $membership->mid),
+        'member_id' => l($membership->member_id, 'membership/' . $membership->mid),
       );
       if (module_exists('membership_entity_type')) {
         $type = membership_entity_type_load($membership->type);
@@ -385,7 +384,8 @@ function membership_entity_admin_list(&$form_state) {
         'changed' => format_date($membership->changed, 'short'),
       );
 
-      // Build a list of all the accessible operations for the current membership.
+      // Build a list of all the accessible operations for the
+      // current membership.
       $operations['edit'] = array(
         'title' => t('edit'),
         'href' => 'membership/' . $membership->mid . '/edit',
@@ -520,9 +520,11 @@ function membership_entity_filter_form_submit($form, &$form_state) {
       // Apply every filter that has a choice selected other than 'any'.
       foreach ($filters as $filter => $options) {
         if (isset($form_state['values'][$filter]) && $form_state['values'][$filter] != '[any]') {
-          // Flatten the options array to accommodate hierarchical/nested options.
+          // Flatten the options array to accommodate
+          // hierarchical/nested options.
           $flat_options = form_options_flatten($filters[$filter]['options']);
-          // Only accept valid selections offered on the dropdown, block bad input.
+          // Only accept valid selections offered on the dropdown, block
+          // bad input.
           if (isset($flat_options[$form_state['values'][$filter]])) {
             $_SESSION['membership_entity_overview_filter'][] = array($filter, $form_state['values'][$filter]);
           }
@@ -991,7 +993,7 @@ function membership_entity_multiple_delete_confirm_submit($form, &$form_state) {
  *   The form element HTML id to fill with the new user id.
  */
 function membership_entity_modal_register($js = NULL, $return_id = NULL) {
-  // Fall back if paramters are not set.
+  // Fall back if parameters are not set.
   if (!$js || !$return_id) {
     return drupal_get_form('user_register_form');
   }
@@ -1022,7 +1024,6 @@ function membership_entity_modal_register($js = NULL, $return_id = NULL) {
  * @see user_register_form()
  */
 function membership_entity_modal_user_register_form($form, &$form_state) {
-  $user = $GLOBALS['user'];
   $admin = user_access('administer users');
 
   // Pass access information to the submit handler. Running an access check
@@ -1124,7 +1125,10 @@ function membership_entity_modal_user_register_form_submit($form, &$form_state) 
     $op = $notify ? 'register_admin_created' : 'register_no_approval_required';
     _user_mail_notify($op, $account);
     if ($notify) {
-      drupal_set_message(t('A welcome message with further instructions has been e-mailed to the new user <a href="@url">%name</a>.', array('@url' => url($uri['path'], $uri['options']), '%name' => $account->name)));
+      drupal_set_message(t('A welcome message with further instructions has been e-mailed to the new user <a href="@url">%name</a>.', array(
+        '@url' => url($uri['path'], $uri['options']),
+        '%name' => $account->name,
+      )));
     }
     else {
       drupal_set_message(t('A welcome message with further instructions has been sent to your e-mail address.'));
@@ -1154,7 +1158,7 @@ function membership_entity_modal_user_register_form_submit($form, &$form_state) 
  */
 function _membership_entity_build_filter_query(SelectQueryInterface $query) {
   $filter_data = isset($_SESSION['membership_entity_overview_filter']) ? $_SESSION['membership_entity_overview_filter'] : array();
-  foreach ($filter_data as $index => $filter) {
+  foreach ($filter_data as $filter) {
     list($key, $value) = $filter;
     if (in_array($key, array('status', 'type'))) {
       $query->condition('me.' . $key, $value);

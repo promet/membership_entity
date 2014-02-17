@@ -443,7 +443,7 @@ function membership_entity_term_modifier_add_validate($form, &$form_state) {
  */
 function membership_entity_term_modifier_add($form, &$form_state) {
   $values = $form_state['values'];
-  $modifier = ($values['modifiers']['options'] != 'other') ? $values['modifiers']['options'] : $term = $values['modifiers']['custom'];
+  $modifier = ($values['modifiers']['options'] != 'other') ? $values['modifiers']['options'] : $values['modifiers']['custom'];
   $form_state['modifiers'][] = check_plain($modifier);
   $form_state['rebuild'] = TRUE;
 }

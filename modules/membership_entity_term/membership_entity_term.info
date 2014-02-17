@@ -1,7 +1,6 @@
 name = Membership Entity Terms
 description = Allow users to create time limited memberships.
 package = Memberships
-version = 7.x-1.x-dev
 core = 7.x
 
 dependencies[] = date_api
