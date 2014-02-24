@@ -437,48 +437,49 @@ function membership_entity_term_load_by_membership($membership, $reset = FALSE) 
 }
 
 /**
- * Returns the join date of the first membership term.
+ * Returns the start date of the first membership term.
  *
- * @param $membership
- *   A fully loaded membership object or mid.
+ * @param MembershipEntity $membership
+ *   A fully loaded membership object.
+ *
+ * @return DateTimeInterface|false
+ *   The start date of the first term. Use date_format_date() to create
+ *   a formatted date string. FALSE if there are no terms for the membership.
  */
-function membership_entity_term_get_join($membership) {
-  // Support membership object or mid.
-  if (is_numeric($membership)) {
-    $membership = membership_entity_load($membership);
-  }
-
+function membership_entity_term_get_join_date(MembershipEntity $membership) {
   // Find and return the first term start date.
   if (!empty($membership->terms)) {
     $terms = $membership->terms;
     uasort($terms, '_membership_entity_term_sort_by_start_date');
     $first = reset($terms);
-    return $first->start;
+    return new DateObject($first->start, new DateTimezone('UTC'));
   }
-
-  return '';
+  return FALSE;
 }
 
 /**
  * Returns the end date of the last membership term.
  *
- * @param $membership
+ * @param MembershipEntity $membership
  *   A fully loaded membership object or mid.
+ *
+ * @return DateTimeInterface
+ *   The end date of the latest active term. Use date_format_date() to create
+ *   a formatted date string. FALSE if there are no terms for the membership
+ *   or the latest active term is a liftime term.
  */
-function membership_entity_term_get_expiration($membership) {
-  // Support membership object or mid.
-  if (is_numeric($membership)) {
-    $membership = membership_entity_load($membership);
-  }
-
+function membership_entity_term_get_expiration_date(MembershipEntity $membership) {
   // Find and return the lastest active term end date.
   if (!empty($membership->terms)) {
     $terms = array_filter($membership->terms, '_membership_entity_term_array_filter_active');
     uasort($terms, '_membership_entity_term_sort_by_end_date');
     $last = end($terms);
-    return ($last->term == 'lifetime') ? t('N/A') : $last->end;
+    if ($last->term == 'lifetime') {
+      return FALSE;
+    }
+    return new DateObject($last->end, new DateTimezone('UTC'));
   }
-  return '';
+  return FALSE;
 }
 
 /**
@@ -510,27 +511,33 @@ function membership_entity_term_save($term) {
 }
 
 /**
- * Callback for array_filter() to filter by term status.
+ * Filter by term status.
  *
- * @see membership_entity_term_get_expiration()
+ * Callback for array_filter() within membership_entity_term_get_expiration_date().
+ *
+ * @param MembershipEntityTerm $term
+ *   The membership term to check status.
+ *
+ * @return bool
+ *   TRUE if the term is active.
  */
 function _membership_entity_term_array_filter_active($term) {
   return ($term->status == MEMBERSHIP_ENTITY_ACTIVE);
 }
 
 /**
- * Callback for usort() to sort by start date.
+ * Sort by term start date.
  *
- * @see membership_entity_term_get_join()
+ * Callback for usort() witin membership_entity_term_get_join_date().
  *
- * @param object $a
- *   The first term object to sort against.
+ * @param MembershipEntityTerm $a
+ *   The first membership entity term to sort against.
  *
- * @param object $b
- *   The second term object to sort against.
+ * @param MembershipEntityTerm $b
+ *   The second membership entity term to sort against.
  *
- * @return array
- *   Returns an array of sorted objects by term join date.
+ * @return MembershipEntityTerm[]
+ *   An array of sorted terms by start date.
  */
 function _membership_entity_term_sort_by_start_date($a, $b) {
   $c = isset($a->start) ? $a->start : '';
@@ -543,18 +550,18 @@ function _membership_entity_term_sort_by_start_date($a, $b) {
 }
 
 /**
- * Callback for usort() to sort by end date.
+ * Sort by term end date.
  *
- * @see membership_entity_term_get_expiration()
+ * Callback for usort() within membership_entity_term_get_expiration_date().
  *
- * @param object $a
+ * @param MembershipEntityTerm $a
  *   The first term object to sort against.
  *
- * @param object $b
+ * @param MembershipEntityTerm $b
  *   The second term object to sort against.
  *
- * @return array
- *   Returns an array of sorted objects by term expiration date.
+ * @return MembershipEntityTerm[]
+ *   An array of sorted terms by end date.
  */
 function _membership_entity_term_sort_by_end_date($a, $b) {
   // Lifetime terms trump all.
@@ -581,16 +588,16 @@ function _membership_entity_term_sort_by_end_date($a, $b) {
  * PHP date handling does not correctly support month opperations for months
  * with a different number of days or leap years.
  *
- * @param DateObject $date
+ * @param DateTime $date
  *   The date object to modify.
  *
  * @param string $modifier
  *   The relative date modifier.
  *
- * @return DateObject
+ * @return DateTime
  *   The modified date object.
  */
-function _membership_entity_term_modify_date($date, $modifier) {
+function _membership_entity_term_modify_date(DateTime $date, $modifier) {
   $start_day = $date->format('j');
   $date->modify($modifier);
 
