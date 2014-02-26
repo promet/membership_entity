@@ -187,6 +187,16 @@ function membership_entity_term_menu() {
 }
 
 /**
+ * Implements hook_admin_paths().
+ */
+function membership_entity_term_admin_paths() {
+  return array(
+    'membership-term/*/delete' => TRUE,
+    'membership-term/*/edit' => TRUE,
+  );
+}
+
+/**
  * Implements hook_membership_entity_term_insert().
  */
 function membership_entity_term_membership_entity_term_insert($term) {

@@ -250,8 +250,9 @@ function membership_entity_menu() {
     'page arguments' => array('membership_entity_join_form'),
     'access callback' => 'membership_entity_access',
     'access arguments' => array('join', 'membership'),
-    'type' => MENU_LOCAL_TASK,
+    'type' => MENU_LOCAL_TASK | MENU_NORMAL_ITEM,
     'weight' => -9999,
+    'menu_name' => 'user-menu',
     'file' => 'membership_entity.pages.inc',
   );
 
@@ -318,6 +319,16 @@ function membership_entity_menu() {
 }
 
 /**
+ * Implements hook_menu_link_alter().
+ */
+function membership_entity_menu_link_alter(&$link) {
+  // Force the Join link to appear on the top level of the 'user-menu' menu.
+  if ($link['link_path'] == 'user/join' && $link['module'] == 'membership_entity' && empty($link['customized'])) {
+    $link['plid'] = 0;
+  }
+}
+
+/**
  * Title callback for a membership page.
  */
 function membership_entity_page_title($membership) {
@@ -333,7 +344,8 @@ function membership_entity_page_title($membership) {
  */
 function membership_entity_admin_paths() {
   return array(
-    // @TODO add admin paths.
+    'membership/*/delete' => TRUE,
+    'membership/*/edit' => TRUE,
   );
 }
 
