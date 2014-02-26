@@ -9,8 +9,6 @@
  * Additional member_id formats for a membership type.
  */
 interface MembershipEntityMemberIdInterface {
-  public function __construct($settings);
-
   /**
    * Return the next available member id.
    */
@@ -20,6 +18,11 @@ interface MembershipEntityMemberIdInterface {
    * Builds the settings form this handler.
    */
   public function settingsForm(&$form_state);
+
+  /**
+   * Validates the plugin settings form.
+   */
+  public function validateSettings(&$element, &$form_state);
 }
 
 /**
@@ -35,10 +38,23 @@ abstract class MembershipEntityMemberIdAbstract implements MembershipEntityMembe
     $this->settings = $settings;
   }
 
+  /**
+   * Implements MembershipEntityMemberIdInterface::next().
+   */
   public function next() {}
 
+  /**
+   * Implements MembershipEntityMemberIdInterface::settingsForm().
+   */
   public function settingsForm(&$form_state) {
     return array();
+  }
+
+  /**
+   * Implements MembershipEntityMemberIdInterface::validateSettings().
+   */
+  public function validateSettings(&$element, &$form_state) {
+    return;
   }
 }
 

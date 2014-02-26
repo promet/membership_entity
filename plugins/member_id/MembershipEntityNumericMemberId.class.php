@@ -33,4 +33,16 @@ class MembershipEntityNumericMemberId extends MembershipEntityMemberIdAbstract {
     );
     return $form;
   }
+
+  /**
+   * Validate the settings form.
+   */
+  public function validateSettings(&$element, &$form_state) {
+    $schema = drupal_get_schema('membership_entity');
+    if ($element['length']['#value'] > $schema['fields']['member_id']['length']) {
+      form_error($element['length'], t('Member ID length cannot exceed %max.', array(
+        '%max' => $schema['fields']['member_id']['length'],
+      )));
+    }
+  }
 }

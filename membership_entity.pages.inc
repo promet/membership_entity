@@ -63,6 +63,7 @@ function membership_entity_settings_form($form, &$form_state, $data = array()) {
   $form['membership_settings']['member_id_settings'] = array(
     '#type' => 'container',
     '#tree' => TRUE,
+    '#element_validate' => array('membership_entity_member_id_settings_validate'),
     '#attributes' => array(
       'id' => $wrapper_id,
       'class' => array('membership-entity-member-id-settings'),
@@ -183,6 +184,16 @@ function membership_entity_member_id_format_validate(&$element, &$form_state, $f
   $trigger = $form_state['triggering_element'];
   if ($trigger['#name'] == 'member_id_format') {
     $form_state['membership_entity']['member_id_format'] = $trigger['#value'];
+  }
+}
+
+/**
+ * Element validate callback or member id settings.
+ */
+function membership_entity_member_id_settings_validate(&$element, &$form_state, $form) {
+  $values = $form_state['values'];
+  if ($instance = _membership_entity_member_id_get_instance($values['member_id_format'], $values['member_id_settings'])) {
+    $instance->validateSettings($element, $form_state);
   }
 }
 
@@ -771,12 +782,14 @@ function membership_entity_form(&$form, &$form_state) {
 
   if (!empty($membership->member_id)) {
     if (user_access('administer memberships')) {
+      $schema = drupal_get_schema('membership_entity');
       $form['membership']['member_id'] = array(
         '#type' => 'textfield',
         '#title' => t('Membership ID'),
         '#description' => t('Unique membership id.'),
         '#default_value' => $membership->member_id,
         '#required' => TRUE,
+        '#maxlength' => $schema['fields']['member_id']['length'],
       );
     }
     else {
@@ -835,8 +848,8 @@ function membership_entity_form_validate($form, &$form_state) {
   $values = &$form_state['values'];
   $membership = $form['#membership_entity'];
 
-  // Member ID must be unique.
   if (!empty($values['member_id'])) {
+    // Member ID must be unique.
     if ((bool) db_select('membership_entity', 'me')->fields('me', array('mid'))->condition('mid', $membership->mid, '<>')->condition('member_id', check_plain($values['member_id']))->range(0, 1)->execute()->fetchField()) {
       form_set_error('member_id', t('The member ID %member_id already exists.', array(
         '%member_id' => $values['member_id'],
