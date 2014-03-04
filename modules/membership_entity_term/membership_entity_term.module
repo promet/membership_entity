@@ -475,13 +475,17 @@ function membership_entity_term_get_join_date(MembershipEntity $membership) {
  *
  * @return DateTimeInterface
  *   The end date of the latest active term. Use date_format_date() to create
- *   a formatted date string. FALSE if there are no terms for the membership
- *   or the latest active term is a liftime term.
+ *   a formatted date string. FALSE if there are no active or expired terms for
+ *   the membership or the latest term is a liftime term.
  */
 function membership_entity_term_get_expiration_date(MembershipEntity $membership) {
   // Find and return the lastest active term end date.
   if (!empty($membership->terms)) {
-    $terms = array_filter($membership->terms, '_membership_entity_term_array_filter_active');
+    $terms = array_filter($membership->terms, '_membership_entity_term_array_filter_expiration_status');
+    if (empty($terms)) {
+      return FALSE;
+    }
+
     uasort($terms, '_membership_entity_term_sort_by_end_date');
     $last = end($terms);
     if ($last->term == 'lifetime') {
@@ -521,7 +525,7 @@ function membership_entity_term_save($term) {
 }
 
 /**
- * Filter by term status.
+ * Filter terms that are not active or expired.
  *
  * Callback for array_filter() within membership_entity_term_get_expiration_date().
  *
@@ -529,10 +533,10 @@ function membership_entity_term_save($term) {
  *   The membership term to check status.
  *
  * @return bool
- *   TRUE if the term is active.
+ *   TRUE if the term is active or expired.
  */
-function _membership_entity_term_array_filter_active($term) {
-  return ($term->status == MEMBERSHIP_ENTITY_ACTIVE);
+function _membership_entity_term_array_filter_expiration_status($term) {
+  return ($term->status == MEMBERSHIP_ENTITY_ACTIVE || $term->status == MEMBERSHIP_ENTITY_EXPIRED);
 }
 
 /**
