@@ -39,11 +39,9 @@ class MembershipEntityController extends EntityAPIController {
     // Load secondary members.
     foreach ($memberships as $membership) {
       $membership->secondary_members = array();
-      $secondary_members = db_select('membership_entity_secondary_member')
-        ->fields('membership_entity_secondary_member', array('uid', 'weight'))
-        ->condition('mid', $membership->mid)
-        ->orderBy('weight')
-        ->execute();
+      $secondary_members = db_query('SELECT uid, weight FROM {membership_entity_secondary_member} WHERE mid = :mid ORDER BY weight', array(
+        ':mid' => $membership->mid,
+      ));
       foreach ($secondary_members as $member) {
         $membership->secondary_members[$member->weight] = $member->uid;
       }
@@ -103,14 +101,15 @@ class MembershipEntityController extends EntityAPIController {
       }
 
       // Remove old roles.
-      $original_uid = db_select('membership_entity')->fields('membership_entity', array('uid'))->condition('mid', $membership->mid)->execute()->fetchField();
+      $params = array(':mid' => $membership->mid);
+      $original_uid = db_query('SELECT uid FROM {membership_entity} WHERE mid = :mid', $params)->fetchField();
       if ($membership->uid != $original_uid) {
         $roles[$original_uid] = array(
           'rid' => $data['primary_role'],
           'op' => 'remove',
         );
       }
-      $original_secondary = array_keys(db_select('membership_entity_secondary_member')->fields('membership_entity_secondary_member', array('uid'))->condition('mid', $membership->mid)->execute()->fetchAllAssoc('uid'));
+      $original_secondary = array_keys(db_query('SELECT uid FROM {membership_entity_secondary_member} WHERE mid = :mid', $params)->fetchAllAssoc('uid'));
       foreach (array_diff($original_secondary, $membership->secondary_members) as $uid) {
         $roles[$uid] = array(
           'rid' => $data['secondary_role'],

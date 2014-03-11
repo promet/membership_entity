@@ -180,11 +180,7 @@ function membership_entity_membership_entity_access($op, $membership = NULL, $ac
     }
 
     // Secondary member access.
-    $results = db_select('membership_entity_secondary_member')
-      ->fields('membership_entity_secondary_member', array('mid'))
-      ->condition('uid', $user->uid)
-      ->execute()
-      ->fetchAllAssoc('mid');
+    $results = db_query('SELECT mid FROM {membership_entity_secondary_member} WHERE uid = :uid', array(':uid' => $user->uid))->fetchAllAssoc('mid');
     if (!empty($results) && in_array($membership->mid, array_keys($results))) {
       // Can secondary members edit the membership?
       $bundle_settings = membership_entity_get_bundle_settings($type_name);
@@ -795,14 +791,14 @@ function membership_entity_element_info() {
 }
 
 /**
- * Value callback for the member select field.
+ * Implements form_type_hook_value().
  */
 function form_type_membership_entity_member_select_value($element, $input, &$form_state) {
   if ($input === FALSE && !empty($element['#default_value'])) {
     foreach ($element['#default_value'] as $delta => $uid) {
       // Expand the raw uid into username.
       $value[$delta] = array(
-        'value' => check_plain(db_select('users')->fields('users', array('name'))->condition('uid', $uid)->range(0, 1)->execute()->fetchField()),
+        'value' => check_plain(db_query_range('SELECT name FROM {users} WHERE uid = :uid', 0, 1, array(':uid' => $uid))->fetchField()),
         '_weight' => $delta,
       );
     }
@@ -956,7 +952,7 @@ function membership_entity_member_select_validate($element, &$form_state) {
 
     if (!empty($value['value'])) {
       $name = $value['value'];
-      if ($uid = db_select('users')->fields('users', array('uid'))->condition('name', $name)->execute()->fetchField()) {
+      if ($uid = db_query('SELECT uid FROM {users} WHERE name = :name', array(':name' => $name))->fetchField()) {
         // Save the value as a uid instead of username.
         $values[$delta] = $uid;
       }
@@ -977,7 +973,7 @@ function membership_entity_uid_value($element, $input = FALSE, $form_state = arr
   if ($input === FALSE && !empty($element['#default_value'])) {
     // Expand the raw uid into username.
     $uid = $element['#default_value'];
-    $result = db_select('users')->fields('users', array('name'))->condition('uid', $uid)->range(0, 1)->execute()->fetchField();
+    $result = db_query('SELECT name FROM {users} WHERE uid = :uid LIMIT 1', array(':uid' => $uid))->fetchField();
     return check_plain($result);
   }
 }

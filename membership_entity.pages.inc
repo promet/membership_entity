@@ -369,7 +369,7 @@ function membership_entity_admin_list(&$form_state) {
   _membership_entity_build_filter_query($query);
   $mids = $query
     ->fields('me', array('mid'))
-    ->limit(50)
+    ->range(0, 50)
     ->orderByHeader($header)
     ->execute()
     ->fetchCol();
@@ -850,7 +850,7 @@ function membership_entity_form_validate($form, &$form_state) {
 
   if (!empty($values['member_id'])) {
     // Member ID must be unique.
-    if ((bool) db_select('membership_entity', 'me')->fields('me', array('mid'))->condition('mid', $membership->mid, '<>')->condition('member_id', check_plain($values['member_id']))->range(0, 1)->execute()->fetchField()) {
+    if ((bool) db_query_range('SELECT mid FROM {membership_entity} WHERE mid <> :mid AND member_id = :member_id', 0, 1, array(':mid' => $membership->mid, ':member_id' => $values['member_id']))->fetchField()) {
       form_set_error('member_id', t('The member ID %member_id already exists.', array(
         '%member_id' => $values['member_id'],
       )));
@@ -860,7 +860,7 @@ function membership_entity_form_validate($form, &$form_state) {
   // Flatten the primary member field and make sure there is not already a
   // membership for this user.
   if (!empty($values['uid']) && $uid = reset($values['uid'])) {
-    if ($uid != $membership->uid && $mid = db_select('membership_entity', 'me')->fields('me', array('mid'))->condition('uid', $uid)->condition('type', $membership->type)->execute()->fetchField()) {
+    if ($uid != $membership->uid && $mid = db_query('SELECT mid FROM {membership_entity} WHERE uid = :uid AND type = :type', array(':uid' => $uid, ':type' => $membership->type))->fetchField()) {
       form_set_error('uid', t('A membership already exists for %name. Did you want to <a href="!url">renew</a> this membership?', array(
         '%name' => format_username(user_load($uid)),
         '!url' => url('membership/' . $mid . '/renew'),

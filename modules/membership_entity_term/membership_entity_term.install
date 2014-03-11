@@ -9,45 +9,43 @@
  * Implements hook_schema().
  */
 function membership_entity_term_schema() {
-  $t = get_t();
-
   $schema['membership_entity_term'] = array(
-    'description' => $t('The base table for membership terms.'),
+    'description' => 'The base table for membership terms.',
     'fields' => array(
       'id' => array(
-        'description' => $t('The primary identifier for membership terms.'),
+        'description' => 'The primary identifier for membership terms.',
         'type' => 'serial',
         'unsigned' => TRUE,
         'not null' => TRUE,
       ),
       'mid' => array(
-        'description' => $t('The membership identifier.'),
+        'description' => 'The membership identifier.',
         'type' => 'int',
         'unsigned' => TRUE,
         'not null' => TRUE,
       ),
       'status' => array(
-        'description' => $t('Integer code indicating the membership term status.'),
+        'description' => 'Integer code indicating the membership term status.',
         'type' => 'int',
         'not null' => TRUE,
         'default' => 1,
       ),
       'term' => array(
-        'description' => $t('The human readable term length. eg. 1 year.'),
+        'description' => 'The human readable term length. eg. 1 year.',
         'type' => 'varchar',
         'length' => 32,
         'not null' => TRUE,
         'default' => '',
       ),
       'modifiers' => array(
-        'description' => $t('A serialized list of term length modifiers. eg. +1 month.'),
+        'description' => 'A serialized list of term length modifiers. eg. +1 month.',
         'type' => 'text',
         'size' => 'big',
         'not null' => FALSE,
         'serialize' => TRUE,
       ),
       'start' => array(
-        'description' => $t('The UNIX timestamp when this term starts.'),
+        'description' => 'The UNIX timestamp when this term starts.',
         'type' => 'datetime',
         'mysql_type' => 'datetime',
         'pgsql_type' => 'timestamp without time zone',
@@ -57,7 +55,7 @@ function membership_entity_term_schema() {
         'sortable' => TRUE,
       ),
       'end' => array(
-        'description' => $t('The UNIX timestamp when this term ends.'),
+        'description' => 'The UNIX timestamp when this term ends.',
         'type' => 'datetime',
         'mysql_type' => 'datetime',
         'pgsql_type' => 'timestamp without time zone',
@@ -89,9 +87,8 @@ function membership_entity_term_schema() {
  * Adds a status field.
  */
 function membership_entity_term_update_7000() {
-  $t = get_t();
   $field = array(
-    'description' => $t('Integer code indicating the membership term status.'),
+    'description' => 'Integer code indicating the membership term status.',
     'type' => 'int',
     'not null' => TRUE,
     'default' => 1,

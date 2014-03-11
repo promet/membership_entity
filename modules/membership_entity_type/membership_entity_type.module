@@ -234,13 +234,13 @@ function membership_entity_type_theme($existing, $type, $theme, $path) {
 
 /**
  * Returns a list of membership types.
+ *
+ * @param string $type
+ *   Get information about a specific type. NULL to return all types.
  */
 function membership_entity_type_get_types($type = NULL) {
-  $types = db_select('membership_entity_type', 't')
-    ->fields('t', array('id', 'type', 'label', 'description'))
-    ->execute()
-    ->fetchAllAssoc('type');
-  return isset($type) ? reset($types) : $types;
+  $types = db_query('SELECT id, type, label, description FROM {membership_entity_type}')->fetchAllAssoc('type');
+  return isset($type) ? $types[$type] : $types;
 }
 
 /**

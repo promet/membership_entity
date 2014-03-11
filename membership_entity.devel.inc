@@ -104,28 +104,18 @@ function membership_entity_devel_create_memberships($values) {
   module_load_include('inc', 'devel_generate', 'devel_generate.fields');
 
   if ($values['kill']) {
-    $mids = db_select('membership_entity')
-      ->fields('membership_entity', array('mid'))
-      ->execute()
-      ->fetchAllAssoc('mid');
+    $mids = db_query('SELECT mid FROM {membership_entity}')->fetchAllAssoc('mid');
     membership_entity_delete_multiple(array_keys($mids));
     drupal_set_message(format_plural(count($mids), '1 membership deleted', '@count memberships deleted'));
   }
 
-  $results = db_select('users', 'u')
-    ->fields('u', array('uid'))
-    ->condition('u.uid', 0, '<>')
-    ->execute()
-    ->fetchAllAssoc('uid');
+  $results = db_query('SELECT uid FROM {users} WHERE uid <> 0')->fetchAllAssoc('uid');
   $users = drupal_map_assoc(array_keys($results));
 
   $used_users = array();
-  $resutls = db_select('membership_entity', 'me')
-    ->fields('me', array('uid', 'type'))
-    ->execute()
-    ->fetchAllAssoc('type');
-  foreach ($resutls as $type => $result) {
-    $used_users[$type][$result->uid] = $result->uid;
+  $results = db_query('SELECT uid, type FROM {membership_entity}');
+  foreach ($results as $row) {
+    $used_users[$row->type][$row->uid] = $row->uid;
   }
 
   if (!module_exists('membership_entity_type')) {

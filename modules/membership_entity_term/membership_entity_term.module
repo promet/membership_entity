@@ -82,13 +82,10 @@ function membership_entity_term_label($term, $entity_type) {
 function membership_entity_term_cron() {
   // Find all expired membership terms.
   $now = new DateObject('now', 'UTC');
-  $result = db_select('membership_entity_term', 't')
-    ->fields('t', array('id'))
-    ->condition('end', date_format_date($now, 'custom', DATE_FORMAT_DATETIME), '<')
-    ->condition('status', MEMBERSHIP_ENTITY_ACTIVE)
-    ->condition('term', 'lifetime', '<>')
-    ->execute()
-    ->fetchAllAssoc('id');
+  $result = db_query("SELECT id FROM {membership_entity_term} WHERE end < :end AND status = :status AND term <> 'lifetime'", array(
+    ':end' => date_format_date($now, 'custom', DATE_FORMAT_DATETIME),
+    ':status' => MEMBERSHIP_ENTITY_ACTIVE,
+  ))->fetchAllAssoc('id');;
 
   // Queue them up for expiration.
   $queue = DrupalQueue::get('membership_entity_term_expire');
