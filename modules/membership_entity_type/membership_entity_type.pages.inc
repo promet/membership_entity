@@ -26,10 +26,6 @@ function membership_entity_type_membership_add_page() {
 
 /**
  * Returns HTML for a list of available membership types.
- *
- * @param $variables
- *   An associative array containing:
- *   - content: An array of membership type menu items.
  */
 function theme_membership_entity_type_add_list($variables) {
   $content = $variables['content'];

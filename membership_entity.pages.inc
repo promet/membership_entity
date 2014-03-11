@@ -1000,9 +1000,9 @@ function membership_entity_multiple_delete_confirm_submit($form, &$form_state) {
 /**
  * Open the register form in a new modal window.
  *
- * @param $js
+ * @param string $js
  *   ctools javascript status (nojs or ajax)
- * @param $return_id
+ * @param string $return_id
  *   The form element HTML id to fill with the new user id.
  */
 function membership_entity_modal_register($js = NULL, $return_id = NULL) {

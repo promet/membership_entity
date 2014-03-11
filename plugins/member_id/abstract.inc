@@ -10,7 +10,10 @@
  */
 interface MembershipEntityMemberIdInterface {
   /**
-   * Return the next available member id.
+   * Determines the next available member id.
+   *
+   * @return string
+   *   The next available member id.
    */
   public function next();
 
@@ -34,6 +37,12 @@ abstract class MembershipEntityMemberIdAbstract implements MembershipEntityMembe
    */
   protected $settings;
 
+  /**
+   * Default constructor.
+   *
+   * @param array $settings
+   *   An array of default plugin settings.
+   */
   public function __construct($settings) {
     $this->settings = $settings;
   }
@@ -53,15 +62,16 @@ abstract class MembershipEntityMemberIdAbstract implements MembershipEntityMembe
   /**
    * Implements MembershipEntityMemberIdInterface::validateSettings().
    */
-  public function validateSettings(&$element, &$form_state) {
-    return;
-  }
+  public function validateSettings(&$element, &$form_state) {}
 }
 
 /**
  * A broken implementation of MembershipEntityMemberId.
  */
 class MembershipEntityMemberIdBroken extends MembershipEntityMemberIdAbstract {
+  /**
+   * {@inheritdoc}
+   */
   public function settingsForm(&$form_state) {
     $form['member_id_broken'] = array(
       '#markup' => t('The selected member_id handler is broken.'),

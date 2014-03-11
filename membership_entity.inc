@@ -68,8 +68,8 @@ class MembershipEntity extends Entity {
   /**
    * Set the primary member for the membership.
    *
-   * @param $account
-   *   The primary member uid or loaded account object.
+   * @param object|int $account
+   *   The loaded account object or member uid.
    */
   public function setPrimaryMember($account) {
     $this->uid = is_object($account) ? $account->uid : $account;

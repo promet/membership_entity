@@ -9,11 +9,17 @@
  * Field handler to provide a list of secondary members.
  */
 class views_handler_field_membership_secondary_member extends views_handler_field_prerender_list {
+  /**
+   * {@inheritdoc}
+   */
   public function init(&$view, $options) {
     parent::init($view, $options);
     $this->additional_fields['mid'] = array('table' => 'membership_entity', 'field' => 'mid');
   }
 
+  /**
+   * {@inheritdoc}
+   */
   public function option_definition() {
     $options = parent::option_definition();
     $options['display'] = array('default' => 'label');
@@ -21,6 +27,9 @@ class views_handler_field_membership_secondary_member extends views_handler_fiel
     return $options;
   }
 
+  /**
+   * {@inheritdoc}
+   */
   public function options_form(&$form, &$form_state) {
     parent::options_form($form, $form_state);
 
@@ -48,11 +57,17 @@ class views_handler_field_membership_secondary_member extends views_handler_fiel
     );
   }
 
+  /**
+   * {@inheritdoc}
+   */
   public function query() {
     $this->add_additional_fields();
     $this->field_alias = $this->aliases['mid'];
   }
 
+  /**
+   * {@inheritdoc}
+   */
   public function pre_render(&$values) {
     if (empty($values)) {
       return;
@@ -73,10 +88,16 @@ class views_handler_field_membership_secondary_member extends views_handler_fiel
     }
   }
 
+  /**
+   * {@inheritdoc}
+   */
   public function render_item($count, $item) {
     return $item['uid'];
   }
 
+  /**
+   * {@inheritdoc}
+   */
   public function render_items($values) {
     if (empty($values)) {
       return;
@@ -110,6 +131,9 @@ class views_handler_field_membership_secondary_member extends views_handler_fiel
     }
   }
 
+  /**
+   * {@inheritdoc}
+   */
   public function render_link($value) {
     $account = user_load($value);
     if ($this->options['display'] == 'label') {

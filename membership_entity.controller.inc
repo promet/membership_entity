@@ -52,15 +52,16 @@ class MembershipEntityController extends EntityAPIController {
   /**
    * Load all memberships for a given user.
    *
-   * @param $account
+   * @param object|int $account
    *   A user account object or uid.
-   * @param $bundle
+   * @param string $bundle
    *   The membership bundle to load.
    *
-   * @return An array of all memberships for the given user account, keyed by
+   * @return MembershipEntity[]
+   *   An array of all memberships for the given user account, keyed by
    *   bundle. Or a single membership object if $bundle is provided.
    */
-  public function load_by_user($account, $bundle = NULL) {
+  public function loadByUser($account, $bundle = NULL) {
     // Support uid or entire user object.
     $uid = is_object($account) ? $account->uid : $account;
     $memberships = $this->load(FALSE, array('uid' => $uid));

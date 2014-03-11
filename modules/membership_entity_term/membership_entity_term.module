@@ -440,7 +440,7 @@ function membership_entity_term_load_by_membership($membership, $reset = FALSE) 
   if ($reset) {
     $controller->resetCache();
   }
-  return $controller->load_by_membership($membership);
+  return $controller->loadByMembership($membership);
 }
 
 /**
@@ -473,7 +473,7 @@ function membership_entity_term_get_join_date(MembershipEntity $membership) {
  * @return DateTimeInterface
  *   The end date of the latest active term. Use date_format_date() to create
  *   a formatted date string. FALSE if there are no active or expired terms for
- *   the membership or the latest term is a liftime term.
+ *   the membership or the latest term is a lifetime term.
  */
 function membership_entity_term_get_expiration_date(MembershipEntity $membership) {
   // Find and return the lastest active term end date.
@@ -524,7 +524,8 @@ function membership_entity_term_save($term) {
 /**
  * Filter terms that are not active or expired.
  *
- * Callback for array_filter() within membership_entity_term_get_expiration_date().
+ * Callback for array_filter() within
+ * membership_entity_term_get_expiration_date().
  *
  * @param MembershipEntityTerm $term
  *   The membership term to check status.
@@ -625,10 +626,6 @@ function _membership_entity_term_modify_date(DateTime $date, $modifier) {
 
 /**
  * Returns HTML for the available term lengths form element.
- *
- * @param $variables
- *   An associative array containing:
- *   - element: A render element representing the form element.
  */
 function theme_membership_entity_term_available_term_lengths_element($variables) {
   $element = $variables['element'];
@@ -690,10 +687,6 @@ function theme_membership_entity_term_available_term_lengths_element($variables)
 
 /**
  * Returns HTML for the term modifiers form element.
- *
- * @param $variables
- *   An associative array containing:
- *   - element: A render element representing the form element.
  */
 function theme_membership_entity_term_modifiers_element($variables) {
   $element = $variables['element'];
@@ -732,10 +725,6 @@ function theme_membership_entity_term_modifiers_element($variables) {
 
 /**
  * Returns HTML for a list of term modifiers.
- *
- * @param $variables
- *   An associative array containing:
- *   - modifiers: An array of relative modifiers.
  */
 function theme_membership_entity_term_modifiers($variables) {
   drupal_add_css(drupal_get_path('module', 'membership_entity_term') . '/membership_entity_term.css');

@@ -12,6 +12,9 @@ class views_handler_field_membership_link extends views_handler_field_entity {
   public $entity_info;
   public $op;
 
+  /**
+   * {@inheritdoc}
+   */
   public function init(&$view, $options) {
     parent::init($view, $options);
     $this->entity_info = entity_get_info($this->entity_type);
@@ -22,12 +25,18 @@ class views_handler_field_membership_link extends views_handler_field_entity {
     $this->additional_fields[$key] = $key;
   }
 
+  /**
+   * {@inheritdoc}
+   */
   public function option_definition() {
     $options = parent::option_definition();
     $options['text'] = array('default' => $this->op, 'translatable' => TRUE);
     return $options;
   }
 
+  /**
+   * {@inheritdoc}
+   */
   public function options_form(&$form, &$form_state) {
     $form['text'] = array(
       '#type' => 'textfield',
@@ -41,18 +50,34 @@ class views_handler_field_membership_link extends views_handler_field_entity {
     $form['alter']['external'] = array('#access' => FALSE);
   }
 
+  /**
+   * {@inheritdoc}
+   */
   public function query() {
     $this->ensure_my_table();
     $this->add_additional_fields();
   }
 
-  // An example of field level access control.
+  /**
+   * {@inheritdoc}
+   */
   public function render($values) {
     if ($entity = $this->get_value($values)) {
       return $this->render_link($entity, $values);
     }
   }
 
+  /**
+   * Build a membership link.
+   *
+   * @param Entity $entity
+   *   The membership entity object.
+   * @param array $values
+   *   An array of query results.
+   *
+   * @return string
+   *   HTML for the membership link.
+   */
   public function render_link($entity, $values) {
     if (entity_access('view', $this->entity_type, $entity)) {
       $this->options['alter']['make_link'] = TRUE;

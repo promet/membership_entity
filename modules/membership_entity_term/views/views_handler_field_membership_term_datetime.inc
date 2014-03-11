@@ -9,7 +9,10 @@
  * Field handler for membership term dates.
  */
 class views_handler_field_membership_term_datetime extends views_handler_field_date {
-  function get_value($values, $field = NULL) {
+  /**
+   * {@inheritdoc}
+   */
+  public function get_value($values, $field = NULL) {
     return strtotime(parent::get_value($values, $field));
   }
 }

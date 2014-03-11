@@ -9,6 +9,9 @@
  * Field handler to show the primary member from the membership.
  */
 class views_handler_field_membership_primary_member extends entity_views_handler_field_entity {
+  /**
+   * {@inheritdoc}
+   */
   public function options_form(&$form, &$form_state) {
     parent::options_form($form, $form_state);
 

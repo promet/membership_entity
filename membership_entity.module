@@ -125,11 +125,11 @@ function membership_entity_permission() {
 /**
  * Membership entity access callback.
  *
- * @param $op
+ * @param string $op
  *   The membership operations.
- * @param $membership
+ * @param MembershipEntity $membership
  *   The membership object or type name if $op == 'join'.
- * @param $account
+ * @param object $account
  *   The user account to check access. Defaults to logged in user.
  *
  * @return bool
@@ -618,8 +618,8 @@ function membership_entity_form_field_ui_field_edit_form_submit($form, &$form_st
 /**
  * Load bundle settings for a membership.
  *
- * @param $bundle
- *   The membership bundle to load settings or NULL to load defaults.
+ * @param string $bundle
+ *   The membership bundle to load settings.
  */
 function membership_entity_get_bundle_settings($bundle = 'membership') {
   if (module_exists('membership_entity_type')) {
@@ -675,7 +675,7 @@ function membership_entity_member_id_plugin_process(&$plugin, $info) {
 /**
  * Get metadata for member id plugins.
  *
- * @param $id
+ * @param int $id
  *   (optional) Return metadata on a specific member_id plugin.
  */
 function membership_entity_get_member_id($id = NULL) {
@@ -791,7 +791,7 @@ function membership_entity_element_info() {
 }
 
 /**
- * Implements form_type_hook_value().
+ * Default value callback for membership_entity_member_select.
  */
 function form_type_membership_entity_member_select_value($element, $input, &$form_state) {
   if ($input === FALSE && !empty($element['#default_value'])) {
@@ -1001,7 +1001,7 @@ function membership_entity_load_by_user($account, $type = NULL, $reset = FALSE) 
   if ($reset) {
     $controller->resetCache();
   }
-  return $controller->load_by_user($account, $type);
+  return $controller->loadByUser($account, $type);
 }
 
 /**

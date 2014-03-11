@@ -9,6 +9,12 @@
  * Defines a membership type.
  */
 class MembershipEntityType extends Entity {
+  /**
+   * Default constructor for membership types.
+   *
+   * @param array $values
+   *   An array of default values.
+   */
   public function __construct($values = array()) {
     parent::__construct($values, 'membership_entity_type');
   }
@@ -30,7 +36,7 @@ class MembershipEntityType extends Entity {
   }
 
   /**
-   * Overrides Entity::defaultUri().
+   * {@inheritdoc}
    */
   public function defaultUri() {
     return array('path' => 'admin/structure/memberships/manage/' . $this->type);

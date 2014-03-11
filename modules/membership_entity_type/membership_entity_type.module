@@ -319,7 +319,7 @@ function membership_entity_type_get_names() {
 /**
  * Returns the human readable name of a membership object type.
  *
- * @param $membership
+ * @param MembershipEntity $membership
  *   The membership object to get the type name.
  */
 function membership_entity_type_get_name($membership) {

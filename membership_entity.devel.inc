@@ -89,7 +89,7 @@ function membership_entity_devel_generate_memberships_form_submit($form, &$form_
 /**
  * Generate some random memberships.
  *
- * @param $values
+ * @param array $values
  *   An assoicative array with the following keys:
  *   - num: Number of users to generate.
  *   - kill: Boolean that indicates if existing users should be removed first.
@@ -165,7 +165,7 @@ function membership_entity_devel_create_memberships($values) {
 
         if ($i == 0) {
           // First term starts when the membership was created.
-          $start = format_date($created,'custom', DATE_FORMAT_DATETIME);
+          $start = format_date($created, 'custom', DATE_FORMAT_DATETIME);
         }
         elseif ($terms[$i - 1]->term == 'lifetime') {
           // Don't add anymore terms after a lifetime term.

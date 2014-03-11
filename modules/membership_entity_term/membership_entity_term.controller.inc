@@ -28,10 +28,10 @@ class MembershipEntityTermController extends EntityAPIController {
   /**
    * Load all terms for a given membership.
    *
-   * @param $membership
+   * @param MembershipEntity|int $membership
    *   A membership object or mid.
    */
-  public function load_by_membership($membership) {
+  public function loadByMembership($membership) {
     // Support mid or entire membership object.
     $mid = is_object($membership) ? $membership->mid : $membership;
 

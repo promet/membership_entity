@@ -10,7 +10,7 @@
  */
 class MembershipEntityTypeUIController extends EntityDefaultUIController {
   /**
-   * Overrides EntityDefaultUIController::hook_menu().
+   * {@inheritdoc}
    */
   public function hook_menu() {
     $items = parent::hook_menu();
