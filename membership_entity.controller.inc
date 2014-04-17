@@ -50,6 +50,19 @@ class MembershipEntityController extends EntityAPIController {
   }
 
   /**
+   * Load a single membership by member id.
+   *
+   * @param string $member_id
+   *   The unique membership member id.
+   *
+   * @return MembershipEntity
+   *   The membership object identified by member id.
+   */
+  public function loadByMemberID($member_id) {
+    return reset($this->load(FALSE, array('member_id' => $member_id)));
+  }
+
+  /**
    * Load all memberships for a given user.
    *
    * @param object|int $account

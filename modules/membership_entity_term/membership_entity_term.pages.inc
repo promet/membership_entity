@@ -71,7 +71,6 @@ function _membership_entity_term_settings_form(&$form, &$form_state, $data) {
   $form['term_lengths']['term_length_options'] = array(
     '#type' => 'select',
     '#title' => t('Term length'),
-    '#required' => TRUE,
     '#options' => array(
       '1 day' => t('1 day'),
       '1 week' => t('1 week'),
@@ -121,8 +120,6 @@ function _membership_entity_term_settings_form(&$form, &$form_state, $data) {
   );
 
   $form['#validate'][] = 'membership_entity_term_settings_form_validate';
-  $form['actions']['submit']['#limit_validation_errors'][] = array('available_term_lengths');
-  $form['actions']['submit']['#limit_validation_errors'][] = array('term_lengths', 'available_term_lengths');
 }
 
 /**
@@ -138,6 +135,10 @@ function membership_entity_term_length_ajax_callback($form, $form_state) {
 function membership_entity_term_length_add_validate($form, &$form_state) {
   $values = &$form_state['values']['term_lengths'];
   $term_length = $values['term_length_options'];
+
+  if (empty($term_length)) {
+    form_set_error('term_lengths][term_length_options', t('Please select a a term length.'));
+  }
 
   // Validate a custom term length.
   if ($term_length == 'other') {
@@ -237,13 +238,14 @@ function _membership_entity_term_create_form(&$form, &$form_state) {
  * Submit handler for creating new terms.
  */
 function membership_entity_term_create_form_submit($form, &$form_state) {
-  $membership = $form_state['#membership_entity'];
+  $membership = $form_state['membership_entity'];
   $term_length = $form_state['values']['term_length'];
   $start = new DateObject('now', 'UTC');
   $term = membership_entity_term_create(array(
     'mid' => $membership->mid,
     'term' => $term_length,
     'start' => date_format_date($start, 'custom', DATE_FORMAT_DATETIME),
+    'status' => $membership->status,
   ));
   membership_entity_term_save($term);
 }
@@ -498,7 +500,7 @@ function membership_entity_term_edit_form_submit($form, &$form_state) {
   $status = membership_entity_term_save($term);
 
   // Add the saved term object to $form_state for other modules.
-  $form_state['#membership_entity_term'] = $term;
+  $form_state['membership_entity_term'] = $term;
   switch ($status) {
     case SAVED_UPDATED:
       drupal_set_message(t('The membership term has been updated.'));

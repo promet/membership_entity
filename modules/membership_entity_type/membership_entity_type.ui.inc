@@ -33,6 +33,10 @@ function membership_entity_type_form($form, &$form_state, $type, $op = 'edit') {
 
   // Make the type object available to implementations of hook_form_alter.
   $form['#membership_entity_type'] = $type;
+  $form['bundle'] = array(
+    '#type' => 'value',
+    '#value' => 'membership_entity_type',
+  );
 
   $form['label'] = array(
     '#title' => t('Name'),
@@ -79,12 +83,11 @@ function membership_entity_type_form($form, &$form_state, $type, $op = 'edit') {
     }
   }
 
+  // Allow other modules to add fields to the form.
+  field_attach_form('membership_entity_type', $type, $form, $form_state);
+
   $form['#validate'][] = 'membership_entity_type_form_validate';
   $form['actions']['submit']['#submit'] = array('membership_entity_type_form_submit');
-  $form['actions']['submit']['#limit_validation_errors'][] = array('label');
-  $form['actions']['submit']['#limit_validation_errors'][] = array('type');
-  $form['actions']['submit']['#limit_validation_errors'][] = array('description');
-  $form['actions']['submit']['#limit_validation_errors'][] = array('weight');
   return $form;
 }
 
@@ -115,13 +118,16 @@ function membership_entity_type_form_submit($form, &$form_state) {
   // Remove extra fields.
   form_state_values_clean($form_state);
 
-  // Remove database fields. Everything that's left goes in data.
+  // Remove database and Field API fields. Everything that's left goes in data.
+  $fields = field_info_instances('membership_entity_type', 'membership_entity_type');
+
   foreach ($form_state['values'] as $key => $value) {
     if (!isset($type->$key)) {
       $form_state['values']['data'][$key] = $value;
       unset($form_state['values'][$key]);
     }
   }
+
   entity_form_submit_build_entity('membership_entity_type', $type, $form, $form_state);
   $status = membership_entity_type_save($type);
 

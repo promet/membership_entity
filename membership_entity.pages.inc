@@ -29,6 +29,7 @@ function membership_entity_settings_form($form, &$form_state, $data = array()) {
     'member_id_format' => 'membership_entity_numeric_member_id',
     'member_id_settings' => array(),
   );
+  $form['#data'] = $data;
 
   $form['membership_settings'] = array(
     '#type' => 'fieldset',
@@ -161,15 +162,6 @@ function membership_entity_settings_form($form, &$form_state, $data = array()) {
     '#type' => 'submit',
     '#value' => t('Save configuration'),
     '#submit' => array('membership_entity_settings_form_submit'),
-    '#limit_validation_errors' => array(
-      array('primary_role'),
-      array('secondary_role'),
-      array('cardinality'),
-      array('show_on_profile'),
-      array('all_edit'),
-      array('member_id_format'),
-      array('member_id_settings'),
-    ),
   );
 
   // Allow other modules to add settings to the form.
@@ -711,10 +703,14 @@ function membership_entity_join_form($form, &$form_state, $bundle = 'membership'
   }
 
   drupal_set_title(t('Join'));
+
+  $form['#attributes']['class'][] = 'membership-entity-join-form';
+
   $form['#membership_entity'] = membership_entity_create(array(
     'uid' => $GLOBALS['user']->uid,
     'type' => $bundle,
   ));
+
   $form['#bundle_settings'] = membership_entity_get_bundle_settings($bundle);
   if (empty($form['#bundle_settings'])) {
     return '';
@@ -899,7 +895,7 @@ function membership_entity_edit_form_submit($form, &$form_state) {
   $status = membership_entity_save($membership);
 
   // Add the saved membership object to $form_state for other modules.
-  $form_state['#membership_entity'] = $membership;
+  $form_state['membership_entity'] = $membership;
 
   $t_args = array('%member_id' => $membership->member_id);
   switch ($status) {

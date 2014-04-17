@@ -994,6 +994,17 @@ function membership_entity_load($mid = NULL, $reset = FALSE) {
 }
 
 /**
+ * Load a single membership object by member id.
+ */
+function membership_entity_load_by_member_id($member_id, $reset = FALSE) {
+  $controller = entity_get_controller('membership_entity');
+  if ($reset) {
+    $controller->resetCache();
+  }
+  return $controller->loadByMemberID($member_id);
+}
+
+/**
  * Load all memberships for a given user.
  */
 function membership_entity_load_by_user($account, $type = NULL, $reset = FALSE) {
