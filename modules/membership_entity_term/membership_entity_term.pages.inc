@@ -238,7 +238,7 @@ function _membership_entity_term_create_form(&$form, &$form_state) {
  * Submit handler for creating new terms.
  */
 function membership_entity_term_create_form_submit($form, &$form_state) {
-  $membership = $form_state['membership_entity'];
+  $membership = &$form_state['membership_entity'];
   $term_length = $form_state['values']['term_length'];
   $start = new DateObject('now', 'UTC');
   $term = membership_entity_term_create(array(
@@ -248,6 +248,8 @@ function membership_entity_term_create_form_submit($form, &$form_state) {
     'status' => $membership->status,
   ));
   membership_entity_term_save($term);
+  $membership->terms[$term->id] = $term;
+  $form_state['membership_entity_term'] = $term;
 }
 
 /**
@@ -561,7 +563,7 @@ function membership_entity_term_renew($form, &$form_state, $membership) {
  * Submit handler to renew a membership.
  */
 function membership_entity_term_renew_submit($form, &$form_state) {
-  $membership = $form['#membership_entity'];
+  $membership = &$form_state['membership_entity'];
 
   // Add the new membership term.
   $term_length = $form_state['values']['term_length'];
@@ -579,6 +581,8 @@ function membership_entity_term_renew_submit($form, &$form_state) {
     'start' => $start,
   ));
   membership_entity_term_save($term);
+  $membership->terms[$term->id] = $term;
+  $form_state['membership_entity_term'] = $term;
 }
 
 /**

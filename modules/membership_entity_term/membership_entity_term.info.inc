@@ -39,6 +39,7 @@ class MembershipEntityTermMetadataController extends EntityDefaultMetadataContro
       'label' => t('Term Status'),
       'description' => t('The membership term status.'),
       'options list' => 'membership_entity_get_status_list',
+      'setter callback' => 'entity_property_verbatim_set',
     ) + $properties['status'];
 
     $properties['start'] = array(
