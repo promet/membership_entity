@@ -285,6 +285,18 @@ function membership_entity_term_field_extra_fields() {
  */
 function membership_entity_term_membership_entity_view($membership, $view_mode, $langcode) {
   $membership->content['membership_terms'] = membership_entity_terms_view($membership->terms, $view_mode, $langcode);
+
+  if ($view_mode == 'account' && membership_entity_access('renew', $membership)) {
+    // Add a renew link.
+    $membership->content['links']['membership_entity']['#links']['renew'] = array(
+      'title' => t('Renew membership'),
+      'href' => 'membership/' . $membership->mid . '/renew',
+      'attributes' => array(
+        'title' => t('Renew membership @member_id.', array('@member_id' => $membership->member_id)),
+      ),
+      'html' => FALSE,
+    );
+  }
 }
 
 /**

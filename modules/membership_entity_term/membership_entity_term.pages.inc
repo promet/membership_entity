@@ -522,18 +522,19 @@ function membership_entity_term_renew($form, &$form_state, $membership) {
     return '';
   }
 
+  form_load_include($form_state, 'inc', 'membership_entity', 'membership_entity.pages');
+  membership_entity_form($form, $form_state);
+
   $options = drupal_map_assoc($bundle_settings['available_term_lengths']);
-  $form['term_length'] = array(
+  $form['membership']['term_length'] = array(
     '#type' => 'radios',
     '#title' => t('Renewal term length'),
     '#description' => t('Select the desired renewal term length.'),
     '#required' => TRUE,
     '#options' => $options,
     '#default_value' => count($options) < 2 ? reset($options) : NULL,
+    '#weigth' => -50,
   );
-
-  form_load_include($form_state, 'inc', 'membership_entity', 'membership_entity.pages');
-  membership_entity_form($form, $form_state);
 
   // Hide fields where the 'membership_entity_join_form' setting is turned off.
   foreach (field_info_instances('membership_entity', $membership->type) as $field_name => $instance) {
@@ -579,6 +580,7 @@ function membership_entity_term_renew_submit($form, &$form_state) {
     'mid' => $membership->mid,
     'term' => $term_length,
     'start' => $start,
+    'status' => $membership->status,
   ));
   membership_entity_term_save($term);
   $membership->terms[$term->id] = $term;
