@@ -772,7 +772,7 @@ function membership_entity_form(&$form, &$form_state) {
   $form['membership'] = array(
     '#type' => 'container',
     '#attributes' => array(
-      'class' => array('memberhip-enity-membership-info'),
+      'class' => array('membership-enity-membership-info'),
     ),
   );
 

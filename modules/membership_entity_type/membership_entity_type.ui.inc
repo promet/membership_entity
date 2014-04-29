@@ -159,7 +159,7 @@ function membership_entity_type_confirm_delete($form, &$form_state, $type) {
 }
 
 /**
- * Submit handler for the memberhip type delete form.
+ * Submit handler for the membership type delete form.
  */
 function membership_entity_type_confirm_delete_submit($form, &$form_state) {
   $type = $form_state['complete form']['#membership_type'];
