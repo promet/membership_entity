@@ -411,11 +411,19 @@ function membership_entity_term_membership_entity_settings_alter(&$form, &$form_
 }
 
 /**
- * Implements hook_form_FORM_ID_alter().
+ * Implements hook_form_FORM_ID_alter() for field_uid_field_edit_form().
+ *
+ * Add a checkbox for the 'membership_entity_term_renew_form' setting.
  */
 function membership_entity_term_form_field_ui_field_edit_form_alter(&$form, &$form_state, $form_id) {
-  if (isset($form['instance']['settings']['membership_entity_join_form'])) {
-    $form['instance']['settings']['membership_entity_join_form']['#title'] = t('Display on join and renew forms.');
+  $instance = $form['#instance'];
+  if ($instance['entity_type'] == 'membership_entity' && !$form['#field']['locked']) {
+    $form['instance']['settings']['membership_entity_term_renew_form'] = array(
+      '#type' => 'checkbox',
+      '#title' => t('Display on renew form.'),
+      '#default_value' => !empty($instance['settings']['membership_entity_term_renew_form']),
+      '#weight' => $form['instance']['settings']['membership_entity_join_form']['#weight'] + .1,
+    );
   }
 }
 

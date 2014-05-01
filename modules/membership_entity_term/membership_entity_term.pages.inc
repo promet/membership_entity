@@ -536,9 +536,9 @@ function membership_entity_term_renew($form, &$form_state, $membership) {
     '#weigth' => -50,
   );
 
-  // Hide fields where the 'membership_entity_join_form' setting is turned off.
+  // Hide fields where the 'membership_entity_term_renew_form' setting is turned off.
   foreach (field_info_instances('membership_entity', $membership->type) as $field_name => $instance) {
-    if (empty($instance['settings']['membership_entity_join_form'])) {
+    if (empty($instance['settings']['membership_entity_term_renew_form'])) {
       $form[$field_name]['#access'] = FALSE;
     }
   }

@@ -100,3 +100,19 @@ function membership_entity_term_update_7000() {
     ->fields(array('status' => MEMBERSHIP_ENTITY_ACTIVE))
     ->execute();
 }
+
+/**
+ * Adds option to display/hide fields on the renew form.
+ */
+function membership_entity_term_update_7001() {
+  // Show on renew form options defaults to join form option.
+  $types = module_exists('membership_entity_type') ? array_keys(membership_entity_type_get_types()) : array('membership');
+  foreach ($types as $type) {
+    foreach (field_info_instances('membership_entity', $type) as $field_name => $instance) {
+      if (!empty($instance['settings']['membership_entity_join_form'])) {
+        $instance['settings']['membership_entity_term_renew_form'] = TRUE;
+        field_update_instance($instance);
+      }
+    }
+  }
+}
