@@ -220,24 +220,15 @@ function membership_entity_term_membership_entity_term_delete($term) {
 function _membership_entity_term_insert_update($term) {
   $membership = membership_entity_load($term->mid);
 
-  // Update membership status when a term is saved.
-  $latest_term = end($membership->terms);
-  switch ($latest_term->status) {
-    case MEMBERSHIP_ENTITY_ACTIVE:
-    case MEMBERSHIP_ENTITY_EXPIRED:
-    case MEMBERSHIP_ENTITY_CANCELLED:
-      if ($membership->status != $latest_term->status) {
-        $membership->status = $latest_term->status;
-        $membership->save();
-      }
-      break;
-
-    case MEMBERSHIP_ENTITY_PENDING:
-      if (count($membership->terms) <= 1) {
-        $membership->status = MEMBERSHIP_ENTITY_PENDING;
-        $membership->save();
-      }
-      break;
+  // Membership status should always match the current or latest term.
+  if ($current = membership_entity_term_get_current($membership)) {
+    $membership->status = $current->status;
+    $membership->save();
+  }
+  else {
+    $latest = end($membership->terms);
+    $membership->status = $latest->status;
+    $membership->save();
   }
 }
 
@@ -500,6 +491,26 @@ function membership_entity_term_get_expiration_date(MembershipEntity $membership
       return FALSE;
     }
     return new DateObject($last->end, new DateTimezone('UTC'));
+  }
+  return FALSE;
+}
+
+/**
+ * Get the current term for a membership.
+ *
+ * @param MembershipEntity|int $mid
+ *   A membership object or mid.
+ * @return MembershipEntityTerm
+ *   The loaded membership term object or FALSE if there is no current term.
+ */
+function membership_entity_term_get_current($mid) {
+  // Support mid or fully loaded membership.
+  if (is_object($mid)) {
+    $mid = $mid->mid;
+  }
+
+  if ($id = db_query('SELECT id FROM {membership_entity_term} t WHERE mid = :mid AND (start <= :now AND end >= :now) LIMIT 1', array(':mid' => $mid, ':now' => format_date(REQUEST_TIME, 'custom', DATE_FORMAT_DATETIME)))->fetchField()) {
+    return membership_entity_term_load($id);
   }
   return FALSE;
 }
