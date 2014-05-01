@@ -115,20 +115,23 @@ class MembershipEntityController extends EntityAPIController {
       }
 
       // Remove old roles.
-      $params = array(':mid' => $membership->mid);
-      $original_uid = db_query('SELECT uid FROM {membership_entity} WHERE mid = :mid', $params)->fetchField();
-      if ($membership->uid != $original_uid) {
-        $roles[$original_uid] = array(
-          'rid' => $data['primary_role'],
-          'op' => 'remove',
-        );
-      }
-      $original_secondary = array_keys(db_query('SELECT uid FROM {membership_entity_secondary_member} WHERE mid = :mid', $params)->fetchAllAssoc('uid'));
-      foreach (array_diff($original_secondary, $membership->secondary_members) as $uid) {
-        $roles[$uid] = array(
-          'rid' => $data['secondary_role'],
-          'op' => 'remove',
-        );
+      if (!empty($memberhip->mid)) {
+        $params = array(':mid' => $membership->mid);
+        $original_uid = db_query('SELECT uid FROM {membership_entity} WHERE mid = :mid', $params)->fetchField();
+        if ($membership->uid != $original_uid) {
+          $roles[$original_uid] = array(
+            'rid' => $data['primary_role'],
+            'op' => 'remove',
+          );
+        }
+
+        $original_secondary = array_keys(db_query('SELECT uid FROM {membership_entity_secondary_member} WHERE mid = :mid', $params)->fetchAllAssoc('uid'));
+        foreach (array_diff($original_secondary, $membership->secondary_members) as $uid) {
+          $roles[$uid] = array(
+            'rid' => $data['secondary_role'],
+            'op' => 'remove',
+          );
+        }
       }
       _membership_entity_update_roles($roles);
     }
