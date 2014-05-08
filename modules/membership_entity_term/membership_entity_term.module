@@ -112,9 +112,9 @@ function membership_entity_term_expire_worker($data) {
   $term = membership_entity_term_load($data);
   $term->status = MEMBERSHIP_ENTITY_EXPIRED;
   membership_entity_term_save($term);
-  watchdog('membership_entity_term', 'Membership term <a href="!url">@id</a> has expired.', array(
-    '!url' => url('membership/' . $term->mid),
-    '@member_id' => $term->id,
+  watchdog('membership_entity_term', 'Membership term <a href="@url">%id</a> has expired.', array(
+    '@url' => url('membership/' . $term->mid),
+    '%id' => $term->id,
   ), WATCHDOG_INFO);
 }
 
