@@ -17,6 +17,7 @@ files[] = membership_entity_term.info.inc
 files[] = views/membership_entity_term.views.inc
 files[] = views/views_handler_field_membership_term_datetime.inc
 files[] = views/views_handler_filter_membership_term_datetime.inc
+files[] = views/views_handler_relationship_term_groupwise_max.inc
 
 ; Migrate handlers.
 files[] = membership_entity_term.migrate.inc
