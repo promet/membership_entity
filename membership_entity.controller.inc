@@ -22,7 +22,11 @@ class MembershipEntityController extends EntityAPIController {
       'status' => MEMBERSHIP_ENTITY_ACTIVE,
       'secondary_members' => array(),
     );
-    return parent::create($values);
+    $values = parent::create($values);
+
+    // Allow modules to add stuff to the default membership.
+    $this->invoke('create', $values);
+    return $values;
   }
 
   /**

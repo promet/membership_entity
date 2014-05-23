@@ -6,6 +6,8 @@ core = 7.x
 dependencies[] = date_api
 dependencies[] = entity
 dependencies[] = membership_entity
+dependencies[] = rules
+dependencies[] = views
 
 files[] = 'membership_entity_term.inc'
 files[] = 'membership_entity_term.controller.inc'

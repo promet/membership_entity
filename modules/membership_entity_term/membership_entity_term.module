@@ -80,17 +80,30 @@ function membership_entity_term_label($term, $entity_type) {
  * Implements hook_cron().
  */
 function membership_entity_term_cron() {
-  // Find all expired membership terms.
   $now = new DateObject('now', 'UTC');
-  $result = db_query("SELECT id FROM {membership_entity_term} WHERE end < :end AND status = :status AND term <> 'lifetime'", array(
-    ':end' => date_format_date($now, 'custom', DATE_FORMAT_DATETIME),
+  $query_args = array(
+    ':now' => date_format_date($now, 'custom', DATE_FORMAT_DATETIME),
     ':status' => MEMBERSHIP_ENTITY_ACTIVE,
-  ))->fetchAllAssoc('id');;
+  );
+
+  // Find all expired membership terms.
+  $result = db_query("SELECT id FROM {membership_entity_term} WHERE end < :now AND status = :status AND term <> 'lifetime'", $query_args)
+    ->fetchAllAssoc('id');
 
   // Queue them up for expiration.
   $queue = DrupalQueue::get('membership_entity_term_expire');
   foreach (array_keys($result) as $id) {
     $queue->createItem($id);
+  }
+
+  // Find all active membership terms.
+  $result = db_query("SELECT t.mid FROM {membership_entity_term} t INNER JOIN {membership_entity} m ON m.mid = t.mid WHERE t.start <= :now AND (t.end IS NULL OR t.end >= :now) AND t.status = :status AND m.status <> :status", $query_args)
+    ->fetchAllAssoc('mid');
+
+  // Queue them up for activation.
+  $queue = DrupalQueue::get('membership_entity_term_activate');
+  foreach (array_keys($result) as $mid) {
+    $queue->createItem($mid);
   }
 }
 
@@ -102,6 +115,10 @@ function membership_entity_term_cron_queue_info() {
     'worker callback' => 'membership_entity_term_expire_worker',
     'time' => 120,
   );
+  $queues['membership_entity_term_activate'] = array(
+    'worker callback' => 'membership_entity_term_activate_worker',
+    'time' => 120,
+  );
   return $queues;
 }
 
@@ -109,13 +126,29 @@ function membership_entity_term_cron_queue_info() {
  * Worker callback to process membership expirations.
  */
 function membership_entity_term_expire_worker($data) {
-  $term = membership_entity_term_load($data);
-  $term->status = MEMBERSHIP_ENTITY_EXPIRED;
-  membership_entity_term_save($term);
-  watchdog('membership_entity_term', 'Membership term <a href="@url">%id</a> has expired.', array(
-    '@url' => url('membership/' . $term->mid),
-    '%id' => $term->id,
-  ), WATCHDOG_INFO);
+  if ($term = membership_entity_term_load($data)) {
+    $membership = membership_entity_load($term->mid);
+    $term->status = MEMBERSHIP_ENTITY_EXPIRED;
+    membership_entity_term_save($term);
+    watchdog('membership_entity_term', 'Membership <a href="@url">%member_id</a> has expired.', array(
+      '@url' => url('membership/' . $membership->mid),
+      '%member_id' => $membership->member_id,
+    ), WATCHDOG_INFO);
+  }
+}
+
+/**
+ * Worker callback to process membership activations.
+ */
+function membership_entity_term_activate_worker($data) {
+  if ($membership = membership_entity_load($data)) {
+    $membership->status = MEMBERSHIP_ENTITY_ACTIVE;
+    membership_entity_save($membership);
+    watchdog('membership_entity_term', 'Membership <a href="@url">%member_id</a> has become active.', array(
+      '@url' => url('membership/' . $membership->mid),
+      '%member_id' => $membership->member_id,
+    ), WATCHDOG_INFO);
+  }
 }
 
 /**
@@ -233,6 +266,14 @@ function _membership_entity_term_insert_update($term) {
 }
 
 /**
+ * Implements hook_membership_entity_create().
+ */
+function membership_entity_term_membership_entity_create($membership) {
+  // Add an empty list of terms.
+  $membership->terms = array();
+}
+
+/**
  * Implements hook_membership_entity_load().
  */
 function membership_entity_term_membership_entity_load($memberships) {
@@ -246,6 +287,12 @@ function membership_entity_term_membership_entity_load($memberships) {
  * Access callback to renew a membership.
  */
 function membership_entity_term_renew_access($membership) {
+  // No renewal if the latest term is lifetime or pending.
+  $latest_term = end($membership->terms);
+  if (!empty($latest_term) && $latest_term->term == 'lifetime') {
+    return FALSE;
+  }
+
   if (user_access('administer membership terms')) {
     return TRUE;
   }

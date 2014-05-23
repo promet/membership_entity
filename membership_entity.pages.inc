@@ -731,7 +731,7 @@ function membership_entity_join_form($form, &$form_state, $bundle = 'membership'
     '#weight' => 9999,
     'submit' => array(
       '#type' => 'submit',
-      '#value' => t('Submit'),
+      '#value' => t('Join'),
       '#submit' => array('membership_entity_edit_form_submit'),
     ),
   );

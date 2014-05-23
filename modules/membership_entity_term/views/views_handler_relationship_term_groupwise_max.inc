@@ -14,7 +14,7 @@ class views_handler_relationship_term_groupwise_max extends views_handler_relati
    */
   function option_definition() {
     $options = parent::option_definition();
-    $options['subquery_status'] = array('default' => NULL);
+    $options['subquery_status'] = array('default' => array());
     return $options;
   }
 
@@ -151,7 +151,14 @@ class views_handler_relationship_term_groupwise_max extends views_handler_relati
     // makes it treat it as a string. We use a pattern to match multiple
     // relationships.
     $outer_pattern  = '/:' . str_replace('.', '_', $this->definition['outer field']) . '\d*/i';
-    $subquery_sql = preg_replace($outer_pattern, $this->definition['outer field'], $subquery_sql);
+
+    // Handle outer field from a relationship.
+    list($outer_table, $outer_field) = explode('.', $this->definition['outer field']);
+    if (!empty($this->relationship)) {
+      $outer_table = $this->relationship;
+    }
+
+    $subquery_sql = preg_replace($outer_pattern, "$outer_table.$outer_field", $subquery_sql);
     $subquery_sql = str_replace(array_keys($args), $args, $subquery_sql);
     return $subquery_sql;
   }

@@ -5,7 +5,10 @@ core = 7.x
 
 dependencies[] = ctools
 dependencies[] = entity
+dependencies[] = rules
+dependencies[] = views
 
+files[] = membership_entity.module
 files[] = membership_entity.inc
 files[] = membership_entity.controller.inc
 
