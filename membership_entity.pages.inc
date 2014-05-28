@@ -870,6 +870,15 @@ function membership_entity_form_validate($form, &$form_state) {
     form_set_value($form['membership']['secondary_members'], array_values(array_unique($values['secondary_members'])), $form_state);
   }
 
+  // Don't allow the primary member as a secondary member.
+  foreach ($values['secondary_members'] as $delta => $value) {
+    if ($values['uid'] = $value) {
+      form_set_error("secondary_members][$delta][value", t('%name is the primary member.', array(
+        '%name' => format_username(user_load($values['uid'])),
+      )));
+    }
+  }
+
   // Validate custom fields.
   entity_form_field_validate('membership_entity', $form, $form_state);
 }
