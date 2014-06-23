@@ -32,6 +32,8 @@ INSTALLATION
 1. Download and install the following dependencies.
   * Entity API - http://drupal.org/project/entity
   * Ctools - http://drupal.org/project/ctools
+  * Views - http://drupal.org/project/views
+  * Rules - http://drupal.org/project/rules
   * Date (for membership terms)- http://drupal.org/project/date
 
 2. Enable the module(s).
@@ -44,7 +46,7 @@ INSTALLATION
     automatically when the membership status is active or expired.
   * Secondary members may be assigned their own unique role.
 
-4. Configure membership settings at /admin/structure/memberships
+4. Configure memberships at /admin/memberships
 
 5. Create memberships.
 

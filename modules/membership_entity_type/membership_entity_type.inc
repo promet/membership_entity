@@ -39,6 +39,6 @@ class MembershipEntityType extends Entity {
    * {@inheritdoc}
    */
   public function defaultUri() {
-    return array('path' => 'admin/structure/memberships/manage/' . $this->type);
+    return array('path' => 'admin/memberships/types/manage/' . $this->type);
   }
 }

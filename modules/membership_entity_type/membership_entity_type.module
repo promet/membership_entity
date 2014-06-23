@@ -51,7 +51,7 @@ function membership_entity_type_entity_info() {
     'admin ui' => array(
       // This will override the path defined in membership_entity_menu().
       // @see membership_entity_type_menu_alter().
-      'path' => 'admin/structure/memberships',
+      'path' => 'admin/memberships/types',
       'file' => 'membership_entity_type.ui.inc',
       'menu wildcard' => '%membership_entity_type',
       'controller class' => 'MembershipEntityTypeUIController',
@@ -73,8 +73,8 @@ function membership_entity_type_entity_info_alter(&$entity_info) {
     $entity_info['membership_entity']['bundles'][$bundle] = array(
       'label' => $type->label,
       'admin' => array(
-        'path' => 'admin/structure/memberships/manage/%membership_entity_type',
-        'real path' => 'admin/structure/memberships/manage/' . $type->type,
+        'path' => 'admin/memberships/types/manage/%membership_entity_type',
+        'real path' => 'admin/memberships/types/manage/' . $type->type,
         'bundle argument' => 4,
         'access arguments' => array('administer membership types'),
       ),
@@ -173,9 +173,7 @@ function membership_entity_type_menu() {
  * Implements hook_menu_alter().
  */
 function membership_entity_type_menu_alter(&$items) {
-  // I reject your settings and substitue my own.
-  unset($items['admin/structure/memberships/settings']);
-  $path = 'admin/structure/memberships';
+  $path = 'admin/memberships/types';
   $ui = entity_ui_controller('membership_entity_type')->hook_menu();
   if (isset($ui[$path])) {
     $items[$path] = $ui[$path];
@@ -210,8 +208,8 @@ function membership_entity_type_admin_menu_map() {
     return;
   }
   return array(
-    'admin/structure/memberships/manage/%membership_entity_type' => array(
-      'parent' => 'admin/structure/memberships',
+    'admin/memberships/types/manage/%membership_entity_type' => array(
+      'parent' => 'admin/memberships/types',
       'arguments' => array(
         array('%membership_entity_type' => array_keys(membership_entity_type_get_types())),
       ),
@@ -268,7 +266,10 @@ function membership_entity_type_theme($existing, $type, $theme, $path) {
  */
 function membership_entity_type_get_types($type = NULL) {
   $types = db_query('SELECT id, type, label, description FROM {membership_entity_type}')->fetchAllAssoc('type');
-  return isset($type) ? $types[$type] : $types;
+  if (isset($type)) {
+    return isset($types[$type]) ? $types[$type] : FALSE;
+  }
+  return $types;
 }
 
 /**

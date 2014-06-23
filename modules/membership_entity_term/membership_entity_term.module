@@ -26,32 +26,47 @@ function membership_entity_term_help($path, $arg) {
  * Implements hook_entity_info().
  */
 function membership_entity_term_entity_info() {
-  return array(
-    'membership_entity_term' => array(
-      'label' => t('Membership term'),
-      'plural label' => t('Membership terms'),
-      'description' => t('Terms attached to a membership.'),
-      'entity class' => 'MembershipEntityTerm',
-      'controller class' => 'MembershipEntityTermController',
-      'base table' => 'membership_entity_term',
-      'label callback' => 'membership_entity_term_label',
-      'access callback' => 'membership_entity_term_access',
-      'uri callback' => 'entity_class_uri',
-      'fieldable' => FALSE,
-      'module' => 'membership_entity_term',
-      'entity keys' => array(
-        'id' => 'id',
-      ),
-      'view modes' => array(
-        'membership' => array(
-          'label' => t('Membership'),
-          'custom settings' => FALSE,
-        ),
-      ),
-      'metadata controller class' => 'MembershipEntityTermMetadataController',
-      'views controller class' => 'MembershipEntityTermViewsController',
+  $info['membership_entity_term'] = array(
+    'label' => t('Membership term'),
+    'plural label' => t('Membership terms'),
+    'description' => t('Terms attached to a membership.'),
+    'entity class' => 'MembershipEntityTerm',
+    'controller class' => 'MembershipEntityTermController',
+    'base table' => 'membership_entity_term',
+    'label callback' => 'membership_entity_term_label',
+    'access callback' => 'membership_entity_term_access',
+    'uri callback' => 'entity_class_uri',
+    'fieldable' => TRUE,
+    'bundles' => array(),
+    'module' => 'membership_entity_term',
+    'entity keys' => array(
+      'id' => 'id',
+      'bundle' => 'membership_entity_type',
     ),
+    'view modes' => array(
+      'membership' => array(
+        'label' => t('Membership'),
+        'custom settings' => TRUE,
+      ),
+    ),
+    'metadata controller class' => 'MembershipEntityTermMetadataController',
+    'views controller class' => 'MembershipEntityTermViewsController',
   );
+
+  foreach (membership_entity_get_bundles() as $bundle => $type) {
+    $info['membership_entity_term']['bundles']['membership_entity_term_' . $type->type] = array(
+      'label' => t('@label terms', array('@label' => $type->label)),
+      'membership type' => $type->type,
+      'admin' => array(
+        'path' => 'admin/memberships/types/manage/%membership_entity_term_type/terms',
+        'bundle argument' => 4,
+        'real path' => 'admin/memberships/types/manage/' . strtr($type->type, array('_' => '-')) . '/terms',
+        'access arguments' => array('administer membership terms'),
+      ),
+    );
+  }
+
+  return $info;
 }
 
 /**
@@ -175,6 +190,16 @@ function membership_entity_term_permission() {
 }
 
 /**
+ * Implements hook_admin_paths().
+ */
+function membership_entity_term_admin_paths() {
+  return array(
+    'membership-term/*/delete' => TRUE,
+    'membership-term/*/edit' => TRUE,
+  );
+}
+
+/**
  * Implements hook_menu().
  */
 function membership_entity_term_menu() {
@@ -217,13 +242,46 @@ function membership_entity_term_menu() {
 }
 
 /**
- * Implements hook_admin_paths().
+ * Implements hook_menu_alter().
  */
-function membership_entity_term_admin_paths() {
-  return array(
-    'membership-term/*/delete' => TRUE,
-    'membership-term/*/edit' => TRUE,
-  );
+function membership_entity_term_menu_alter(&$items) {
+  // Adjust the Field UI tabs on admin/memberships/types/manage/[membership-type].
+  $items['admin/memberships/types/manage/%membership_entity_term_type/terms/fields']['title'] = 'Term fields';
+  $items['admin/memberships/types/manage/%membership_entity_term_type/terms/fields']['weight'] = 3;
+  $items['admin/memberships/types/manage/%membership_entity_term_type/terms/display']['title'] = 'Term display';
+  $items['admin/memberships/types/manage/%membership_entity_term_type/terms/display']['weight'] = 4;
+}
+
+/**
+ * Menu load callback for Field UI paths.
+ */
+function membership_entity_term_type_load($name) {
+  if ($type = membership_entity_get_bundles(strtr($name, array('-' => '_')))) {
+    return 'membership_entity_term_' . $type->type;
+  }
+}
+
+/**
+ * Implements hook_membership_entity_type_insert().
+ */
+function membership_entity_term_membership_entity_type_insert($info) {
+  field_attach_create_bundle('membership_entity_term', 'membership_entity_term_' . $info->type);
+}
+
+/**
+ * Implements hook_membership_entity_type_update().
+ */
+function membership_entity_term_membership_entity_type_update($info) {
+  if (!empty($info->old_type) && $info->type != $info->old_type) {
+    field_attach_rename_bundle('membership_entity_term', 'membership_entity_term_' . $info->old_type, 'membership_entity_term_' . $info->type);
+  }
+}
+
+/**
+ * Implements hook_membership_entity_type_delete().
+ */
+function membership_entity_term_membership_entity_type_delete($info) {
+  field_attach_delete_bundle('membership_entity_term', 'membership_entity_term_' . $info->type);
 }
 
 /**
@@ -303,14 +361,24 @@ function membership_entity_term_renew_access($membership) {
  * Implements hook_field_extra_fields().
  */
 function membership_entity_term_field_extra_fields() {
-  $types = module_exists('membership_entity_type') ? array_keys(membership_entity_type_get_types()) : array('membership');
-  foreach ($types as $type) {
-    $fields['membership_entity'][$type] = array(
+  foreach (membership_entity_get_bundles() as $type) {
+    $fields['membership_entity'][$type->type] = array(
       'display' => array(
         'membership_terms' => array(
-          'label' => t('Membership Terms'),
+          'label' => t('Membership Term List'),
           'description' => t('A list of terms for the membership.'),
           'weight' => 99,
+        ),
+      ),
+    );
+
+    // Term fields.
+    $fields['membership_entity_term']['membership_entity_term_' . $type->type] = array(
+      'form' => array(
+        'term_length' => array(
+          'label' => t('Term Length'),
+          'description' => t('The term length options.'),
+          'weight' => 0,
         ),
       ),
     );

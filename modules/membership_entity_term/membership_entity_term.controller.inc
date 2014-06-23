@@ -46,4 +46,21 @@ class MembershipEntityTermController extends EntityAPIController {
     }
     return $this->load($ids);
   }
+
+  protected function buildQuery($ids, $conditions = array(), $revision_id = FALSE) {
+    $query = parent::buildQuery($ids, $conditions, $revision_id);
+
+    // Specify additional fields from the membership table.
+    $query->innerJoin('membership_entity', 'm', 'base.mid = m.mid');
+    $query->addField('m', 'type', 'membership_entity_type');
+    return $query;
+  }
+
+  protected function attachLoad(&$terms, $revision_id = FALSE) {
+    // Setup standard comment properties.
+    foreach ($terms as $key => $term) {
+      $terms[$key]->membership_entity_type = 'membership_entity_type_' . $term->membership_entity_type;
+    }
+    parent::attachLoad($terms, $revision_id);
+  }
 }

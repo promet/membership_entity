@@ -145,7 +145,7 @@ function membership_entity_type_form_submit($form, &$form_state) {
       drupal_set_message(t('Membership type %label has been updated.', $t_args));
       break;
   }
-  $form_state['redirect'] = 'admin/structure/memberships/manage/' . $type->type;
+  $form_state['redirect'] = 'admin/memberships/types/manage/' . $type->type;
 }
 
 /**
@@ -155,7 +155,7 @@ function membership_entity_type_confirm_delete($form, &$form_state, $type) {
   $form['#membership_type'] = $type;
   $message = t('Are you sure you want to delete the membership type %type?', array('%type' => $type->name));
   $caption = '<p>' . t('This action cannot be undone.') . '</p>';
-  return confirm_form($form, $message, 'admin/structure/membership-types', $caption, t('Delete'));
+  return confirm_form($form, $message, 'admin/memberships/types', $caption, t('Delete'));
 }
 
 /**
@@ -165,5 +165,5 @@ function membership_entity_type_confirm_delete_submit($form, &$form_state) {
   $type = $form_state['complete form']['#membership_type'];
   membership_entity_type_delete($type);
   drupal_set_message(t('The membership type %name has been deleted.', array('%name' => $type->name)));
-  $form_state['redirect'] = 'admin/structure/membership-types';
+  $form_state['redirect'] = 'admin/memberships/types';
 }
