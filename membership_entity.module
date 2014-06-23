@@ -625,6 +625,7 @@ function membership_entity_get_bundles($bundle = NULL) {
     'type' => 'membership',
     'label' => t('Membership'),
     'description' => t('A simple membership'),
+    'data' => variable_get('membership_entity_settings', array()),
   );
   if (isset($bundle)) {
     return isset($bundles[$bundle]) ? $bundles[$bundle] : FALSE;

@@ -265,7 +265,14 @@ function membership_entity_type_theme($existing, $type, $theme, $path) {
  *   Get information about a specific type. NULL to return all types.
  */
 function membership_entity_type_get_types($type = NULL) {
-  $types = db_query('SELECT id, type, label, description FROM {membership_entity_type}')->fetchAllAssoc('type');
+  $types = &drupal_static(__FUNCTION__, array());
+  if (empty($types)) {
+    $results = db_query('SELECT id, type FROM {membership_entity_type}');
+    foreach ($results as $result) {
+      $types[$result->type] = membership_entity_type_load($result->id);
+    }
+  }
+
   if (isset($type)) {
     return isset($types[$type]) ? $types[$type] : FALSE;
   }
