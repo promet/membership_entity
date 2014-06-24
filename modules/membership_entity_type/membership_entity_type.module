@@ -69,8 +69,10 @@ function membership_entity_type_entity_info() {
 function membership_entity_type_entity_info_alter(&$entity_info) {
   // Remove the default bundle and add user defined bundles.
   unset($entity_info['membership_entity']['bundles']);
-  foreach (membership_entity_type_get_types() as $bundle => $type) {
-    $entity_info['membership_entity']['bundles'][$bundle] = array(
+
+  $types = db_query('SELECT type, label FROM {membership_entity_type}');
+  foreach ($types as $type) {
+    $entity_info['membership_entity']['bundles'][$type->type] = array(
       'label' => $type->label,
       'admin' => array(
         'path' => 'admin/memberships/types/manage/%membership_entity_type',
@@ -261,20 +263,21 @@ function membership_entity_type_theme($existing, $type, $theme, $path) {
 /**
  * Returns a list of membership types.
  *
- * @param string $type
+ * @param string $machine_name
  *   Get information about a specific type. NULL to return all types.
  */
-function membership_entity_type_get_types($type = NULL) {
+function membership_entity_type_get_types($machine_name = NULL) {
   $types = &drupal_static(__FUNCTION__, array());
   if (empty($types)) {
-    $results = db_query('SELECT id, type FROM {membership_entity_type}');
+    $results = db_query('SELECT id, type, label, weight, description, data, status, module FROM {membership_entity_type}');
     foreach ($results as $result) {
-      $types[$result->type] = membership_entity_type_load($result->id);
+      $result->data = unserialize($result->data);
+      $types[$result->type] = $result;
     }
   }
 
-  if (isset($type)) {
-    return isset($types[$type]) ? $types[$type] : FALSE;
+  if (isset($machine_name)) {
+    return isset($types[$machine_name]) ? $types[$machine_name] : FALSE;
   }
   return $types;
 }

@@ -361,6 +361,7 @@ function membership_entity_term_renew_access($membership) {
  * Implements hook_field_extra_fields().
  */
 function membership_entity_term_field_extra_fields() {
+  $fields = array();
   foreach (membership_entity_get_bundles() as $type) {
     $fields['membership_entity'][$type->type] = array(
       'display' => array(
