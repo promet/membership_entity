@@ -217,14 +217,6 @@ function membership_entity_menu() {
     'file' => 'membership_entity.pages.inc',
   );
 
-  $items['admin/memberships'] = array(
-    'title' => 'Memberships',
-    'page callback' => 'drupal_get_form',
-    'page arguments' => array('membership_entity_admin_memberships'),
-    'access arguments' => array('administer memberships'),
-    'file' => 'membership_entity.pages.inc',
-  );
-
   $items['admin/memberships/add'] = array(
     'title' => 'Add a membership',
     'page callback' => 'drupal_get_form',
@@ -340,6 +332,66 @@ function membership_entity_admin_paths() {
 }
 
 /**
+ * Implements hook_pathauto().
+ */
+function membership_entity_pathauto($op) {
+  if ($op == 'settings') {
+    $settings = array(
+      'module' => 'membership_entity',
+      'groupheader' => t('Membership Paths'),
+      'patterndescr' => t('Default path pattern (applies to all membership types with blank patterns below.)'),
+      'patterndefault' => 'membership/[membership_entity:mid]',
+      'token_type' => 'membership_entity',
+      'bulkname' => t('Bulk Update Membership Paths'),
+      'bulkdescr' => t('Generate aliases for all existing membership items which do not already have aliases.'),
+    );
+
+    // Get membership types.
+    foreach (membership_entity_get_bundles() as $machine_name => $type) {
+      $settings['patternitems'][$machine_name] = t('Pattern for all %label paths', array('%label' => $type->label));
+    }
+
+    return (object) $settings;
+  }
+}
+
+/**
+ * Implements hook_membership_entity_insert().
+ */
+function membership_entity_membership_entity_insert($membership) {
+  membership_entity_update_alias($membership, 'insert');
+}
+
+/**
+ * Implements hook_membership_entity_update().
+ */
+function membership_entity_membership_entity_update($membership) {
+  membership_entity_update_alias($membership, 'update');
+}
+
+/**
+ * Implements hook_membership_entity_delete().
+ */
+function membership_entity_membership_entity_delete($membership) {
+  pathauto_entity_path_delete_all('membership_entity', $membership, "membership/{$membership->mid}");
+}
+
+/**
+ * Update a membership alias.
+ */
+function membership_entity_update_alias($membership, $op, $options = array()) {
+  $options += array('language' => pathauto_entity_language('membership_entity', $membership));
+
+  if (!pathauto_pattern_load_by_entity('membership_entity', $membership->type, $options['language'])) {
+    return;
+  }
+
+  module_load_include('inc', 'pathauto');
+  $uri = entity_uri('membership_entity', $membership);
+  pathauto_create_alias('membership_entity', $op, $uri['path'], array('membership_entity' => $membership), $membership->type, $options['language']);
+}
+
+/**
  * Implements hook_theme().
  */
 function membership_entity_theme() {
@@ -368,18 +420,6 @@ function membership_entity_user_view($account, $view_mode, $langcode) {
       $account->content['memberships'][$type] = membership_entity_view($membership, 'account', $langcode);
     }
   }
-}
-
-/**
- * Implements hook_membership_entity_operations().
- */
-function membership_entity_membership_entity_operations() {
-  return array(
-    'delete' => array(
-      'label' => t('Delete selected memberships'),
-      'callback' => NULL,
-    ),
-  );
 }
 
 /**
@@ -571,7 +611,7 @@ function membership_entity_field_extra_fields() {
 }
 
 /**
- * Implements hook_form_FORM_ID_alter().
+ * Implements hook_form_FORM_ID_alter() for field_uid_field_edit_form().
  *
  * Add a checkbox for the 'membership_entity_join_form' setting.
  */
@@ -726,14 +766,13 @@ function _membership_entity_member_id_get_instance($id, $settings = array()) {
  * Implements hook_membership_entity_member_id_info().
  */
 function membership_entity_membership_entity_member_id_info() {
-  return array(
-    'membership_entity_numeric_member_id' => array(
-      'title' => t('Numeric ID'),
-      'description' => t('An incrementing numeric member id.'),
-      'class' => 'MembershipEntityNumericMemberId',
-      'path' => drupal_get_path('module', 'membership_entity') . '/plugins/member_id',
-    ),
+  $info['membership_entity_numeric_member_id'] = array(
+    'title' => t('Numeric ID'),
+    'description' => t('An incrementing numeric member id.'),
+    'class' => 'MembershipEntityNumericMemberId',
+    'path' => drupal_get_path('module', 'membership_entity') . '/plugins/member_id',
   );
+  return $info;
 }
 
 /**
@@ -994,6 +1033,53 @@ function membership_entity_uid_value($element, $input = FALSE, $form_state = arr
     $result = db_query('SELECT name FROM {users} WHERE uid = :uid LIMIT 1', array(':uid' => $uid))->fetchField();
     return check_plain($result);
   }
+}
+
+/**
+ * Implements hook_action_info().
+ */
+function membership_entity_action_info() {
+  $info['membership_entity_cancel_action'] = array(
+    'type' => 'membership_entity',
+    'label' => t('Cancel membership'),
+    'configurable' => FALSE,
+    'behavior' => array('changes_property'),
+  );
+
+  $info['membership_entity_pathauto_update_action'] = array(
+    'type' => 'membership_entity',
+    'label' => t('Update membership alias'),
+    'configurable' => FALSE,
+  );
+  return $info;
+}
+
+/**
+ * Actions callback.
+ *
+ * Cancel the a membership.
+ */
+function membership_entity_cancel_action($membership, $context = array()) {
+  $membership->status = MEMBERSHIP_ENTITY_CANCELLED;
+}
+
+/**
+ * Actions callback.
+ *
+ * Bulk update membership aliases.
+ */
+function membership_entity_pathauto_update_action($membership, $context = array()) {
+  membership_entity_update_alias($membership, 'bulkupdate', array('message' => TRUE));
+}
+
+/**
+ * Implements hook_views_api().
+ */
+function membership_entity_views_api() {
+  return array(
+    'api' => 3,
+    'path' => drupal_get_path('module', 'membership_entity') . '/views',
+  );
 }
 
 /**

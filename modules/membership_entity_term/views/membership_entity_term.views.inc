@@ -47,6 +47,11 @@ class MembershipEntityTermViewsController extends EntityDefaultViewsController {
  * Implements hook_views_data_alter().
  */
 function membership_entity_term_views_data_alter(&$data) {
+  $data['views_entity_membership_entity_term']['current']['field']['output formats'] = array(
+    'current' => array(t('Current'), ''),
+  );
+
+  // Add membership fields.
   $data['membership_entity']['table']['join'] = array(
     'membership_entity_term' => array(
       'left_field' => 'mid',

@@ -21,6 +21,7 @@ class MembershipEntityTermController extends EntityAPIController {
       'status' => MEMBERSHIP_ENTITY_ACTIVE,
       'modifiers' => array(),
       'start' => format_date(REQUEST_TIME, 'custom', DATE_FORMAT_DATETIME),
+      'membership_entity_type' => 'membership',
     );
     return parent::create($values);
   }
@@ -57,7 +58,6 @@ class MembershipEntityTermController extends EntityAPIController {
   }
 
   protected function attachLoad(&$terms, $revision_id = FALSE) {
-    // Setup standard comment properties.
     foreach ($terms as $key => $term) {
       $terms[$key]->membership_entity_type = 'membership_entity_type_' . $term->membership_entity_type;
     }

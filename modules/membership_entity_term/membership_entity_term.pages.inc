@@ -246,6 +246,7 @@ function membership_entity_term_create_form_submit($form, &$form_state) {
     'term' => $term_length,
     'start' => date_format_date($start, 'custom', DATE_FORMAT_DATETIME),
     'status' => $membership->status,
+    'membership_entity_type' => $membership->type,
   ));
   membership_entity_term_save($term);
   $membership->terms[$term->id] = $term;
@@ -592,11 +593,22 @@ function membership_entity_term_renew_submit($form, &$form_state) {
     $start = $latest_term->end;
   }
 
+  if ($membership->status == MEMBERSHIP_ENTITY_PENDING) {
+    $status = MEMBERSHIP_ENTITY_PENDING;
+  }
+  else if (strtotime($start) > REQUEST_TIME) {
+    $status = MEMBERSHIP_ENTITY_ACTIVE;
+  }
+  else {
+    $status = MEMBERSHIP_ENTITY_EXPIRED;
+  }
+
   $term = membership_entity_term_create(array(
     'mid' => $membership->mid,
     'term' => $term_length,
     'start' => $start,
-    'status' => $membership->status,
+    'status' => $status,
+    'membership_entity_type' => $membership->type,
   ));
   membership_entity_term_save($term);
   $membership->terms[$term->id] = $term;

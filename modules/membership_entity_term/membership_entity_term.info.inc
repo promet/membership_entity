@@ -16,7 +16,9 @@ class MembershipEntityTermMetadataController extends EntityDefaultMetadataContro
     $info = parent::entityPropertyInfo();
     $properties = &$info[$this->type]['properties'];
 
+    // Remove unessesary fields.
     unset($properties['url']);
+    unset($properties['membership_entity_type']);
 
     unset($properties['mid']);
     $properties['membership'] = array(
@@ -56,6 +58,15 @@ class MembershipEntityTermMetadataController extends EntityDefaultMetadataContro
       'description' => t('The date membership term ends.'),
       'required' => TRUE,
       'schema field' => 'end',
+    );
+
+    $properties['current'] = array(
+      'type' => 'boolean',
+      'label' => t('Current'),
+      'description' => t('A boolean indicating whether this is the current term.'),
+      'getter callback' => 'membership_entity_term_get_properties',
+      'computed' => TRUE,
+      'entity views field' => TRUE,
     );
 
     return $info;

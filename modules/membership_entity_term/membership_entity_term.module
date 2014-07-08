@@ -43,12 +43,7 @@ function membership_entity_term_entity_info() {
       'id' => 'id',
       'bundle' => 'membership_entity_type',
     ),
-    'view modes' => array(
-      'membership' => array(
-        'label' => t('Membership'),
-        'custom settings' => TRUE,
-      ),
-    ),
+    'view modes' => array(),
     'metadata controller class' => 'MembershipEntityTermMetadataController',
     'views controller class' => 'MembershipEntityTermViewsController',
   );
@@ -89,6 +84,19 @@ function membership_entity_term_label($term, $entity_type) {
     '@term' => $term->term,
     '@start' => format_date(strtotime($term->start), 'short'),
   ));
+}
+
+/**
+ * Getter callback for entity property info.
+ */
+function membership_entity_term_get_properties($term, array $options, $name, $type, $info) {
+  switch ($name) {
+    case 'current':
+      return (strtotime($term->start) <= REQUEST_TIME && strtotime($term->end) >= REQUEST_TIME);
+
+    default:
+      return entity_property_verbatim_get($term, $options, $name, $type, $info);
+  }
 }
 
 /**
@@ -391,7 +399,7 @@ function membership_entity_term_field_extra_fields() {
  * Implements hook_membership_entity_view().
  */
 function membership_entity_term_membership_entity_view($membership, $view_mode, $langcode) {
-  $membership->content['membership_terms'] = membership_entity_terms_view($membership->terms, $view_mode, $langcode);
+  $membership->content['membership_terms']['#markup'] = views_embed_view('membership_entity_terms', 'term_list', $membership->mid);
 
   if ($view_mode == 'account' && membership_entity_access('renew', $membership)) {
     // Add a renew link.
@@ -404,73 +412,6 @@ function membership_entity_term_membership_entity_view($membership, $view_mode, 
       'html' => FALSE,
     );
   }
-}
-
-/**
- * View a table of membership terms.
- */
-function membership_entity_terms_view($terms, $view_mode = 'full', $langcode = NULL, $timezone = NULL) {
-  if (!isset($timezone)) {
-    $timezone = date_default_timezone();
-  }
-  $tz = new DateTimeZone($timezone);
-
-  if (!isset($langcode)) {
-    $langcode = $GLOBALS['language']->language;
-  }
-
-  $header = array(
-    array('data' => t('Term Length')),
-    array('data' => t('Start')),
-    array('data' => t('End')),
-    array('data' => t('Status')),
-  );
-  if (user_access('administer membership terms')) {
-    $header[] = array('data' => t('Operations'));
-  }
-
-  $statuses = membership_entity_get_status_list();
-  $rows = array();
-  foreach ($terms as $id => $term) {
-    $start = new DateObject($term->start, 'UTC');
-    $start->setTimezone($tz);
-
-    if ($term->term != 'lifetime') {
-      $end = new DateObject($term->end, 'UTC');
-      $end->setTimezone($tz);
-    }
-
-    $rows[$id] = array(
-      array('data' => ($term->term != 'lifetime') ? check_plain($term->term) : t('Lifetime')),
-      array('data' => date_format_date($start, 'medium')),
-      array('data' => ($term->term != 'lifetime') ? date_format_date($end, 'medium') : t('N/A')),
-      array('data' => $statuses[$term->status]),
-    );
-
-    // Add modifiers.
-    if (!empty($term->modifiers)) {
-      $rows[$id][0]['data'] .= theme('membership_entity_term_modifiers', array('modifiers' => $term->modifiers));
-    }
-
-    if (user_access('administer membership terms')) {
-      $destination = drupal_get_destination();
-      $rows[$id][] = array(
-        'data' => array(
-          '#type' => 'link',
-          '#title' => t('edit'),
-          '#href' => 'membership-term/' . $term->id . '/edit',
-          '#options' => array('query' => $destination),
-        ),
-      );
-    }
-  }
-
-  return array(
-    '#theme' => 'table__membership_entity_terms',
-    '#membership_entity_terms' => $terms,
-    '#header' => $header,
-    '#rows' => $rows,
-  );
 }
 
 /**
@@ -540,6 +481,26 @@ function membership_entity_term_form_field_ui_field_edit_form_alter(&$form, &$fo
       '#default_value' => !empty($instance['settings']['membership_entity_term_renew_form']),
       '#weight' => $form['instance']['settings']['membership_entity_join_form']['#weight'] + .1,
     );
+  }
+}
+
+/**
+ * Implements hook_views_api().
+ */
+function membership_entity_term_views_api() {
+  return array(
+    'api' => 3,
+    'path' => drupal_get_path('module', 'membership_entity_term') . '/views',
+  );
+}
+
+/**
+ * Implements hook_preprocess_views_view().
+ */
+function membership_entity_term_preprocess_views_view(&$vars) {
+  $view = $vars['view'];
+  if ($view->name == 'membership_entity_terms') {
+    drupal_add_css(drupal_get_path('module', 'membership_entity_term') .'/css/membership_entity_term.css');
   }
 }
 
@@ -741,6 +702,17 @@ function _membership_entity_term_sort_by_end_date($a, $b) {
 }
 
 /**
+ * Sort terms by weight value.
+ *
+ * Callback for usort() within theme_membership_entity_term_available_term_lengths_element().
+ */
+function _membership_entity_term_sort_items_by_weight($a, $b) {
+  $a_weight = (is_array($a) && isset($a['weight']['#value']) ? $a['weight']['#value'] : 0);
+  $b_weight = (is_array($b) && isset($b['weight']['#value']) ? $b['weight']['#value'] : 0);
+  return $a_weight - $b_weight;
+}
+
+/**
  * Helper to correctly handle relative modifiers to a date object.
  *
  * PHP date handling does not correctly support month opperations for months
@@ -784,7 +756,7 @@ function theme_membership_entity_term_available_term_lengths_element($variables)
   }
 
   if (!empty($items)) {
-    usort($items, '_membership_entity_sort_items_by_weight');
+    usort($items, '_membership_entity_term_sort_items_by_weight');
   }
 
   $table_id = 'available-term-lengths';
