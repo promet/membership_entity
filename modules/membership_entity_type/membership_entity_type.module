@@ -49,8 +49,6 @@ function membership_entity_type_entity_info() {
     'access callback' => 'membership_entity_type_admin_ui_access',
     'module' => 'membership_entity_type',
     'admin ui' => array(
-      // This will override the path defined in membership_entity_menu().
-      // @see membership_entity_type_menu_alter().
       'path' => 'admin/memberships/types',
       'file' => 'membership_entity_type.ui.inc',
       'menu wildcard' => '%membership_entity_type',
@@ -175,13 +173,6 @@ function membership_entity_type_menu() {
  * Implements hook_menu_alter().
  */
 function membership_entity_type_menu_alter(&$items) {
-  $path = 'admin/memberships/types';
-  $ui = entity_ui_controller('membership_entity_type')->hook_menu();
-  if (isset($ui[$path])) {
-    $items[$path] = $ui[$path];
-    $items[$path]['module'] = 'entity';
-  }
-
   // Override the membership add page.
   $path = 'admin/memberships/add';
   $items[$path] = array_merge($items[$path], array(

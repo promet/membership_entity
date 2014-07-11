@@ -61,7 +61,7 @@ class MembershipEntityTerm extends Entity {
    * Overrides Entity::defaultUri().
    */
   public function defaultUri() {
-    return array('path' => 'membership-term/' . $this->id);
+    return array('path' => "membership/$this->mid/term/$this->id");
   }
 
   /**

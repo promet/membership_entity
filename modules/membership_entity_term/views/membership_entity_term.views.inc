@@ -21,6 +21,14 @@ class MembershipEntityTermViewsController extends EntityDefaultViewsController {
       $data[$field]['filter']['handler'] = 'views_handler_filter_membership_term_datetime';
     }
 
+    $data['modifiers'] = array(
+      'title' => t('Modifiers'),
+      'help' => t('Modifiers to the membership term length.'),
+      'field' => array(
+        'handler' => 'views_handler_field_membership_term_modifier',
+      ),
+    );
+
     $data['edit'] = array(
       'title' => t('Edit'),
       'help' => t('A link to edit the membership term.'),

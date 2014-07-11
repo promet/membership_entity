@@ -216,20 +216,12 @@ function membership_entity_term_length_element_validate($element, &$form_state, 
 /**
  * Add term length options to the membership_entity_form.
  */
-function _membership_entity_term_create_form(&$form, &$form_state) {
+function membership_entity_term_create_form(&$form, &$form_state) {
   $membership = $form['#membership_entity'];
 
   if (!empty($membership->is_new)) {
-    $options = drupal_map_assoc($form['#bundle_settings']['available_term_lengths']);
-    $form['membership']['term_length'] = array(
-      '#type' => 'radios',
-      '#title' => t('Term length'),
-      '#description' => t('Select the desired membership term length.'),
-      '#required' => TRUE,
-      '#options' => $options,
-      '#default_value' => count($options) < 2 ? reset($options) : NULL,
-    );
-
+    // Add term fields.
+    _membership_entity_term_attach_form($form, $form_state);
     $form['actions']['submit']['#submit'][] = 'membership_entity_term_create_form_submit';
   }
 }
@@ -239,15 +231,7 @@ function _membership_entity_term_create_form(&$form, &$form_state) {
  */
 function membership_entity_term_create_form_submit($form, &$form_state) {
   $membership = &$form_state['membership_entity'];
-  $term_length = $form_state['values']['term_length'];
-  $start = new DateObject('now', 'UTC');
-  $term = membership_entity_term_create(array(
-    'mid' => $membership->mid,
-    'term' => $term_length,
-    'start' => date_format_date($start, 'custom', DATE_FORMAT_DATETIME),
-    'status' => $membership->status,
-    'membership_entity_type' => $membership->type,
-  ));
+  $term = _membership_entity_term_attach_form_submit($form, $form_state);
   membership_entity_term_save($term);
   $membership->terms[$term->id] = $term;
   $form_state['membership_entity_term'] = $term;
@@ -256,10 +240,9 @@ function membership_entity_term_create_form_submit($form, &$form_state) {
 /**
  * Form builder to edit membership terms.
  */
-function membership_entity_term_edit($form, &$form_state, $term) {
+function membership_entity_term_edit($form, &$form_state, $membership, $term) {
   $form['#membership_entity_term'] = $term;
   $form['#entity_type'] = 'membership_entity_term';
-  $membership = $form['#membership_entity'] = membership_entity_load($term->mid);
   $form['#attributes']['class'][] = 'membership-entity-term-edit-form';
   $bundle_settings = $form['#bundle_settings'] = membership_entity_get_bundle_settings($membership->type);
 
@@ -268,7 +251,7 @@ function membership_entity_term_edit($form, &$form_state, $term) {
   }
 
   // Basic information.
-  foreach (array('id', 'mid') as $key) {
+  foreach (array('id', 'mid', 'membership_entity_type') as $key) {
     $form[$key] = array(
       '#type' => 'value',
       '#value' => isset($term->{$key}) ? $term->{$key} : NULL,
@@ -395,6 +378,9 @@ function membership_entity_term_edit($form, &$form_state, $term) {
     ),
   );
 
+  // Add field UI items.
+  field_attach_form('membership_entity_term', $term, $form, $form_state);
+
   $form['#validate'][] = 'membership_entity_term_edit_form_validate';
 
   // Add the buttons.
@@ -483,6 +469,9 @@ function membership_entity_term_edit_form_validate($form, &$form_state) {
   $start = new DateObject($values['start'], $form['start']['#date_timezone']);
   $start->setTimezone(new DateTimeZone('UTC'));
   form_set_value($form['start'], date_format_date($start, 'custom', DATE_FORMAT_DATETIME), $form_state);
+
+  // Validate custom fields.
+  entity_form_field_validate('membership_entity_term', $form, $form_state);
 }
 
 /**
@@ -523,19 +512,13 @@ function membership_entity_term_renew($form, &$form_state, $membership) {
     return '';
   }
 
+  // Add membership fields.
   form_load_include($form_state, 'inc', 'membership_entity', 'membership_entity.pages');
   membership_entity_form($form, $form_state);
 
-  $options = drupal_map_assoc($bundle_settings['available_term_lengths']);
-  $form['membership']['term_length'] = array(
-    '#type' => 'radios',
-    '#title' => t('Renewal term length'),
-    '#description' => t('Select the desired renewal term length.'),
-    '#required' => TRUE,
-    '#options' => $options,
-    '#default_value' => count($options) < 2 ? reset($options) : NULL,
-    '#weigth' => -50,
-  );
+  // Add term fields.
+  _membership_entity_term_attach_form($form, $form_state);
+  $form['membership_term']['term']['#title'] = t('Renewal term length');
 
   // Hide fields where the 'membership_entity_term_renew_form' setting is turned off.
   foreach (field_info_instances('membership_entity', $membership->type) as $field_name => $instance) {
@@ -582,34 +565,7 @@ function membership_entity_term_form_disabled_validate($form, &$form_state) {
  */
 function membership_entity_term_renew_submit($form, &$form_state) {
   $membership = &$form_state['membership_entity'];
-
-  // Add the new membership term.
-  $term_length = $form_state['values']['term_length'];
-
-  $latest_term = end($membership->terms);
-  $now = new DateObject('now', 'UTC');
-  $start = date_format_date($now, 'custom', DATE_FORMAT_DATETIME);
-  if ($latest_term->status == MEMBERSHIP_ENTITY_ACTIVE && $latest_term->end > $now) {
-    $start = $latest_term->end;
-  }
-
-  if ($membership->status == MEMBERSHIP_ENTITY_PENDING) {
-    $status = MEMBERSHIP_ENTITY_PENDING;
-  }
-  else if (strtotime($start) > REQUEST_TIME) {
-    $status = MEMBERSHIP_ENTITY_ACTIVE;
-  }
-  else {
-    $status = MEMBERSHIP_ENTITY_EXPIRED;
-  }
-
-  $term = membership_entity_term_create(array(
-    'mid' => $membership->mid,
-    'term' => $term_length,
-    'start' => $start,
-    'status' => $status,
-    'membership_entity_type' => $membership->type,
-  ));
+  $term = _membership_entity_term_attach_form_submit($form, $form_state);
   membership_entity_term_save($term);
   $membership->terms[$term->id] = $term;
   $form_state['membership_entity_term'] = $term;
@@ -626,7 +582,7 @@ function membership_entity_term_edit_form_delete($form, &$form_state) {
   }
   $term = $form['#membership_entity_term'];
   $form_state['redirect'] = array(
-    'membership-term/' . $term->id . '/delete',
+    "membership/$term->mid/term/$term->id/delete",
     array('query' => $destination),
   );
 }
@@ -634,20 +590,155 @@ function membership_entity_term_edit_form_delete($form, &$form_state) {
 /**
  * Dispaly a confirmation page before delteing a membership term.
  */
-function membership_entity_term_delete_confirm($form, &$form_state, $term) {
+function membership_entity_term_delete_confirm($form, &$form_state, $membership, $term) {
+  $form_state['membership'] = $membership;
   $form_state['term'] = $term;
   $form['#submit'][] = 'membership_entity_term_delete_confirm_submit';
-  return confirm_form($form, t('Are you sure you want to delete this membership term?'), 'membership-term/' . $term->id . '/edit', t('This action cannot be undone.'), t('Delete'), t('Cancel'));
+  return confirm_form($form, t('Are you sure you want to delete this membership term?'), "membership/$term->mid/term/$term->id/edit", t('This action cannot be undone.'), t('Delete'), t('Cancel'));
 }
 
 /**
  * Submit the membership term delete confirm form.
  */
 function membership_entity_term_delete_confirm_submit($form, &$form_state) {
+  $membership = $form_state['membership'];
   $term = $form_state['term'];
   if ($form_state['values']['confirm']) {
     membership_entity_term_delete($term->id);
     drupal_set_message(t('Deleted 1 membership term.'));
   }
-  $form_state['redirect'] = 'membership/' . $term->mid;
+  $form_state['redirect'] = 'membership/' . $membership->mid;
+}
+
+/**
+ * Helper to add term fields to a membership form.
+ */
+function _membership_entity_term_attach_form(&$form, &$form_state) {
+  $membership = $form['#membership_entity'];
+  $bundle_settings = $form['#bundle_settings'];
+
+   // Add term fields.
+  $form['#membership_entity_term'] = $term = membership_entity_term_create(array(
+    'membership_entity_type' => $membership->type,
+  ));
+
+  $form['membership_term'] = array(
+    '#type' => 'container',
+    '#parents' => array('membership_term'),
+    '#tree' => TRUE,
+    '#attributes' => array(
+      'class' => array('membership-enity-term-info'),
+    ),
+  );
+
+  $options = drupal_map_assoc($bundle_settings['available_term_lengths']);
+  $form['membership_term']['term'] = array(
+    '#type' => 'radios',
+    '#title' => t('Term length'),
+    '#description' => t('Select the desired renewal term length.'),
+    '#required' => TRUE,
+    '#options' => $options,
+    '#default_value' => count($options) < 2 ? reset($options) : NULL,
+    '#weigth' => -50,
+  );
+
+  field_attach_form('membership_entity_term', $term, $form['membership_term'], $form_state);
+  $form['#validate'][] = '_membership_entity_term_attach_form_validate';
+}
+
+/**
+ * Helper to validate term fields on membership forms.
+ */
+function _membership_entity_term_attach_form_validate($form, &$form_state) {
+  ctools_include('fields');
+
+  $entity_type = 'membership_entity_term';
+  $term = $form['#membership_entity_term'];
+  $bundle = $form['#membership_entity_term']->membership_entity_type;
+
+  // We have to validate each field separately, as the CTools API function is
+  // for only a single field.
+  $fields = field_info_instances($entity_type, $bundle);
+  foreach ($fields as $field_name => $instance) {
+    $errors = array();
+
+    // Extract field values from submitted values.
+    ctools_field_invoke_field_default($instance, 'extract_form_values', $entity_type, $term, $form['membership_term'], $form_state);
+
+    // Check generic, field-type-agnostic errors first.
+    ctools_field_invoke_field_default($instance, 'validate', $entity_type, $term, $errors);
+
+    // Check field-type specific errors.
+    ctools_field_invoke_field($instance, 'validate', $entity_type, $term, $errors);
+
+    // Let other modules validate the entity. Cannot use module_invoke_all() as
+    // $errors needs to be passed by reference.
+    foreach (module_implements('field_attach_validate') as $module) {
+      $function = $module . '_field_attach_validate';
+      $function($entity_type, $term, $errors);
+    }
+
+    if (!empty($errors)) {
+      foreach ($errors as $field_errors) {
+        foreach ($field_errors as $langcode => $errors) {
+          $field_state = field_form_get_state($form['membership_term']['#parents'], $field_name, $langcode, $form_state);
+          $field_state['errors'] = $errors;
+          field_form_set_state($form['membership_term']['#parents'], $field_name, $langcode, $form_state, $field_state);
+        }
+      }
+      ctools_field_invoke_field_default($instance, 'form_errors', $entity_type, $term, $form['membership_term'], $form_state);
+    }
+  }
+}
+
+/**
+ * Helper to submit term fields on a membership form.
+ *
+ * @return MembershipEntityTerm
+ *   The poputlated term objcet. Calling membership_entity_save() is left to
+ *   the caller.
+ */
+function _membership_entity_term_attach_form_submit($form, &$form_state) {
+  ctools_include('fields');
+
+  $entity_type = 'membership_entity_term';
+  $term = $form['#membership_entity_term'];
+  $bundle = $term->membership_entity_type;
+  $membership = $form['#membership_entity'];
+
+  // Add the new membership term.
+  $term->mid = $membership->mid;
+  $term->term = $form_state['values']['membership_term']['term'];
+
+  // Add the start date.
+  $latest_term = end($membership->terms);
+  $now = new DateObject('now', 'UTC');
+  if (!empty($latest_term) && $latest_term->status == MEMBERSHIP_ENTITY_ACTIVE && $latest_term->end > $now) {
+    $term->start = $latest_term->end;
+  }
+  else {
+    $term->start = date_format_date($now, 'custom', DATE_FORMAT_DATETIME);
+  }
+
+  if ($membership->status == MEMBERSHIP_ENTITY_PENDING) {
+    $term->status = MEMBERSHIP_ENTITY_PENDING;
+  }
+  else if (strtotime($term->start) >= REQUEST_TIME) {
+    $term->status = MEMBERSHIP_ENTITY_ACTIVE;
+  }
+  else {
+    $term->status = MEMBERSHIP_ENTITY_EXPIRED;
+  }
+
+  $fields = field_info_instances($entity_type, $bundle);
+  foreach ($fields as $field_name => $instance) {
+    // Extract field values from submitted values.
+    // We pass a partial $form array to the Field API hook. This contains at
+    // its base the #parents array, which tells Field API where to look for
+    // the values in $form_state.
+    ctools_field_invoke_field_default($instance, 'extract_form_values', $entity_type, $term, $form['membership_term'], $form_state);
+    ctools_field_invoke_field_default($instance, 'submit', $entity_type, $term, $form['membership_term'], $form_state);
+  }
+
+  return $term;
 }

@@ -534,7 +534,7 @@ function membership_entity_form_validate($form, &$form_state) {
 
   // Don't allow the primary member as a secondary member.
   foreach ($values['secondary_members'] as $delta => $value) {
-    if ($values['uid'] = $value) {
+    if ($values['uid'] == $value) {
       form_set_error("secondary_members][$delta][value", t('%name is the primary member.', array(
         '%name' => format_username(user_load($values['uid'])),
       )));

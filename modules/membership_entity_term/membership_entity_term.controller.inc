@@ -56,11 +56,4 @@ class MembershipEntityTermController extends EntityAPIController {
     $query->addField('m', 'type', 'membership_entity_type');
     return $query;
   }
-
-  protected function attachLoad(&$terms, $revision_id = FALSE) {
-    foreach ($terms as $key => $term) {
-      $terms[$key]->membership_entity_type = 'membership_entity_type_' . $term->membership_entity_type;
-    }
-    parent::attachLoad($terms, $revision_id);
-  }
 }

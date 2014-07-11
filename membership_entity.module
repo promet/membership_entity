@@ -60,8 +60,9 @@ function membership_entity_entity_info() {
       'membership' => array(
         'label' => t('Membership'),
         'admin' => array(
-          'path' => 'admin/memberships/types',
+          'path' => 'admin/memberships/types/manage/membership',
           'access arguments' => array('administer memberships'),
+          'bundle argument' => 4,
         ),
       ),
     ),
@@ -209,13 +210,20 @@ function membership_entity_modal_register_access() {
  * Implements hook_menu().
  */
 function membership_entity_menu() {
-  $items['admin/memberships/types'] = array(
-    'title' => 'Configure',
-    'page callback' => 'drupal_get_form',
-    'page arguments' => array('membership_entity_settings_form'),
-    'access arguments' => array('administer memberships'),
-    'file' => 'membership_entity.pages.inc',
-  );
+  if (!module_exists('membership_entity_type')) {
+    $items['admin/memberships/types/manage/membership'] = array(
+      'title' => 'Membership settings',
+      'page callback' => 'drupal_get_form',
+      'page arguments' => array('membership_entity_settings_form'),
+      'access arguments' => array('administer memberships'),
+      'file' => 'membership_entity.pages.inc',
+    );
+
+    $items['admin/memberships/types/manage/membership/settings'] = array(
+      'title' => 'Settings',
+      'type' => MENU_DEFAULT_LOCAL_TASK,
+    );
+  }
 
   $items['admin/memberships/add'] = array(
     'title' => 'Add a membership',
@@ -590,7 +598,7 @@ function membership_entity_field_extra_fields() {
       'form' => array(
         'membership' => array(
           'label' => t('Membership Information'),
-          'description' => t('Primary and secondary members, status, term length, etc.'),
+          'description' => t('Member ID, primary and secondary members, status, etc.'),
           'weight' => 0,
         ),
       ),
@@ -653,7 +661,11 @@ function membership_entity_form_field_ui_field_edit_form_submit($form, &$form_st
  * Wrapper to load membership bundles.
  *
  * This provides a simple list of available membership bundles without the need
- * to check if the membership_entity_type module is enabled or not.
+ * to check if the membership_entity_type module is enabled.
+ *
+ * @param string $bundle
+ *   (optional) Return info about a specific bundle. If not provided, return
+ *   info about all bundles.
  */
 function membership_entity_get_bundles($bundle = NULL) {
   if (module_exists('membership_entity_type')) {

@@ -34,10 +34,12 @@ function membership_entity_term_views_default_views() {
   $handler->display->display_options['style_options']['columns'] = array(
     'current' => 'current',
     'term' => 'term',
+    'modifiers' => 'term',
     'start' => 'start',
     'end' => 'end',
     'status' => 'status',
     'edit' => 'edit',
+    'current_1' => 'current_1',
   );
   $handler->display->display_options['style_options']['default'] = 'start';
   $handler->display->display_options['style_options']['info'] = array(
@@ -49,6 +51,11 @@ function membership_entity_term_views_default_views() {
     'term' => array(
       'sortable' => 1,
       'default_sort_order' => 'asc',
+      'align' => '',
+      'separator' => '<br />',
+      'empty_column' => 0,
+    ),
+    'modifiers' => array(
       'align' => '',
       'separator' => '',
       'empty_column' => 0,
@@ -76,7 +83,12 @@ function membership_entity_term_views_default_views() {
     ),
     'edit' => array(
       'align' => '',
-      'separator' => '|',
+      'separator' => ' | ',
+      'empty_column' => 0,
+    ),
+    'current_1' => array(
+      'align' => '',
+      'separator' => '',
       'empty_column' => 0,
     ),
   );
@@ -100,6 +112,12 @@ function membership_entity_term_views_default_views() {
   $handler->display->display_options['fields']['term']['id'] = 'term';
   $handler->display->display_options['fields']['term']['table'] = 'membership_entity_term';
   $handler->display->display_options['fields']['term']['field'] = 'term';
+  /* Field: Membership term: Modifiers */
+  $handler->display->display_options['fields']['modifiers']['id'] = 'modifiers';
+  $handler->display->display_options['fields']['modifiers']['table'] = 'membership_entity_term';
+  $handler->display->display_options['fields']['modifiers']['field'] = 'modifiers';
+  $handler->display->display_options['fields']['modifiers']['label'] = '';
+  $handler->display->display_options['fields']['modifiers']['element_label_colon'] = FALSE;
   /* Field: Membership term: Start date */
   $handler->display->display_options['fields']['start']['id'] = 'start';
   $handler->display->display_options['fields']['start']['table'] = 'membership_entity_term';
