@@ -711,11 +711,16 @@ function membership_entity_get_bundle_settings($bundle = 'membership') {
 
 /**
  * Return the next available member id.
+ *
+ * @param MembershipEntity $membership
+ *   The membership object to create a new member id. Used for tokens.
+ * @return string
+ *   The next available member id for the membership.
  */
-function membership_entity_next_member_id($type) {
-  $data = membership_entity_get_bundle_settings($type);
+function membership_entity_next_member_id($membership) {
+  $data = membership_entity_get_bundle_settings($membership->type);
   return _membership_entity_member_id_get_instance($data['member_id_format'], $data['member_id_settings'])
-    ->next();
+    ->next($membership);
 }
 
 /**
@@ -780,8 +785,14 @@ function _membership_entity_member_id_get_instance($id, $settings = array()) {
 function membership_entity_membership_entity_member_id_info() {
   $info['membership_entity_numeric_member_id'] = array(
     'title' => t('Numeric ID'),
-    'description' => t('An incrementing numeric member id.'),
+    'description' => t('An simple incrementing numeric member id.'),
     'class' => 'MembershipEntityNumericMemberId',
+    'path' => drupal_get_path('module', 'membership_entity') . '/plugins/member_id',
+  );
+  $info['membership_entity_token_member_id'] = array(
+    'title' => t('Token ID'),
+    'description' => t('A member id built with tokens.'),
+    'class' => 'MembershipEntityTokenMemberId',
     'path' => drupal_get_path('module', 'membership_entity') . '/plugins/member_id',
   );
   return $info;
@@ -1136,6 +1147,16 @@ function membership_entity_load_by_user($account, $type = NULL, $reset = FALSE) 
  */
 function membership_entity_load_multiple($mids = FALSE, $conditions = array(), $reset = FALSE) {
   return entity_load('membership_entity', $mids, $conditions, $reset);
+}
+
+/**
+ * Implements hook_membership_entity_presave().
+ */
+function membership_entity_membership_entity_presave($membership) {
+  // Generate a new member id for new memberships.
+  if (!empty($membership->is_new)) {
+    $membership->member_id = membership_entity_next_member_id($membership);
+  }
 }
 
 /**

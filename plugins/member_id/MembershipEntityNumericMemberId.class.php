@@ -9,7 +9,7 @@ class MembershipEntityNumericMemberId extends MembershipEntityMemberIdAbstract {
   /**
    * Returns the next available member id.
    */
-  public function next() {
+  public function next(MembershipEntity $membership) {
     $settings = $this->settings;
     $length = !empty($settings['length']) ? $settings['length'] : 5;
     $member_id = variable_get('membership_entity_next_member_id', 0);

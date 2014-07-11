@@ -12,10 +12,13 @@ interface MembershipEntityMemberIdInterface {
   /**
    * Determines the next available member id.
    *
+   * @param MembershipEntity $membership
+   *   The membership object used for tokens.
+   *
    * @return string
    *   The next available member id.
    */
-  public function next();
+  public function next(MembershipEntity $membership);
 
   /**
    * Builds the settings form this handler.
@@ -50,7 +53,7 @@ abstract class MembershipEntityMemberIdAbstract implements MembershipEntityMembe
   /**
    * Implements MembershipEntityMemberIdInterface::next().
    */
-  public function next() {}
+  abstract public function next(MembershipEntity $membership);
 
   /**
    * Implements MembershipEntityMemberIdInterface::settingsForm().
@@ -69,6 +72,11 @@ abstract class MembershipEntityMemberIdAbstract implements MembershipEntityMembe
  * A broken implementation of MembershipEntityMemberId.
  */
 class MembershipEntityMemberIdBroken extends MembershipEntityMemberIdAbstract {
+  /**
+   * {@inheritdoc}}
+   */
+  public function next(MembershipEntity $membership) {}
+
   /**
    * {@inheritdoc}
    */

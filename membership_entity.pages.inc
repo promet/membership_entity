@@ -556,12 +556,6 @@ function membership_entity_edit_form_submit($form, &$form_state) {
 
   // Remove extra stuff.
   form_state_values_clean($form_state);
-
-  // Generate a new membership id.
-  if (!empty($membership->is_new)) {
-    $form_state['values']['member_id'] = membership_entity_next_member_id($membership->type);
-  }
-
   entity_form_submit_build_entity('membership_entity', $membership, $form, $form_state);
   $status = membership_entity_save($membership);
 

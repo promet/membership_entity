@@ -146,11 +146,11 @@ function membership_entity_devel_create_memberships($values) {
     $membership = membership_entity_create(array(
       'mid' => NULL,
       'uid' => $uid,
-      'member_id' => membership_entity_next_member_id($type),
       'type' => $type,
       'created' => $created,
       'status' => MEMBERSHIP_ENTITY_ACTIVE,
     ));
+    $membership->member_id = membership_entity_next_member_id($membership);
 
     // Populate all core fields on behalf of field.module
     devel_generate_fields($membership, 'membership_entity', $membership->type);

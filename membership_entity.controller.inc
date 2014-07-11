@@ -17,6 +17,7 @@ class MembershipEntityController extends EntityAPIController {
     $values += array(
       'mid' => 0,
       'uid' => 0,
+      'member_id' => '',
       'type' => 'membership',
       'created' => REQUEST_TIME,
       'status' => MEMBERSHIP_ENTITY_ACTIVE,
