@@ -339,8 +339,6 @@ function membership_entity_term_membership_entity_term_delete($term) {
  */
 function _membership_entity_term_insert_update($term) {
   $membership = membership_entity_load($term->mid);
-  kpr($term);
-  kpr($membership);
 
   // Membership status should always match the current or latest term.
   if ($current = membership_entity_term_get_current($membership)) {

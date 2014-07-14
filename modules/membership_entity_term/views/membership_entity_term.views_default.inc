@@ -168,7 +168,7 @@ function membership_entity_term_views_default_views() {
 
   /* Display: Term list */
   $handler = $view->new_display('block', 'Term list', 'term_list');
-  $handler->display->display_options['display_description'] = 'A list of term for a membership.';
+  $handler->display->display_options['display_description'] = 'A list of terms for a membership.';
   $handler->display->display_options['block_description'] = 'Membership Terms';
 
   $views[$view->name] = $view;

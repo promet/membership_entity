@@ -785,7 +785,7 @@ function _membership_entity_member_id_get_instance($id, $settings = array()) {
 function membership_entity_membership_entity_member_id_info() {
   $info['membership_entity_numeric_member_id'] = array(
     'title' => t('Numeric ID'),
-    'description' => t('An simple incrementing numeric member id.'),
+    'description' => t('A simple incrementing numeric member id.'),
     'class' => 'MembershipEntityNumericMemberId',
     'path' => drupal_get_path('module', 'membership_entity') . '/plugins/member_id',
   );

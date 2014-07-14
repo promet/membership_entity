@@ -106,7 +106,7 @@ class MembershipEntityTokenMemberId extends MembershipEntityMemberIdAbstract {
     $form['suffix'] = array(
       '#type' => 'checkbox',
       '#title' => t('Add an incrementing numeric suffix'),
-      '#description' => t('Member ids must be unique. Check this box to append a unique suffix to the pattern above. You should check this box if the pattern entered above does not contain enough information to guaruntee uniqueness.'),
+      '#description' => t('Member ids must be unique. Check this box to append a unique suffix to the pattern above. You should check this box if the pattern entered above does not contain enough information to guarantee uniqueness.'),
       '#default_value' => $settings['suffix'],
     );
 
