@@ -15,7 +15,7 @@ class views_handler_field_membership_link extends views_handler_field_entity {
   /**
    * {@inheritdoc}
    */
-  public function init(&$view, $options) {
+  public function init(&$view, &$options) {
     parent::init($view, $options);
     $this->entity_info = entity_get_info($this->entity_type);
     $this->op = $this->definition['op'];
