@@ -18,7 +18,7 @@ interface MembershipEntityMemberIdInterface {
    * @return string
    *   The next available member id.
    */
-  public function next(MembershipEntity $membership);
+  public function next($membership);
 
   /**
    * Builds the settings form this handler.
@@ -53,7 +53,7 @@ abstract class MembershipEntityMemberIdAbstract implements MembershipEntityMembe
   /**
    * Implements MembershipEntityMemberIdInterface::next().
    */
-  abstract public function next(MembershipEntity $membership);
+  public function next($membership) {}
 
   /**
    * Implements MembershipEntityMemberIdInterface::settingsForm().
@@ -75,7 +75,7 @@ class MembershipEntityMemberIdBroken extends MembershipEntityMemberIdAbstract {
   /**
    * {@inheritdoc}}
    */
-  public function next(MembershipEntity $membership) {}
+  public function next($membership) {}
 
   /**
    * {@inheritdoc}
