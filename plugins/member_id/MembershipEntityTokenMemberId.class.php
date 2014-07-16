@@ -9,7 +9,7 @@ class MembershipEntityTokenMemberId extends MembershipEntityMemberIdAbstract {
   /**
    * Returns the next available member id.
    */
-  public function next(MembershipEntity $membership) {
+  public function next($membership) {
     $settings = $this->settings + array(
       'pattern' => '',
       'suffix' => 1,

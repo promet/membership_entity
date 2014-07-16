@@ -210,6 +210,22 @@ function membership_entity_modal_register_access() {
  * Implements hook_menu().
  */
 function membership_entity_menu() {
+  // Placeholder menu item for the memberships view.
+  $items['admin/memberships'] = array(
+    'title' => 'Memberships',
+    'access arguments' => array('administer memberships'),
+    'type' => MENU_NORMAL_ITEM,
+  );
+
+  $items['admin/memberships/add'] = array(
+    'title' => 'Add a membership',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('membership_entity_edit_form'),
+    'access arguments' => array('administer memberships'),
+    'type' => MENU_LOCAL_ACTION,
+    'file' => 'membership_entity.pages.inc',
+  );
+
   if (!module_exists('membership_entity_type')) {
     $items['admin/memberships/types/manage/membership'] = array(
       'title' => 'Membership settings',
@@ -224,15 +240,6 @@ function membership_entity_menu() {
       'type' => MENU_DEFAULT_LOCAL_TASK,
     );
   }
-
-  $items['admin/memberships/add'] = array(
-    'title' => 'Add a membership',
-    'page callback' => 'drupal_get_form',
-    'page arguments' => array('membership_entity_edit_form'),
-    'access arguments' => array('administer memberships'),
-    'type' => MENU_LOCAL_ACTION,
-    'file' => 'membership_entity.pages.inc',
-  );
 
   $items['user/join'] = array(
     'title' => 'Join',
@@ -387,7 +394,7 @@ function membership_entity_membership_entity_delete($membership) {
 /**
  * Update a membership alias.
  */
-function membership_entity_update_alias($membership, $op, $options = array()) {
+function membership_entity_update_alias(MembershipEntity $membership, $op, $options = array()) {
   $options += array('language' => pathauto_entity_language('membership_entity', $membership));
 
   if (!pathauto_pattern_load_by_entity('membership_entity', $membership->type, $options['language'])) {
@@ -1106,6 +1113,26 @@ function membership_entity_views_api() {
 }
 
 /**
+ * Convert a stdClass object to an instance of MembershipEntity.
+ *
+ * Shallow copies all properties of $object to a new
+ * MembershipEntity instance.
+ *
+ * @param stdClass $object
+ *   The object to convert.
+ *
+ * @return MembershipEntity A new instance of MembershipEntity with all
+ *   properties copied from $object.
+ */
+function membership_entity_create_from_stdclass(stdClass $object) {
+  $membership = membership_entity_create();
+  foreach (get_object_vars($object) as $key => $value) {
+    $membership->{$key} = $value;
+  }
+  return $membership;
+}
+
+/**
  * Create a new membership entity with default values.
  */
 function membership_entity_create($values = array()) {
@@ -1154,7 +1181,7 @@ function membership_entity_load_multiple($mids = FALSE, $conditions = array(), $
  */
 function membership_entity_membership_entity_presave($membership) {
   // Generate a new member id for new memberships.
-  if (!empty($membership->is_new)) {
+  if (!empty($membership->is_new) && empty($membership->member_id)) {
     $membership->member_id = membership_entity_next_member_id($membership);
   }
 }

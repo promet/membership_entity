@@ -25,8 +25,8 @@ class MigrateDestinationMembershipEntityTerm extends MigrateDestinationEntity {
    * @param array $options
    *   Options applied to membership terms.
    */
-  public function __construct(array $options = array()) {
-    parent::__construct('membership_entity_term', 'membership_entity_term', $options);
+  public function __construct($bundle = 'membership', array $options = array()) {
+    parent::__construct('membership_entity_term', $bundle, $options);
   }
 
   /**
@@ -84,6 +84,9 @@ class MigrateDestinationMembershipEntityTerm extends MigrateDestinationEntity {
    *   FALSE on failure.
    */
   public function import(stdClass $term, stdClass $row) {
+    // Convert $term to an instance of MembershpEntityTerm.
+    $term = membership_entity_term_create_from_stdclass($term);
+
     // Updating previously-migrated content?
     $migration = Migration::currentMigration();
     if (isset($row->migrate_map_destid1)) {

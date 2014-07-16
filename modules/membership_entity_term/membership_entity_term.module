@@ -548,6 +548,26 @@ function membership_entity_term_preprocess_views_view(&$vars) {
 }
 
 /**
+ * Convert a stdClass object to an instance of MembershipEntityTerm.
+ *
+ * Shallow copies all properties of $object to a new
+ * MembershipEntityTerm instance.
+ *
+ * @param stdClass $object
+ *   The object to convert.
+ *
+ * @return MembershipEntityTerm A new instance of MembershipEntityTerm with all
+ *   properties copied from $object.
+ */
+function membership_entity_term_create_from_stdclass(stdClass $object) {
+  $term = membership_entity_term_create();
+  foreach (get_object_vars($object) as $key => $value) {
+    $term->{$key} = $value;
+  }
+  return $term;
+}
+
+/**
  * Create a new membership entity term with default values.
  */
 function membership_entity_term_create($values = array()) {
