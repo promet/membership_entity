@@ -9,10 +9,8 @@
  * Add term options to the membership settings form.
  */
 function _membership_entity_term_settings_form(&$form, &$form_state, $data) {
-  // Provide some defaults.
-  $data += array(
-    'available_term_lengths' => array(),
-  );
+  // Make date timezone options available.
+  form_load_include($form_state, 'inc', 'date', 'date_admin');
 
   // Add membership term lengths.
   if (!isset($form_state['membership_entity_term']['available_term_lengths'])) {
@@ -25,7 +23,21 @@ function _membership_entity_term_settings_form(&$form, &$form_state, $data) {
     '#collapsible' => TRUE,
     '#collapsed' => FALSE,
     '#tree' => TRUE,
-    '#description' => t('Select the term lengths that will be available for this membership type.'),
+  );
+
+  $form['term_lengths']['tz_handling'] = array(
+    '#type' => 'select',
+    '#title' => t('Timezone handling'),
+    '#description' => t('Select the timezone handling method for term dates. See <a href="@url">time zone handling</a> for details.', array(
+      '@url' => url('https://www.drupal.org/node/1455578', array('external' => TRUE))
+    )),
+    '#default_value' => $data['tz_handling'],
+    '#options' => date_timezone_handling_options(),
+  );
+
+  $form['term_lengths']['timezone_db'] = array(
+    '#type' => 'hidden',
+    '#value' => $data['timezone_db'],
   );
 
   $wrapper_id = 'available-term-lengths-wrapper';
@@ -35,6 +47,7 @@ function _membership_entity_term_settings_form(&$form, &$form_state, $data) {
     '#prefix' => '<div id="' . $wrapper_id . '">',
     '#suffix' => '</div>',
     '#element_validate' => array('membership_entity_term_length_element_validate'),
+    '#description' => t('Select the term lengths that will be available for this membership type.'),
   );
 
   foreach ($form_state['membership_entity_term']['available_term_lengths'] as $delta => $term_length) {
@@ -185,11 +198,22 @@ function membership_entity_term_length_remove($form, &$form_state) {
 function membership_entity_term_settings_form_validate($form, &$form_state) {
   $values = &$form_state['values'];
 
+  // Save and flatten timezone settings.
+  $values['tz_handling'] = $values['term_lengths']['tz_handling'];
+  if ($values['tz_handling'] == 'none') {
+    $values['timezone_db'] = '';
+  }
+  else {
+    $values['timezone_db'] = date_get_timezone_db($values['tz_handling']);
+  }
+
   // Flatten available term lengths.
   if (!empty($values['term_lengths']['available_term_lengths'])) {
     $values['available_term_lengths'] = $values['term_lengths']['available_term_lengths'];
-    unset($values['term_lengths']);
   }
+
+  // Remove nested values.
+  unset($values['term_lengths']);
 }
 
 /**
@@ -258,17 +282,38 @@ function membership_entity_term_edit($form, &$form_state, $membership, $term) {
     );
   }
 
-  // Convert to user's timezone.
+  // Convert to appropriate timezone for display.
+  $timezone = date_get_timezone($bundle_settings['tz_handling'], $term->timezone);
   $start = new DateObject($term->start, 'UTC');
-  $start->setTimezone(new DateTimeZone(date_default_timezone()));
+  $start->setTimezone(new DateTimeZone($timezone));
   $form['start'] = array(
-    '#type' => 'date_select',
+    '#type' => module_exists('date_popup') ? 'date_popup' : 'date_select',
     '#title' => t('Term start date'),
     '#description' => t('Select the new membership term start date. The term end date will be calculated automatically based on the start date, term length, and any modifiers.'),
     '#date_format' => DATE_FORMAT_DATETIME,
     '#default_value' => date_format_date($start, 'custom', DATE_FORMAT_DATETIME),
+    '#date_timezone' => $timezone,
     '#date_text_parts' => array('year'),
+    '#date_increment' => 1,
+    '#date_year_range' => '-10:+10',
+    '#date_label_position' => 'above',
   );
+
+  if ($bundle_settings['tz_handling'] == 'date') {
+    $form['timezone'] = array(
+      '#type' => 'date_timezone',
+      '#theme_wrappers' => array('date_timezone'),
+      '#default_value' => $term->timezone,
+      '#attributes' => array('class' => array('date-no-float')),
+      '#date_label_position' => 'above',
+    );
+  }
+  elseif ($bundle_settings['tz_handling'] != 'none') {
+    $form['timezone'] = array(
+      '#type' => 'hidden',
+      '#value' => 'UTC',
+    );
+  }
 
   $options = drupal_map_assoc($bundle_settings['available_term_lengths']);
   $form['term'] = array(
@@ -465,9 +510,9 @@ function membership_entity_term_edit_form_validate($form, &$form_state) {
     form_set_value($form['modifiers'], $modifiers, $form_state);
   }
 
-  // Convert start date back to UTC.
+  // Handle timezone conversion before saving.
   $start = new DateObject($values['start'], $form['start']['#date_timezone']);
-  $start->setTimezone(new DateTimeZone('UTC'));
+  $start->setTimezone(new DateTimeZone($values['timezone']));
   form_set_value($form['start'], date_format_date($start, 'custom', DATE_FORMAT_DATETIME), $form_state);
 
   // Validate custom fields.
@@ -704,6 +749,7 @@ function _membership_entity_term_attach_form_submit($form, &$form_state) {
   $entity_type = 'membership_entity_term';
   $term = $form['#membership_entity_term'];
   $bundle = $term->membership_entity_type;
+  $bundle_settings = $form['#bundle_settings'];
   $membership = $form['#membership_entity'];
 
   // Add the new membership term.
@@ -712,12 +758,14 @@ function _membership_entity_term_attach_form_submit($form, &$form_state) {
 
   // Add the start date.
   $latest_term = end($membership->terms);
-  $now = new DateObject('now', 'UTC');
+
+  $term->timezone = ($bundle_settings['tz_handling'] == 'date') ? date_default_timezone() : 'UTC';
+  $now = date_format_date(date_now($term->timezone), 'custom', DATE_FORMAT_DATETIME);
   if (!empty($latest_term) && $latest_term->status == MEMBERSHIP_ENTITY_ACTIVE && $latest_term->end > $now) {
     $term->start = $latest_term->end;
   }
   else {
-    $term->start = date_format_date($now, 'custom', DATE_FORMAT_DATETIME);
+    $term->start = $now;
   }
 
   if ($membership->status == MEMBERSHIP_ENTITY_PENDING) {

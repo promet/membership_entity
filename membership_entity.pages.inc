@@ -16,19 +16,8 @@ function membership_entity_settings_form($form, &$form_state, $data = array()) {
   );
 
   if (empty($data)) {
-    $data = variable_get('membership_entity_settings', array());
+    $data = membership_entity_get_bundle_settings();
   }
-
-  // Provide some defaults.
-  $data += array(
-    'cardinality' => '1',
-    'show_on_profile' => 1,
-    'all_edit' => 0,
-    'primary_role' => '',
-    'secondary_role' => '',
-    'member_id_format' => 'membership_entity_numeric_member_id',
-    'member_id_settings' => array(),
-  );
   $form['#data'] = $data;
 
   $form['membership_settings'] = array(

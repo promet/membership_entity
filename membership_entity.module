@@ -713,7 +713,25 @@ function membership_entity_get_bundle_settings($bundle = 'membership') {
     )), 'error');
     return FALSE;
   }
+
+  // Apply defaults.
+  $data += module_invoke_all('membership_entity_bundle_settings_defaults');
   return $data;
+}
+
+/**
+ * Implements hook_membership_entity_bundle_settings_defaults().
+ */
+function membership_entity_membership_entity_bundle_settings_defaults() {
+  return array(
+    'cardinality' => '1',
+    'show_on_profile' => 1,
+    'all_edit' => 0,
+    'primary_role' => '',
+    'secondary_role' => '',
+    'member_id_format' => 'membership_entity_numeric_member_id',
+    'member_id_settings' => array(),
+  );
 }
 
 /**

@@ -83,7 +83,7 @@ class MembershipEntityTerm extends Entity {
    */
   protected function calculateEndDate() {
     // Add the term length.
-    $end = new DateObject($this->start, new DateTimezone('UTC'));
+    $end = new DateObject($this->start, new DateTimezone($this->timezone));
     $end = _membership_entity_term_modify_date($end, $this->term);
 
     // Add modifiers.

@@ -105,7 +105,8 @@ function membership_entity_term_label($term, $entity_type) {
 function membership_entity_term_get_properties($term, array $options, $name, $type, $info) {
   switch ($name) {
     case 'current':
-      return (strtotime($term->start) <= REQUEST_TIME && strtotime($term->end) >= REQUEST_TIME);
+      $now = date_format_date(date_now($term->timezone), 'custom', DATE_FORMAT_DATETIME);
+      return ($term->start <= $now && $term->end >= $now);
 
     default:
       return entity_property_verbatim_get($term, $options, $name, $type, $info);
@@ -116,7 +117,7 @@ function membership_entity_term_get_properties($term, array $options, $name, $ty
  * Implements hook_cron().
  */
 function membership_entity_term_cron() {
-  $now = new DateObject('now', 'UTC');
+  $now = date_now('UTC');
   $query_args = array(
     ':now' => date_format_date($now, 'custom', DATE_FORMAT_DATETIME),
     ':status' => MEMBERSHIP_ENTITY_ACTIVE,
@@ -279,6 +280,17 @@ function membership_entity_term_menu_alter(&$items) {
     $items['admin/memberships/types/manage/membership/terms/display']['title'] = 'Term display';
     $items['admin/memberships/types/manage/membership/terms/display']['weight'] = 4;
   }
+}
+
+/**
+ * Implements hook_membership_entity_bundle_settings_defaults().
+ */
+function membership_entity_term_membership_entity_bundle_settings_defaults() {
+  return array(
+    'tz_handling' => 'site',
+    'timezone_db' => 'UTC',
+    'available_term_lengths' => array(),
+  );
 }
 
 /**
@@ -609,7 +621,7 @@ function membership_entity_term_get_join_date(MembershipEntity $membership) {
     $terms = $membership->terms;
     uasort($terms, '_membership_entity_term_sort_by_start_date');
     $first = reset($terms);
-    return new DateObject($first->start, new DateTimezone('UTC'));
+    return new DateObject($first->start, new DateTimezone($first->timezone));
   }
   return FALSE;
 }
@@ -638,7 +650,7 @@ function membership_entity_term_get_expiration_date(MembershipEntity $membership
     if ($last->term == 'lifetime') {
       return FALSE;
     }
-    return new DateObject($last->end, new DateTimezone('UTC'));
+    return new DateObject($last->end, new DateTimezone($last->timezone));
   }
   return FALSE;
 }
@@ -657,7 +669,10 @@ function membership_entity_term_get_current($mid) {
     $mid = $mid->mid;
   }
 
-  if ($id = db_query('SELECT id FROM {membership_entity_term} t WHERE mid = :mid AND (start <= :now AND end >= :now) LIMIT 1', array(':mid' => $mid, ':now' => format_date(REQUEST_TIME, 'custom', DATE_FORMAT_DATETIME)))->fetchField()) {
+  if ($id = db_query('SELECT id FROM {membership_entity_term} t WHERE mid = :mid AND (start <= :now AND end >= :now) LIMIT 1', array(
+      ':mid' => $mid,
+      ':now' => date_format_date(date_now('UTC'), 'custom', DATE_FORMAT_DATETIME),
+    ))->fetchField()) {
     return membership_entity_term_load($id);
   }
   return FALSE;
@@ -863,6 +878,7 @@ function theme_membership_entity_term_available_term_lengths_element($variables)
     'header' => $header,
     'rows' => $rows,
     'attributes' => array('id' => $table_id),
+    'caption' => $element['#description'],
   ));
 }
 

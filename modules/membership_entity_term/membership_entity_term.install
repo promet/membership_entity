@@ -45,7 +45,7 @@ function membership_entity_term_schema() {
         'serialize' => TRUE,
       ),
       'start' => array(
-        'description' => 'The UNIX timestamp when this term starts.',
+        'description' => 'The date when this term starts.',
         'type' => 'datetime',
         'mysql_type' => 'datetime',
         'pgsql_type' => 'timestamp without time zone',
@@ -55,7 +55,7 @@ function membership_entity_term_schema() {
         'sortable' => TRUE,
       ),
       'end' => array(
-        'description' => 'The UNIX timestamp when this term ends.',
+        'description' => 'The date when this term ends.',
         'type' => 'datetime',
         'mysql_type' => 'datetime',
         'pgsql_type' => 'timestamp without time zone',
@@ -64,6 +64,13 @@ function membership_entity_term_schema() {
         // Null value for lifetime terms.
         'not null' => FALSE,
         'sortable' => TRUE,
+      ),
+      'timezone' => array(
+        'description' => 'The database timezone for membership term dates.',
+        'type' => 'varchar',
+        'length' => 50,
+        // Null if no timezone handling.
+        'not null' => FALSE,
       ),
     ),
     'indexes' => array(
@@ -115,4 +122,23 @@ function membership_entity_term_update_7001() {
       }
     }
   }
+}
+
+/**
+ * Adds a timezone column for term dates.
+ */
+function membership_entity_term_update_7002() {
+  $field = array(
+    'description' => 'The database timezone for membership term dates.',
+    'type' => 'varchar',
+    'length' => 50,
+    'not null' => FALSE,
+    'default' => 'UTC',
+  );
+  db_add_field('membership_entity_term', 'timezone', $field);
+
+  // Till now dates were assumed to be UTC.
+  db_update('membership_entity_term')
+    ->fields(array('timezone' => 'UTC'))
+    ->execute();
 }

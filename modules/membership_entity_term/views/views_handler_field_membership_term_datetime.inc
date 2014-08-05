@@ -12,7 +12,46 @@ class views_handler_field_membership_term_datetime extends views_handler_field_d
   /**
    * {@inheritdoc}
    */
+  function construct() {
+    parent::construct();
+    $this->additional_fields['mid'] = 'mid';
+    $this->additional_fields['timezone'] = 'timezone';
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  function options_form(&$form, &$form_state) {
+    parent::options_form($form, $form_state);
+
+    $form['timezone'] = array(
+      '#type' => 'value',
+      '#value' => 'UTC',
+    );
+  }
+
+  /**
+   * {@inheritdoc}
+   */
   public function get_value($values, $field = NULL) {
-    return strtotime(parent::get_value($values, $field));
+    $value = parent::get_value($values, $field);
+    if (empty($field) || $field == $this->real_field) {
+      $date = new DateObject($value, 'UTC');
+      return $date->getTimestamp();
+    }
+    return $value;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  function render($values) {
+    // Load the membership object and settings.
+    $membership = membership_entity_load($this->get_value($values, 'mid'));
+    $bundle_settings = membership_entity_get_bundle_settings($membership->type);
+
+    // Force timzone to respect membership type settings.
+    $this->options['timezone'] = date_get_timezone($bundle_settings['tz_handling'], $this->get_value($values, 'timezone'));
+    return parent::render($values);
   }
 }
