@@ -220,7 +220,7 @@ function _membership_entity_token_clean_string($string, $settings) {
 }
 
 /**
- * Replace whtiespace and punctuation with a separator.
+ * Replace whitespace and punctuation with a separator.
  */
 function _membership_entity_token_clean_separator($string, $separator) {
   $return = $string;

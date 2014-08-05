@@ -9,7 +9,7 @@
  * Implements hook_views_default_views().
  */
 function membership_entity_views_default_views() {
-  // Check for some helper modles.
+  // Check for some helper modules.
   $vbo = module_exists('views_bulk_operations');
   $types = module_exists('membership_entity_type');
   $terms = module_exists('membership_entity_term');

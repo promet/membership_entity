@@ -50,7 +50,7 @@ class views_handler_field_membership_term_datetime extends views_handler_field_d
     $membership = membership_entity_load($this->get_value($values, 'mid'));
     $bundle_settings = membership_entity_get_bundle_settings($membership->type);
 
-    // Force timzone to respect membership type settings.
+    // Force timezone to respect membership type settings.
     $this->options['timezone'] = date_get_timezone($bundle_settings['tz_handling'], $this->get_value($values, 'timezone'));
     return parent::render($values);
   }

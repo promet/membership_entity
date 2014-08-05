@@ -98,7 +98,7 @@ class MigrateDestinationMembershipEntity extends MigrateDestinationEntity {
    *   FALSE on failure.
    */
   public function import(stdClass $membership, stdClass $row) {
-    // Convert $membership to an instance of MembershpEntity.
+    // Convert $membership to an instance of MembershipEntity.
     $membership = membership_entity_create_from_stdclass($membership);
 
     // Updating previously-migrated content?

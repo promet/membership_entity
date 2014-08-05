@@ -740,7 +740,7 @@ function _membership_entity_term_attach_form_validate($form, &$form_state) {
  * Helper to submit term fields on a membership form.
  *
  * @return MembershipEntityTerm
- *   The poputlated term objcet. Calling membership_entity_save() is left to
+ *   The populated term objcet. Calling membership_entity_save() is left to
  *   the caller.
  */
 function _membership_entity_term_attach_form_submit($form, &$form_state) {
@@ -771,7 +771,7 @@ function _membership_entity_term_attach_form_submit($form, &$form_state) {
   if ($membership->status == MEMBERSHIP_ENTITY_PENDING) {
     $term->status = MEMBERSHIP_ENTITY_PENDING;
   }
-  else if (strtotime($term->start) >= REQUEST_TIME) {
+  elseif (strtotime($term->start) >= REQUEST_TIME) {
     $term->status = MEMBERSHIP_ENTITY_ACTIVE;
   }
   else {

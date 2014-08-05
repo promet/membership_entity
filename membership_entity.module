@@ -1105,7 +1105,7 @@ function membership_entity_action_info() {
 /**
  * Actions callback.
  *
- * Cancel the a membership.
+ * Cancel a membership.
  */
 function membership_entity_cancel_action($membership, $context = array()) {
   $membership->status = MEMBERSHIP_ENTITY_CANCELLED;
