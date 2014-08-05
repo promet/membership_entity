@@ -24,11 +24,17 @@ class views_handler_relationship_term_groupwise_max extends views_handler_relati
   function options_form(&$form, &$form_state) {
     parent::options_form($form, $form_state);
 
+    // Form type checkboxes may not use 0 as an options key. We'll use -1
+    // instead.
+    $status_list = membership_entity_get_status_list();
+    $status_list[-1] = $status_list[0];
+    unset($status_list[0]);
+
     $form['subquery_status'] = array(
       '#type' => 'checkboxes',
       '#title' => t('Representative term status'),
       '#description' => t("Filter the representative term by status."),
-      '#options' => membership_entity_get_status_list(),
+      '#options' => $status_list,
       '#default_value' => $this->options['subquery_status'],
     );
   }
@@ -93,7 +99,11 @@ class views_handler_relationship_term_groupwise_max extends views_handler_relati
     $subquery = $temp_view->build_info['query'];
 
     // Add a condition based on status.
-    $subquery->condition($this->definition['base'] . '.status', array_unique($options['subquery_status']), 'IN');
+    $status_list = array_unique(array_filter($options['subquery_status']));
+    if (array_key_exists(-1, $status_list)) {
+      $status_list[-1] = MEMBERSHIP_ENTITY_EXPIRED;
+    }
+    $subquery->condition($this->definition['base'] . '.status', $status_list, 'IN');
 
     // Workaround until http://drupal.org/node/844910 is fixed:
     // Remove all fields from the SELECT except the base id.
