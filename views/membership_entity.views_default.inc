@@ -170,8 +170,8 @@ function membership_entity_views_default_views() {
     $handler->display->display_options['relationships']['membership_entity_term_representative']['subquery_view'] = '';
     $handler->display->display_options['relationships']['membership_entity_term_representative']['subquery_namespace'] = 'last';
     $handler->display->display_options['relationships']['membership_entity_term_representative']['subquery_status'] = array(
-      0 => '0',
       1 => '1',
+      -1 => '-1',
       2 => 0,
       3 => 0,
     );
@@ -187,9 +187,9 @@ function membership_entity_views_default_views() {
     $handler->display->display_options['relationships']['membership_entity_term_representative_1']['subquery_view'] = '';
     $handler->display->display_options['relationships']['membership_entity_term_representative_1']['subquery_namespace'] = 'first';
     $handler->display->display_options['relationships']['membership_entity_term_representative_1']['subquery_status'] = array(
-      0 => '0',
       1 => '1',
       3 => '3',
+      -1 => '-1',
       2 => 0,
     );
   }
