@@ -516,17 +516,17 @@ function membership_entity_form_validate($form, &$form_state) {
     form_set_value($form['membership']['uid'], $uid, $form_state);
   }
 
-  // Make sure secondary members are unique.
   if (!empty($values['secondary_members'])) {
+    // Make sure secondary members are unique.
     form_set_value($form['membership']['secondary_members'], array_values(array_unique($values['secondary_members'])), $form_state);
-  }
 
-  // Don't allow the primary member as a secondary member.
-  foreach ($values['secondary_members'] as $delta => $value) {
-    if ($values['uid'] == $value) {
-      form_set_error("secondary_members][$delta][value", t('%name is the primary member.', array(
-        '%name' => format_username(user_load($values['uid'])),
-      )));
+    // Don't allow the primary member as a secondary member.
+    foreach ($values['secondary_members'] as $delta => $value) {
+      if ($values['uid'] == $value) {
+        form_set_error("secondary_members][$delta][value", t('%name is the primary member.', array(
+          '%name' => format_username(user_load($values['uid'])),
+        )));
+      }
     }
   }
 

@@ -430,9 +430,11 @@ function membership_entity_theme() {
  * Add membership data to the user page.
  */
 function membership_entity_user_view($account, $view_mode, $langcode) {
-  if ($memberships = membership_entity_load_by_user($account)) {
+  if ($view_mode == 'full' && $memberships = membership_entity_load_by_user($account)) {
     foreach ($memberships as $type => $membership) {
-      $account->content['memberships'][$type] = membership_entity_view($membership, 'account', $langcode);
+      if (membership_entity_access('view', $membership)) {
+        $account->content['memberships'][$type] = membership_entity_view($membership, 'account', $langcode);
+      }
     }
   }
 }
@@ -535,17 +537,14 @@ function membership_entity_view($membership, $view_mode = 'full', $langcode = NU
     );
 
     $links = array();
-
-    if (membership_entity_access('view', $membership)) {
-      $links['view'] = array(
-        'title' => t('View full membership'),
-        'href' => 'membership/' . $membership->mid,
-        'attributes' => array(
-          'title' => t('View membership @member_id.', array('@member_id' => $membership->member_id)),
-        ),
-        'html' => FALSE,
-      );
-    }
+    $links['view'] = array(
+      'title' => t('View full membership'),
+      'href' => 'membership/' . $membership->mid,
+      'attributes' => array(
+        'title' => t('View membership @member_id.', array('@member_id' => $membership->member_id)),
+      ),
+      'html' => FALSE,
+    );
 
     if (membership_entity_access('edit', $membership)) {
       $links['edit'] = array(
