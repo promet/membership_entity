@@ -399,7 +399,7 @@ function membership_entity_term_edit($form, &$form_state, $membership, $term) {
     '#type' => 'textfield',
     '#title' => t('Other modifier'),
     '#size' => 32,
-    '#description' => t('Enter a term modifer sign (+-), number, and unit (eg. +1 month).'),
+    '#description' => t('Enter a term modifer as a sign (+-), number, and unit (eg. +1 month).'),
     '#states' => array(
       'visible' => array(
         ':input[name="modifiers[options]"]' => array('value' => 'other'),
@@ -466,8 +466,8 @@ function membership_entity_term_modifier_add_validate($form, &$form_state) {
   if ($modifier == 'other') {
     $modifier = trim($values['modifiers']['custom']);
     // Multiple intervals in one string (eg. +1 month 1 day) are not supported.
-    if (!preg_match(MEMBERSHIP_ENTITY_ACTIVE_MODIFIER_REGEX, $modifier)) {
-      form_set_error('modifiers][custom', t('%modifier is not a valid term modifier. Please enter term lengths as a sign (+-), number, and unit (eg. +1 month)', array(
+    if (!preg_match(MEMBERSHIP_ENTITY_TERM_MODIFIER_REGEX, $modifier)) {
+      form_set_error('modifiers][custom', t('%modifier is not a valid term modifier. Please enter modifiers as a sign (+-), number, and unit (eg. +1 month)', array(
         '%modifier' => $modifier,
       )));
     }
