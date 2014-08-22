@@ -388,7 +388,9 @@ function membership_entity_membership_entity_update($membership) {
  * Implements hook_membership_entity_delete().
  */
 function membership_entity_membership_entity_delete($membership) {
-  pathauto_entity_path_delete_all('membership_entity', $membership, "membership/{$membership->mid}");
+  if module_exists('pathauto') {
+    pathauto_entity_path_delete_all('membership_entity', $membership, "membership/{$membership->mid}");
+  }
 }
 
 /**
