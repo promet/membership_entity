@@ -395,14 +395,16 @@ function membership_entity_membership_entity_delete($membership) {
  * Update a membership alias.
  */
 function membership_entity_update_alias(MembershipEntity $membership, $op, $options = array()) {
-  $options += array('language' => pathauto_entity_language('membership_entity', $membership));
+  $uri = entity_uri('membership_entity', $membership);
+  if (!module_exists('pathauto')) {
+    return $uri['path'];
+  }
 
+  $options += array('language' => pathauto_entity_language('membership_entity', $membership));
   if (!pathauto_pattern_load_by_entity('membership_entity', $membership->type, $options['language'])) {
     return;
   }
-
   module_load_include('inc', 'pathauto');
-  $uri = entity_uri('membership_entity', $membership);
   pathauto_create_alias('membership_entity', $op, $uri['path'], array('membership_entity' => $membership), $membership->type, $options['language']);
 }
 
@@ -1093,11 +1095,13 @@ function membership_entity_action_info() {
     'behavior' => array('changes_property'),
   );
 
-  $info['membership_entity_pathauto_update_action'] = array(
-    'type' => 'membership_entity',
-    'label' => t('Update membership alias'),
-    'configurable' => FALSE,
-  );
+  if (module_exists('pathauto')) {
+    $info['membership_entity_pathauto_update_action'] = array(
+      'type' => 'membership_entity',
+      'label' => t('Update membership alias'),
+      'configurable' => FALSE,
+    );
+  }
   return $info;
 }
 
@@ -1113,7 +1117,7 @@ function membership_entity_cancel_action($membership, $context = array()) {
 /**
  * Actions callback.
  *
- * Bulk update membership aliases.
+ * Bulk update membership pathauto aliases.
  */
 function membership_entity_pathauto_update_action($membership, $context = array()) {
   membership_entity_update_alias($membership, 'bulkupdate', array('message' => TRUE));
