@@ -171,7 +171,7 @@ function membership_entity_membership_entity_access($op, $membership = NULL, $ac
     return FALSE;
   }
 
-  if (isset($membership) && $type_name = $membership->type) {
+  if (is_object($membership) && $type_name = $membership->type) {
     if (user_access("$type_name $op any membership", $user)) {
       return TRUE;
     }
@@ -322,6 +322,22 @@ function membership_entity_menu_link_alter(&$link) {
   // Force the Join link to appear on the top level of the 'user-menu' menu.
   if ($link['link_path'] == 'user/join' && $link['module'] == 'membership_entity' && empty($link['customized'])) {
     $link['plid'] = 0;
+  }
+}
+
+/**
+ * Implements hook_menu_local_tasks_alter().
+ */
+function membership_entity_menu_local_tasks_alter(&$data, $router_item, $root_path) {
+  // Add join link to user tabs.
+  if ($root_path == 'user/%') {
+    $item = menu_get_item('user/join');
+    if ($item['access']) {
+      $data['tabs'][0]['output'][] = array(
+        '#theme' => 'menu_local_task',
+        '#link' => $item,
+      );
+    }
   }
 }
 

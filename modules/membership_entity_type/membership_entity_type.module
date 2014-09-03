@@ -165,6 +165,20 @@ function membership_entity_type_menu() {
       'file' => 'membership_entity.pages.inc',
       'file path' => drupal_get_path('module', 'membership_entity'),
     );
+
+    if (module_exists('membership_entity_term')) {
+      $items['user/renew/' . $type_url_str] = array(
+        'title' => 'Renew ' . $type->label,
+        'title callback' => 'check_plain',
+        'description' => $type->description,
+        'page callback' => 'drupal_get_form',
+        'page arguments' => array('membership_entity_term_renew', NULL, $type->type),
+        'access callback' => 'membership_entity_access',
+        'access arguments' => array('renew', $type->type),
+        'file' => 'membership_entity_term.pages.inc',
+        'file path' => drupal_get_path('module', 'membership_entity_term'),
+      );
+    }
   }
   return $items;
 }
@@ -191,6 +205,17 @@ function membership_entity_type_menu_alter(&$items) {
     'file' => 'membership_entity_type.pages.inc',
     'module' => 'membership_entity_type',
   ));
+
+  // Override the renew page.
+  if (module_exists('membership_entity_term')) {
+    $path = 'user/renew';
+    $items[$path] = array_merge($items[$path], array(
+      'page callback' => 'membership_entity_type_membership_renew_page',
+      'access callback' => TRUE,
+      'file' => 'membership_entity_type.pages.inc',
+      'module' => 'membership_entity_type',
+    ));
+  }
 }
 
 /**

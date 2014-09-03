@@ -549,9 +549,28 @@ function membership_entity_term_edit_form_submit($form, &$form_state) {
 /**
  * Menu callback: Renew an existing membership.
  */
-function membership_entity_term_renew($form, &$form_state, $membership) {
+function membership_entity_term_renew($form, &$form_state, $membership = NULL, $bundle = 'membership') {
+  if (empty($membership)) {
+    // This is the generic form at user/renew.
+    $efq = new EntityFieldQuery();
+    $result = $efq->entityCondition('entity_type', 'membership_entity')
+      ->entityCondition('bundle', $bundle)
+      ->propertyCondition('uid', $GLOBALS['user']->uid)
+      ->execute();
+    $membership = !empty($result['membership_entity']) ? membership_entity_load(current(array_keys($result['membership_entity']))) : FALSE;
+    if (empty($membership)) {
+      $form['no_membership'] = array(
+        '#markup' => t('You do not have any membership to renew. Click <a href="@url">here</a> to join.', array(
+          '@url' => url('user/join'),
+        )),
+      );
+      return $form;
+    }
+  }
+
   drupal_set_title(t('Renew membership @member_id', array('@member_id' => $membership->member_id)));
   $form['#membership_entity'] = $membership;
+  $form['#membership_entity']->is_renewal = TRUE;
   $form['#bundle_settings'] = $bundle_settings = membership_entity_get_bundle_settings($membership->type);
   if (empty($bundle_settings)) {
     return '';
