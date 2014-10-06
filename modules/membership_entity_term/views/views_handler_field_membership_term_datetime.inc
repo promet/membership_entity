@@ -47,11 +47,13 @@ class views_handler_field_membership_term_datetime extends views_handler_field_d
    */
   function render($values) {
     // Load the membership object and settings.
-    $membership = membership_entity_load($this->get_value($values, 'mid'));
-    $bundle_settings = membership_entity_get_bundle_settings($membership->type);
+    if ($mid = $this->get_value($values, 'mid')) {
+      $type = db_query("SELECT type FROM membership_entity WHERE mid = :mid", array(':mid' => $mid))->fetchColumn();
+      $bundle_settings = membership_entity_get_bundle_settings($type);
 
-    // Force timezone to respect membership type settings.
-    $this->options['timezone'] = date_get_timezone($bundle_settings['tz_handling'], $this->get_value($values, 'timezone'));
-    return parent::render($values);
+      // Force timezone to respect membership type settings.
+      $this->options['timezone'] = date_get_timezone($bundle_settings['tz_handling'], $this->get_value($values, 'timezone'));
+      return parent::render($values);
+    }
   }
 }
