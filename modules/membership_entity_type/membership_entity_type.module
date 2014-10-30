@@ -194,7 +194,7 @@ function membership_entity_type_menu_alter(&$items) {
     'page arguments' => array(),
     'file' => 'membership_entity_type.pages.inc',
     'module' => 'membership_entity_type',
-    'type' => MENU_NORMAL_ITEM,
+    'type' => MENU_LOCAL_ACTION | MENU_NORMAL_ITEM,
   ));
 
   // Override the join page.

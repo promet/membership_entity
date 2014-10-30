@@ -250,7 +250,6 @@ function membership_entity_edit_form($form, &$form_state, $membership = NULL, $t
   }
 
   membership_entity_form($form, $form_state);
-
   $form['#validate'][] = 'membership_entity_form_validate';
 
   // Add the buttons.
@@ -368,6 +367,7 @@ function membership_entity_join_form($form, &$form_state, $bundle = 'membership'
   }
 
   membership_entity_form($form, $form_state);
+  $form['#validate'][] = 'membership_entity_form_validate';
 
   // Hide fields where the 'membership_entity_join_form' setting is turned off.
   foreach (field_info_instances('membership_entity', $bundle) as $field_name => $instance) {
@@ -376,7 +376,6 @@ function membership_entity_join_form($form, &$form_state, $bundle = 'membership'
     }
   }
 
-  $form['#validate'][] = 'membership_entity_form_validate';
   $form['actions'] = array(
     '#type' => 'actions',
     '#weight' => 9999,
@@ -423,7 +422,7 @@ function membership_entity_form(&$form, &$form_state) {
   $form['membership'] = array(
     '#type' => 'container',
     '#attributes' => array(
-      'class' => array('membership-enity-membership-info'),
+      'class' => array('membership-entity-membership-info'),
     ),
   );
 
@@ -476,7 +475,7 @@ function membership_entity_form(&$form, &$form_state) {
     '#options' => membership_entity_get_status_list(),
     '#default_value' => $membership->status,
     '#required' => TRUE,
-    '#access' => user_access('administer memberships') && !module_exists('membership_entity_term'),
+    '#access' => user_access('administer memberships'),
   );
 
   // Add field UI items.

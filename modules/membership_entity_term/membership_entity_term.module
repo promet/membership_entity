@@ -281,8 +281,8 @@ function membership_entity_term_menu() {
     'file' => 'membership_entity_term.pages.inc',
   );
 
-
   $items['membership/%membership_entity/term/%membership_entity_term'] = array(
+    'title' => 'Edit Term',
     'page callback' => 'drupal_get_form',
     'page arguments' => array('membership_entity_term_edit', 1, 3),
     'access callback' => 'membership_entity_term_access',
@@ -291,6 +291,7 @@ function membership_entity_term_menu() {
 
   $items['membership/%membership_entity/term/%membership_entity_term/edit'] = array(
     'title' => 'Edit',
+    'weight' => 0,
     'type' => MENU_DEFAULT_LOCAL_TASK,
     'context' => MENU_CONTEXT_PAGE | MENU_CONTEXT_INLINE,
     'file' => 'membership_entity_term.pages.inc',
@@ -302,8 +303,9 @@ function membership_entity_term_menu() {
     'page arguments' => array('membership_entity_term_delete_confirm', 1, 3),
     'access callback' => 'membership_entity_term_access',
     'access arguments' => array('delete', 3),
+    'weight' => 1,
     'type' => MENU_LOCAL_TASK,
-    'context' => MENU_CONTEXT_INLINE,
+    'context' => MENU_CONTEXT_PAGE | MENU_CONTEXT_INLINE,
     'file' => 'membership_entity_term.pages.inc',
   );
 
@@ -588,13 +590,41 @@ function membership_entity_term_membership_entity_settings_alter(&$form, &$form_
  */
 function membership_entity_term_form_field_ui_field_edit_form_alter(&$form, &$form_state, $form_id) {
   $instance = $form['#instance'];
-  if ($instance['entity_type'] == 'membership_entity' && !$form['#field']['locked']) {
+  if (in_array($instance['entity_type'], array('membership_entity', 'membership_entity_term')) && !$form['#field']['locked']) {
     $form['instance']['settings']['membership_entity_term_renew_form'] = array(
       '#type' => 'checkbox',
       '#title' => t('Display on renew form.'),
       '#default_value' => !empty($instance['settings']['membership_entity_term_renew_form']),
       '#weight' => $form['instance']['settings']['membership_entity_join_form']['#weight'] + .1,
     );
+
+    if ($instance['entity_type'] == 'membership_entity_term') {
+      $form['instance']['settings']['membership_entity_term_renew_form'] += array(
+        '#description' => t("This is compulsory for 'required' fields."),
+        '#default_value' => $instance['settings']['membership_entity_join_form'] || $instance['required'],
+        '#states' => array(
+          'enabled' => array('input[name="instance[required]"]' => array('checked' => FALSE)),
+        ),
+        '#attached' => array(
+          'js' => array(drupal_get_path('module', 'membership_entity_term') . '/js/membership-entity-term.js'),
+        ),
+      );
+
+      array_unshift($form['#submit'], 'membership_entity_term_form_field_ui_field_edit_form_submit');
+    }
+  }
+}
+
+/**
+ * Additional submit handler for the 'Edit field instance' form.
+ *
+ * Make sure the 'membership_entity_renew_form' setting is set for
+ * required fields.
+ */
+function membership_entity_term_form_field_ui_field_edit_form_submit($form, &$form_state) {
+  $instance = $form_state['values']['instance'];
+  if (!empty($instance['required'])) {
+    form_set_value($form['instance']['settings']['membership_entity_renew_form'], 1, $form_state);
   }
 }
 

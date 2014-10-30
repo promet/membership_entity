@@ -651,7 +651,7 @@ function membership_entity_field_extra_fields() {
  */
 function membership_entity_form_field_ui_field_edit_form_alter(&$form, &$form_state, $form_id) {
   $instance = $form['#instance'];
-  if ($instance['entity_type'] == 'membership_entity' && !$form['#field']['locked']) {
+  if (in_array($instance['entity_type'], array('membership_entity', 'membership_entity_term')) && !$form['#field']['locked']) {
     $form['instance']['settings']['membership_entity_join_form'] = array(
       '#type' => 'checkbox',
       '#title' => t('Display on join form.'),
@@ -680,6 +680,76 @@ function membership_entity_form_field_ui_field_edit_form_submit($form, &$form_st
   $instance = $form_state['values']['instance'];
   if (!empty($instance['required'])) {
     form_set_value($form['instance']['settings']['membership_entity_join_form'], 1, $form_state);
+  }
+}
+
+/**
+ * Custom pre render to handle non-field elements.
+ *
+ * _field_extra_fields_pre_render() requires #type = 'form' in order to
+ * respect extra field settings in hook_field_extra_fields(). This seems
+ * stupid. We'll just have to do it ourselves.
+ */
+function _membership_entity_extra_fields_pre_render($elements) {
+  $entity_type = $elements['#entity_type'];
+  $bundle = $elements['#bundle'];
+  $extra_fields = field_info_extra_fields($entity_type, $bundle, 'form');
+  foreach ($extra_fields as $name => $settings) {
+    if (isset($elements[$name])) {
+      $elements[$name]['#weight'] = $settings['weight'];
+    }
+  }
+  return $elements;
+}
+
+/**
+ * Custom Field API validate handler.
+ *
+ * entity_form_field_validate() assumes the entity form elements are at the
+ * top level of the $form_state['values'] without regard to $form['#parents'].
+ * This seems stupid. We'll just have to do it ourselves.
+ */
+function _membership_entity_form_field_validate($entity_type, $form, &$form_state) {
+  $path = array_merge($form['#parents']);
+  $key_exists = NULL;
+  $values = drupal_array_get_nested_value($form_state['values'], $path, $key_exists);
+  if ($key_exists) {
+    $pseudo_entity = (object) $form_state['values']['membership_term'];
+    field_attach_form_validate($entity_type, $pseudo_entity, $form, $form_state);
+  }
+}
+
+/**
+ * Copies values to enitty properties.
+ *
+ * entity_form_submit_build_entity() assumes the entity form elements are at
+ * the top level of the $form_state['values'] without regard to
+ * $form['#parents']. This seems stupid. We'll just have to do it ourselves.
+ */
+function _membership_entity_form_submit_build_entity($entity_type, $entity, $form, &$form_state) {
+  $info = entity_get_info($entity_type);
+  list(, , $bundle) = entity_extract_ids($entity_type, $entity);
+
+  $path = array_merge($form['#parents']);
+  $key_exists = NULL;
+  $values = drupal_array_get_nested_value($form_state['values'], $path, $key_exists);
+  if ($key_exists) {
+    $values_excluding_fields = $info['fieldable'] ? array_diff_key($values, field_info_instances($entity_type, $bundle)) : $values;
+    foreach ($values_excluding_fields as $key => $value) {
+      $entity->$key = $value;
+    }
+
+    // Invoke all specified builders for copying form values to entity properties.
+    if (isset($form['#entity_builders'])) {
+      foreach ($form['#entity_builders'] as $function) {
+        $function($entity_type, $entity, $form, $form_state);
+      }
+    }
+
+    // Copy field values to the entity.
+    if ($info['fieldable']) {
+      field_attach_submit($entity_type, $entity, $form, $form_state);
+    }
   }
 }
 
@@ -833,12 +903,14 @@ function membership_entity_membership_entity_member_id_info() {
     'class' => 'MembershipEntityNumericMemberId',
     'path' => drupal_get_path('module', 'membership_entity') . '/plugins/member_id',
   );
-  $info['membership_entity_token_member_id'] = array(
-    'title' => t('Token ID'),
-    'description' => t('A member id built with tokens.'),
-    'class' => 'MembershipEntityTokenMemberId',
-    'path' => drupal_get_path('module', 'membership_entity') . '/plugins/member_id',
-  );
+  if (module_exists('token')) {
+    $info['membership_entity_token_member_id'] = array(
+      'title' => t('Token ID'),
+      'description' => t('A member id built with tokens.'),
+      'class' => 'MembershipEntityTokenMemberId',
+      'path' => drupal_get_path('module', 'membership_entity') . '/plugins/member_id',
+    );
+  }
   return $info;
 }
 
