@@ -38,6 +38,7 @@ function membership_entity_views_default_views() {
   $handler->display->display_options['pager']['options']['items_per_page'] = '100';
   $handler->display->display_options['style_plugin'] = 'table';
   $handler->display->display_options['style_options']['columns'] = array();
+  $handler->display->display_options['style_options']['empty_table'] = TRUE;
   $handler->display->display_options['style_options']['info'] = array();
   if ($vbo) {
     $handler->display->display_options['style_options']['columns']['views_bulk_operations'] = 'views_bulk_operations';
@@ -158,6 +159,14 @@ function membership_entity_views_default_views() {
     ),
   );
   $handler->display->display_options['style_options']['default'] = ($terms) ? 'start' : 'created';
+
+  /* No results behavior: Global: Text area */
+  $handler->display->display_options['empty']['area']['id'] = 'area';
+  $handler->display->display_options['empty']['area']['table'] = 'views';
+  $handler->display->display_options['empty']['area']['field'] = 'area';
+  $handler->display->display_options['empty']['area']['empty'] = TRUE;
+  $handler->display->display_options['empty']['area']['content'] = t('There are no memberships to display.');
+  $handler->display->display_options['empty']['area']['format'] = 'filtered_html';
 
   if ($terms) {
     /* Relationship: Last Term */
@@ -379,13 +388,18 @@ function membership_entity_views_default_views() {
   /* Display: Admin Page */
   $handler = $view->new_display('page', 'Admin Page', 'admin');
   $handler->display->display_options['display_description'] = t('A list of membership for administrators.');
-  $handler->display->display_options['path'] = 'admin/memberships';
-  $handler->display->display_options['menu']['type'] = 'normal';
-  $handler->display->display_options['menu']['title'] = 'Memberships';
+  $handler->display->display_options['path'] = 'admin/memberships/list';
+  $handler->display->display_options['menu']['type'] = 'default tab';
+  $handler->display->display_options['menu']['title'] = 'List';
+  $handler->display->display_options['menu']['description'] = t('A list of all memberships');
   $handler->display->display_options['menu']['weight'] = '0';
   $handler->display->display_options['menu']['name'] = 'management';
   $handler->display->display_options['menu']['context'] = 0;
   $handler->display->display_options['menu']['context_only_inline'] = 0;
+  $handler->display->display_options['tab_options']['type'] = 'normal';
+  $handler->display->display_options['tab_options']['title'] = 'Memberships';
+  $handler->display->display_options['tab_options']['weight'] = '0';
+  $handler->display->display_options['tab_options']['name'] = 'management';
 
   $views[$view->name] = $view;
   return $views;

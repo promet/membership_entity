@@ -210,11 +210,15 @@ function membership_entity_modal_register_access() {
  * Implements hook_menu().
  */
 function membership_entity_menu() {
-  // Placeholder menu item for the memberships view.
+  // Placeholder menu items for the memberships view.
   $items['admin/memberships'] = array(
     'title' => 'Memberships',
     'access arguments' => array('administer memberships'),
     'type' => MENU_NORMAL_ITEM,
+  );
+  $items['admin/memberships/list'] = array(
+    'title' => 'List',
+    'type' => MENU_DEFAULT_LOCAL_TASK,
   );
 
   $items['admin/memberships/add'] = array(
@@ -228,11 +232,13 @@ function membership_entity_menu() {
 
   if (!module_exists('membership_entity_type')) {
     $items['admin/memberships/types/manage/membership'] = array(
-      'title' => 'Membership settings',
+      'title' => 'Configure',
       'page callback' => 'drupal_get_form',
       'page arguments' => array('membership_entity_settings_form'),
       'access arguments' => array('administer memberships'),
       'file' => 'membership_entity.pages.inc',
+      'type' => MENU_LOCAL_TASK,
+      'weight' => 99,
     );
 
     $items['admin/memberships/types/manage/membership/settings'] = array(

@@ -187,34 +187,38 @@ function membership_entity_type_menu() {
  * Implements hook_menu_alter().
  */
 function membership_entity_type_menu_alter(&$items) {
-  // Override the membership add page.
-  $path = 'admin/memberships/add';
-  $items[$path] = array_merge($items[$path], array(
-    'page callback' => 'membership_entity_type_membership_add_page',
-    'page arguments' => array(),
-    'file' => 'membership_entity_type.pages.inc',
-    'module' => 'membership_entity_type',
-    'type' => MENU_LOCAL_ACTION | MENU_NORMAL_ITEM,
-  ));
-
-  // Override the join page.
-  $path = 'user/join';
-  $items[$path] = array_merge($items[$path], array(
-    'page callback' => 'membership_entity_type_membership_add_page',
-    'access callback' => TRUE,
-    'file' => 'membership_entity_type.pages.inc',
-    'module' => 'membership_entity_type',
-  ));
+  $alter = array(
+    'admin/memberships/types' => array(
+      'type' => MENU_LOCAL_TASK,
+      'weight' => 99,
+    ),
+    'admin/memberships/add' => array(
+      'page callback' => 'membership_entity_type_membership_add_page',
+      'page arguments' => array(),
+      'file' => 'membership_entity_type.pages.inc',
+      'module' => 'membership_entity_type',
+      'type' => MENU_LOCAL_ACTION | MENU_NORMAL_ITEM,
+    ),
+    'user/join' => array(
+      'page callback' => 'membership_entity_type_membership_add_page',
+      'access callback' => TRUE,
+      'file' => 'membership_entity_type.pages.inc',
+      'module' => 'membership_entity_type',
+    ),
+  );
 
   // Override the renew page.
   if (module_exists('membership_entity_term')) {
-    $path = 'user/renew';
-    $items[$path] = array_merge($items[$path], array(
+    $alter['user/renew'] = array(
       'page callback' => 'membership_entity_type_membership_renew_page',
       'access callback' => TRUE,
       'file' => 'membership_entity_type.pages.inc',
       'module' => 'membership_entity_type',
-    ));
+    );
+  }
+
+  foreach ($alter as $path => $args) {
+    $items[$path] = array_merge($items[$path], $args);
   }
 }
 

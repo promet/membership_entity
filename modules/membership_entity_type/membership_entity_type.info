@@ -3,6 +3,8 @@ description = Allows users to create different types of memberships.
 package = Memberships
 core = 7.x
 
+configure = admin/memberships/types
+
 dependencies[] = membership_entity
 
 files[] = membership_entity_type.inc

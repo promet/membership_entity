@@ -3,6 +3,8 @@ description = Create membership entities and attach user accounts to a membershi
 package = Memberships
 core = 7.x
 
+configure = admin/memberships/types/manage/membership
+
 dependencies[] = ctools
 dependencies[] = entity
 dependencies[] = rules
