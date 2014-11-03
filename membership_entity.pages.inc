@@ -245,7 +245,12 @@ function membership_entity_edit_form($form, &$form_state, $membership = NULL, $t
   // Add the membership entity form fields.
   $form['#membership_entity'] = $membership;
   $form['#bundle_settings'] = membership_entity_get_bundle_settings($membership->type);
-  if (empty($form['#bundle_settings'])) {
+  if (empty($form['#bundle_settings']['status'])) {
+    drupal_set_message(t('Missing configuration settings for membership type %type. Please visit the <a href="!url">settings page</a> to configure the membership type.', array(
+      '%type' => $membership->type,
+      '!url' => url("admin/memberships/types/manage/$membership->type"),
+    )), 'error');
+
     return '';
   }
 

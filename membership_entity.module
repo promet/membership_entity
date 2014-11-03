@@ -792,6 +792,8 @@ function membership_entity_get_bundles($bundle = NULL) {
  *
  * @param string $bundle
  *   The membership bundle to load settings.
+ * @return array
+ *   An array of bundle settings or FALSE if not configured.
  */
 function membership_entity_get_bundle_settings($bundle = 'membership') {
   if (module_exists('membership_entity_type')) {
@@ -802,12 +804,7 @@ function membership_entity_get_bundle_settings($bundle = 'membership') {
     $data = variable_get('membership_entity_settings', array());
   }
 
-  if (empty($data)) {
-    drupal_set_message(t('The membership entity module is missing configuration settings. Please visit the <a href="!url">settings page</a> to configure the module.', array(
-      '!url' => url('admin/memberships/types', array('query' => drupal_get_destination())),
-    )), 'error');
-    return FALSE;
-  }
+  $data['status'] = !empty($data);
 
   // Apply defaults.
   $data += module_invoke_all('membership_entity_bundle_settings_defaults');
