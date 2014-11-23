@@ -90,6 +90,10 @@ class MembershipEntityTerm extends Entity {
     foreach ($this->modifiers as $modifier) {
       $end = _membership_entity_term_modify_date($end, $modifier);
     }
+
+    // Allow other modules to override the end date.
+    drupal_alter('membership_entity_term_end_date', $end, $this);
+
     $this->end = date_format_date($end, 'custom', DATE_FORMAT_DATETIME);
   }
 }
