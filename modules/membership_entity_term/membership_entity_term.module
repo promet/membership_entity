@@ -241,21 +241,6 @@ function membership_entity_term_access($op, $entity, $account = NULL) {
 }
 
 /**
- * Implements hook_membership_entity_access().
- */
-function membership_entity_term_membership_entity_access($op, $membership = NULL, $account = NULL) {
-  $user = isset($account) ? $account : $GLOBALS['user'];
-
-  // Generic renew page access (user/renew).
-  if ($op == 'renew' && is_string($membership)) {
-    // Always allow access to the generic renew page. We will display a message
-    // and join link if there are not any memberships available for renewal.
-    // @see membership_entity_term_renew().
-    return TRUE;
-  }
-}
-
-/**
  * Implements hook_admin_paths().
  */
 function membership_entity_term_admin_paths() {
@@ -271,12 +256,10 @@ function membership_entity_term_admin_paths() {
 function membership_entity_term_menu() {
   $items['user/renew'] = array(
     'title' => 'Renew',
-    'page callback' => 'drupal_get_form',
-    'page arguments' => array('membership_entity_term_renew'),
-    'access callback' => 'membership_entity_access',
-    'access arguments' => array('renew', 'membership'),
-    'type' => MENU_LOCAL_TASK | MENU_NORMAL_ITEM,
-    'weight' => -9999,
+    'page callback' => 'membership_entity_term_renew_page',
+    'access callback' => TRUE,
+    'type' => MENU_NORMAL_ITEM,
+    'weight' => -9998,
     'menu_name' => 'user-menu',
     'file' => 'membership_entity_term.pages.inc',
   );
@@ -344,18 +327,12 @@ function membership_entity_term_menu_alter(&$items) {
 }
 
 /**
- * Implements hook_menu_local_tasks_alter().
+ * Implements hook_menu_link_alter().
  */
-function membership_entity_term_menu_local_tasks_alter(&$data, $router_item, $root_path) {
-  // Add renew link to user tabs.
-  if ($root_path == 'user/%') {
-    $item = menu_get_item('user/renew');
-    if ($item['access']) {
-      $data['tabs'][0]['output'][] = array(
-        '#theme' => 'menu_local_task',
-        '#link' => $item,
-      );
-    }
+function membership_entity_term_menu_link_alter(&$link) {
+  // Force the Renew link to appear on the top level of the 'user-menu' menu.
+  if ($link['link_path'] == 'user/renew' && $link['module'] == 'system' && empty($link['customized'])) {
+    $link['plid'] = 0;
   }
 }
 
@@ -484,6 +461,16 @@ function membership_entity_term_membership_entity_load($memberships) {
   // Load membership terms.
   foreach ($memberships as &$membership) {
     $membership->terms = membership_entity_term_load_by_membership($membership);
+  }
+}
+
+/**
+ * Implements hook_field_info_alter().
+ */
+function membership_entity_term_field_info_alter(&$info) {
+  // Add the 'membership_entity_term_renew_form' instance setting to all field types.
+  foreach ($info as $field_type => $field_type_info) {
+    $info[$field_type]['instance_settings']['membership_entity_term_renew_form'] = FALSE;
   }
 }
 

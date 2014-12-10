@@ -289,76 +289,6 @@ function membership_entity_edit_form($form, &$form_state, $membership = NULL, $t
  * Form builder for the join form.
  */
 function membership_entity_join_form($form, &$form_state, $bundle = 'membership') {
-  if (!user_is_logged_in()) {
-    drupal_set_title(t('Create account or log in to continue'));
-
-    $form['#attached']['css'][] = drupal_get_path('module', 'membership_entity') . '/css/membership_entity_join.css';
-
-    $form['redirect'] = array(
-      '#type' => 'value',
-      '#value' => drupal_get_destination(),
-    );
-
-    $form['create'] = array(
-      '#type' => 'fieldset',
-      '#attributes' => array(
-        'class' => array('membership-entity-join-column'),
-      ),
-      '#title' => t("Don't have an account yet?"),
-      'title' => array(
-        '#markup' => t('Click the button below to create a new account.'),
-        '#prefix' => '<p>',
-        '#suffix' => '</p>',
-      ),
-      'button' => array(
-        '#type' => 'link',
-        '#href' => 'user/register',
-        '#title' => t('Create new account'),
-        '#attributes' => array('class' => array('button')),
-        '#options' => array(
-          'query' => drupal_get_destination(),
-        ),
-      ),
-    );
-
-    $form['login'] = array(
-      '#type' => 'fieldset',
-      '#title' => t('Log in'),
-      '#attributes' => array(
-        'class' => array('membership-entity-join-column'),
-      ),
-      'name' => array(
-        '#type' => 'textfield',
-        '#title' => t('Username'),
-        '#description' => t('Enter your @s username.', array('@s' => variable_get('site_name', 'Drupal'))),
-        '#size' => 60,
-        '#maxlength' => USERNAME_MAX_LENGTH,
-        '#required' => TRUE,
-      ),
-      'pass' => array(
-        '#type' => 'password',
-        '#title' => t('Password'),
-        '#description' => t('Enter the password that accompanies your username.'),
-        '#required' => TRUE,
-      ),
-      'actions' => array(
-        '#type' => 'actions',
-        'submit' => array(
-          '#type' => 'submit',
-          '#value' => t('Log in'),
-          '#submit' => array(
-            'user_login_submit',
-            'membership_entity_user_login_submit',
-          ),
-        ),
-      ),
-    );
-    $form['#validate'] = user_login_default_validators();
-    return $form;
-  }
-
-  drupal_set_title(t('Join'));
-
   $form['#attributes']['class'][] = 'membership-entity-join-form';
 
   $form['#membership_entity'] = membership_entity_create(array(
@@ -381,6 +311,13 @@ function membership_entity_join_form($form, &$form_state, $bundle = 'membership'
     }
   }
 
+  // Design descision: Do not allow secondary members during a new join.
+  // Secondary members may be added after the primary member is verified via
+  // email or payment.
+  if (isset($form['membership']['secondary_members'])) {
+    $form['membership']['secondary_members']['#access'] = FALSE;
+  }
+
   $form['actions'] = array(
     '#type' => 'actions',
     '#weight' => 9999,
@@ -391,6 +328,59 @@ function membership_entity_join_form($form, &$form_state, $bundle = 'membership'
     ),
   );
 
+  // Add the registration form for anonymous users.
+  if (!user_is_logged_in()) {
+    $form['#user'] = drupal_anonymous_user();
+
+    $form['user'] = array(
+      '#type' => 'container',
+      '#weight' => -99,
+      '#parents' => array('user'),
+      '#tree' => TRUE,
+      '#attributes' => array(
+        'class' => array(
+          'user-info-from-cookie',
+          'membership-entity-user-info',
+        ),
+      ),
+      '#attached' => array(
+        'library' => array(
+          array('system', 'jquery.cookie'),
+        ),
+      ),
+    );
+
+    $form['user']['login'] = array(
+      '#prefix' => '<p>',
+      '#suffix' => '</p>',
+      '#markup' => t('Click <a href="@url">here to log in</a> if you already have an account.', array(
+        '@url' => url('user/login', array('query' => drupal_get_destination())),
+      )),
+      '#weight' => -99.
+    );
+
+    // Start with the default user account fields.
+    form_load_include($form_state, 'inc', 'membership_entity', 'membership_entity.user_register');
+    membership_entity_user_account_form($form, $form_state);
+
+    // Attach field widgets, and hide the ones where the 'user_register_form'
+    // setting is not on.
+    $langcode = entity_language('user', $form['#user']);
+    field_attach_form('user', $form['#user'], $form['user'], $form_state, $langcode);
+    foreach (field_info_instances('user', 'user') as $field_name => $instance) {
+      if (empty($instance['settings']['user_register_form'])) {
+        $form['user'][$field_name]['#access'] = FALSE;
+      }
+    }
+
+    // User account validate handlers need to run first.
+    array_unshift($form['#validate'], 'membership_entity_user_join_register_validate');
+    array_unshift($form['#validate'], 'membership_entity_user_account_form_validate');
+
+    // User account submit handler needs to run first.
+    array_unshift($form['actions']['submit']['#submit'], 'membership_entity_user_join_register_submit');
+  }
+
   return $form;
 }
 
@@ -398,6 +388,7 @@ function membership_entity_join_form($form, &$form_state, $bundle = 'membership'
  * Submit handler to redirect to membership join pages.
  */
 function membership_entity_user_login_submit($form, &$form_state) {
+  // @TODO Do we still need this???
   $form_state['redirect'] = $form_state['values']['redirect']['destination'];
 }
 
@@ -539,6 +530,67 @@ function membership_entity_form_validate($form, &$form_state) {
 }
 
 /**
+ * Validate handler for the join form registration.
+ */
+function membership_entity_user_join_register_validate($form, &$form_state) {
+  _membership_entity_form_field_validate('user', $form['user'], $form_state);
+}
+
+/**
+ * Submit handler for the join form registration.
+ */
+function membership_entity_user_join_register_submit($form, &$form_state) {
+  $membership = &$form['#membership_entity'];
+  $values = &$form_state['values']['user'];
+
+  $pass = !variable_get('user_email_verification', TRUE) ? $pass = $values['pass'] : user_password();
+
+  // Remove unneeded values.
+  form_state_values_clean($form_state);
+
+  $values['pass'] = $pass;
+  $values['init'] = $values['mail'];
+
+  $account = $form['#user'];
+  _membership_entity_form_submit_build_entity('user', $account, $form['user'], $form_state);
+
+  // Populate $edit with the properties of $account, which have been edited on
+  // this form by taking over all values, which appear in the form values too.
+  $edit = array_intersect_key((array) $account, $values);
+  $account = user_save($account, $edit);
+
+  // Terminate if an error occurred during user_save().
+  if (!$account) {
+    drupal_set_message(t('Error saving user account.'), 'error');
+    $form_state['redirect'] = '';
+    return;
+  }
+  $form_state['user'] = $account;
+  $form_state['values']['uid'] = $values['uid'] = $account->uid;
+
+  watchdog('user', 'New user: %name (%email).', array(
+    '%name' => $values['name'],
+    '%email' => $values['mail'],
+  ), WATCHDOG_NOTICE, l(t('edit'), 'user/' . $account->uid . '/edit'));
+
+  $account->password = $pass;
+  $uri = entity_uri('user', $account);
+  if (!variable_get('user_email_verification', TRUE) && $account->status) {
+    _user_mail_notify('register_no_approval_required', $account);
+  }
+  elseif ($account->status) {
+    _user_mail_notify('register_no_approval_required', $account);
+    drupal_set_message(t('A welcome message with further instructions has been sent to your e-mail address.'));
+    $form_state['redirect'] = '';
+  }
+  else {
+    _user_mail_notify('register_pending_approval', $account);
+    drupal_set_message(t('Thank you for applying for an account. Your account is currently pending approval by the site administrator.<br />In the meantime, a welcome message with further instructions has been sent to your e-mail address.'));
+    $form_state['redirect'] = '';
+  }
+}
+
+/**
  * Submit the membership entity form.
  *
  * @see membership_entity_form()
@@ -562,7 +614,7 @@ function membership_entity_edit_form_submit($form, &$form_state) {
         drupal_set_message(t('Membership %member_id has been created.', $t_args));
         $form_state['redirect'] = 'membership/' . $membership->mid;
       }
-      else {
+      elseif (user_is_logged_in()) {
         drupal_set_message(t('Your membership has been created.'));
         $form_state['redirect'] = 'user';
       }

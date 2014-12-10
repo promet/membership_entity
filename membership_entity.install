@@ -145,6 +145,8 @@ function membership_entity_schema() {
  * Implements hook_uninstall().
  */
 function membership_entity_uninstall() {
+  // Clean up settings.
   variable_del('membership_entity_settings');
   variable_del('membership_entity_next_member_id');
+  variable_del('membership_entity_user_register_required');
 }

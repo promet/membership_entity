@@ -461,7 +461,7 @@ function membership_entity_term_form(&$form, &$form_state) {
     '#type' => 'radios',
     '#title' => t('Term length'),
     '#description' => t('Select the membership term length.'),
-    '#default_value' => count($options) <= 1 ? reset($options) : $term->term,
+    '#default_value' => !empty($term->term) ? $term->term : (count($options) <= 1 ? reset($options) : NULL),
     '#required' => TRUE,
     '#options' => $options,
   );
@@ -656,25 +656,7 @@ function _membership_entity_term_modifier_array_map($a) {
 /**
  * Menu callback: Renew an existing membership.
  */
-function membership_entity_term_renew($form, &$form_state, $membership = NULL, $bundle = 'membership') {
-  if (empty($membership)) {
-    // This is the generic form at user/renew.
-    $efq = new EntityFieldQuery();
-    $result = $efq->entityCondition('entity_type', 'membership_entity')
-      ->entityCondition('bundle', $bundle)
-      ->propertyCondition('uid', $GLOBALS['user']->uid)
-      ->execute();
-    $membership = !empty($result['membership_entity']) ? membership_entity_load(current(array_keys($result['membership_entity']))) : FALSE;
-    if (empty($membership)) {
-      $form['no_membership'] = array(
-        '#markup' => t('You do not have any membership to renew. Click <a href="@url">here</a> to join.', array(
-          '@url' => url('user/join'),
-        )),
-      );
-      return $form;
-    }
-  }
-
+function membership_entity_term_renew($form, &$form_state, $membership, $bundle = 'membership') {
   drupal_set_title(t('Renew membership @member_id', array('@member_id' => $membership->member_id)));
   $form['#membership_entity'] = $membership;
   $form['#membership_entity']->is_renewal = TRUE;
@@ -812,4 +794,65 @@ function membership_entity_term_delete_confirm_submit($form, &$form_state) {
     drupal_set_message(t('Deleted 1 membership term.'));
   }
   $form_state['redirect'] = 'membership/' . $membership->mid;
+}
+
+/**
+ * Page Callback: Show a generic renew page.
+ */
+function membership_entity_term_renew_page($bundle = 'membership') {
+  $efq = new EntityFieldQuery();
+  $result = $efq->entityCondition('entity_type', 'membership_entity')
+    ->entityCondition('bundle', $bundle)
+    ->propertyCondition('uid', $GLOBALS['user']->uid)
+    ->execute();
+  $membership = !empty($result['membership_entity']) ? membership_entity_load(current(array_keys($result['membership_entity']))) : FALSE;
+  if (!empty($membership)) {
+    if (membership_entity_term_access('renew', $membership)) {
+      return drupal_get_form('membership_entity_term_renew', $membership, $bundle);
+    }
+    else {
+      $output['access_denied'] = array(
+        '#prefix' => '<p>',
+        '#suffix' => '</p>',
+        '#markup' => t('You do not have access to renew this membership. Please contact a site administrator for more information.'),
+      );
+    }
+  }
+
+  // Show a login message if no membership was found.
+  if (empty($membership)) {
+    $output['no_membership'] = array(
+      '#prefix' => '<p>',
+      '#suffix' => '</p>',
+      '#markup' => user_is_anonymous() ? t('You must log in before you can renew your membership.') : t('There are no memberships associated with your account.'),
+    );
+  }
+
+  $output['actions'] = array(
+    '#theme_wrappers' => array('container'),
+    '#attributes' => array('class' => array('container-inline')),
+  );
+
+  if (user_is_anonymous()) {
+    $output['actions']['login'] = array(
+      '#type' => 'link',
+      '#title' => t('Log in'),
+      '#href' => 'user/login',
+      '#options' => array(
+        'query' => drupal_get_destination(),
+      ),
+      '#attributes' => array('class' => array('button')),
+    );
+  }
+
+  if (membership_entity_access('join', $bundle)) {
+    $output['actions']['join'] = array(
+      '#type' => 'link',
+      '#title' => t('Join'),
+      '#href' => 'user/join',
+      '#attributes' => array('class' => array('button')),
+    );
+  }
+
+  return $output;
 }

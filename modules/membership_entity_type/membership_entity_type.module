@@ -24,9 +24,9 @@ function membership_entity_type_entity_info() {
     'controller class' => 'MembershipEntityTypeController',
     'base table' => 'membership_entity_type',
     'uri callback' => 'entity_class_uri',
-    // Membership types are fieldable to allow other modules to programatically
-    // add fields at the membership type level. No field API UI is exposed to
-    // end users for membership types.
+    // Design decision: Membership types are fieldable to allow other modules
+    // to programatically add fields at the membership type level but no field
+    // API UI is exposed to end users.
     'fieldable' => TRUE,
     'bundle of' => 'membership_entity',
     'exportable' => TRUE,
@@ -155,7 +155,7 @@ function membership_entity_type_menu() {
     );
 
     $items['user/join/' . $type_url_str] = array(
-      'title' => $type->label,
+      'title' => 'Join - ' . $type->label,
       'title callback' => 'check_plain',
       'description' => $type->description,
       'page callback' => 'drupal_get_form',
@@ -168,13 +168,12 @@ function membership_entity_type_menu() {
 
     if (module_exists('membership_entity_term')) {
       $items['user/renew/' . $type_url_str] = array(
-        'title' => 'Renew ' . $type->label,
+        'title' => 'Renew - ' . $type->label,
         'title callback' => 'check_plain',
         'description' => $type->description,
-        'page callback' => 'drupal_get_form',
-        'page arguments' => array('membership_entity_term_renew', NULL, $type->type),
-        'access callback' => 'membership_entity_access',
-        'access arguments' => array('renew', $type->type),
+        'page callback' => 'membership_entity_term_renew_page',
+        'page arguments' => array($type->type),
+        'access callback' => TRUE,
         'file' => 'membership_entity_term.pages.inc',
         'file path' => drupal_get_path('module', 'membership_entity_term'),
       );
@@ -194,13 +193,14 @@ function membership_entity_type_menu_alter(&$items) {
     ),
     'admin/memberships/add' => array(
       'page callback' => 'membership_entity_type_membership_add_page',
-      'page arguments' => array(),
+      'page arguments' => array('admin'),
       'file' => 'membership_entity_type.pages.inc',
       'module' => 'membership_entity_type',
       'type' => MENU_LOCAL_ACTION | MENU_NORMAL_ITEM,
     ),
     'user/join' => array(
       'page callback' => 'membership_entity_type_membership_add_page',
+      'page arguments' => array('join'),
       'access callback' => TRUE,
       'file' => 'membership_entity_type.pages.inc',
       'module' => 'membership_entity_type',
@@ -210,8 +210,7 @@ function membership_entity_type_menu_alter(&$items) {
   // Override the renew page.
   if (module_exists('membership_entity_term')) {
     $alter['user/renew'] = array(
-      'page callback' => 'membership_entity_type_membership_renew_page',
-      'access callback' => TRUE,
+      'page callback' => 'membership_entity_type_renew_page',
       'file' => 'membership_entity_type.pages.inc',
       'module' => 'membership_entity_type',
     );
@@ -274,7 +273,10 @@ function membership_entity_type_membership_entity_view_alter(&$build) {
 function membership_entity_type_theme($existing, $type, $theme, $path) {
   return array(
     'membership_entity_type_add_list' => array(
-      'variables' => array('content' => NULL),
+      'variables' => array(
+        'context' => 'join',
+        'types' => NULL,
+      ),
       'file' => 'membership_entity_type.pages.inc',
     ),
   );
