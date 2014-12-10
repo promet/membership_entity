@@ -72,11 +72,25 @@ function membership_entity_term_schema() {
         // Null if no timezone handling.
         'not null' => FALSE,
       ),
+      'created' => array(
+        'description' => 'The Unix timestamp when this membership term was created.',
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'changed' => array(
+        'description' => 'The Unix timestamp when this membership term was most recently saved.',
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
     ),
     'indexes' => array(
       'membership_entity_term_membership' => array('mid'),
       'membership_entity_term_start' => array('mid', 'start'),
       'membership_entity_term_end' => array('mid', 'end'),
+      'membership_entity_term_changed' => array('changed'),
+      'membership_entity_term_created' => array('created'),
     ),
     'primary key' => array('id'),
     'foreign keys' => array(
@@ -141,4 +155,81 @@ function membership_entity_term_update_7002() {
   db_update('membership_entity_term')
     ->fields(array('timezone' => 'UTC'))
     ->execute();
+}
+
+/**
+ * Add created and changed columns for membership terms.
+ */
+function membership_entity_term_update_7003() {
+  // Add the new fields.
+  $fields = array(
+    'created' => array(
+      'description' => 'The Unix timestamp when this membership term was created.',
+      'type' => 'int',
+      'not null' => TRUE,
+      'default' => 0,
+    ),
+    'changed' => array(
+      'description' => 'The Unix timestamp when this membership term was most recently saved.',
+      'type' => 'int',
+      'not null' => TRUE,
+      'default' => 0,
+    ),
+  );
+  foreach ($fields as $column => $field) {
+    db_add_field('membership_entity_term', $column, $field);
+  }
+
+  // Add the new indexes.
+  $indexes = array(
+    'membership_entity_term_changed' => array('changed'),
+    'membership_entity_term_created' => array('created'),
+  );
+  foreach ($indexes as $name => $fields) {
+    db_add_index('membership_entity_term', $name, $fields);
+  }
+}
+
+/**
+ * Update created and changed dates for past membership terms.
+ */
+function membership_entity_term_update_7004(&$sandbox) {
+  $batch_size = 100;
+
+  if (!isset($sandbox['progress'])) {
+    $sandbox['progress'] = 0;
+    $sandbox['current'] = 0;
+    $sandbox['max'] = db_query('SELECT COUNT(DISTINCT id) FROM {membership_entity_term}')
+      ->fetchField();
+  }
+
+  $terms = db_select('membership_entity_term', 'me')
+    ->fields('me', array('id', 'start', 'timezone', 'created', 'changed'))
+    ->condition('id', $sandbox['current'], '>')
+    ->range(0, $batch_size)
+    ->orderBy('id', 'ASC')
+    ->execute();
+
+  foreach ($terms as $term) {
+    // Default to start date for past terms.
+    $start = strtotime($term->start);
+    foreach (array('created', 'changed') as $field) {
+      if (empty($term->{$field})) {
+        $term->{$field} = $start;
+      }
+    }
+
+    db_update('membership_entity_term')
+      ->fields(array(
+        'created' => $term->created,
+        'changed' => $term->changed,
+        ))
+      ->condition('id', $term->id)
+      ->execute();
+
+    $sandbox['progress']++;
+    $sandbox['current'] = $term->id;
+  }
+
+  $sandbox['#finished'] = empty($sandbox['max']) ? 1 : ($sandbox['progress'] / $sandbox['max']);
 }

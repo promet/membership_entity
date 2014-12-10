@@ -12,6 +12,46 @@ function _membership_entity_term_settings_form(&$form, &$form_state, $data) {
   // Make date timezone options available.
   form_load_include($form_state, 'inc', 'date', 'date_admin');
 
+  // Add a grace period.
+  $grace_options = array(
+    'none' => t('None'),
+    '1 day' => t('1 day'),
+    '2 days' => t('2 days'),
+    '3 days' => t('3 days'),
+    '1 week' => t('1 week'),
+    '2 weeks' => t('2 weeks'),
+    '3 weeks' => t('3 weeks'),
+    '1 month' => t('1 month'),
+    '2 months' => t('2 months'),
+    '3 months' => t('3 months'),
+    '6 months' => t('6 months'),
+    'other' => t('Other'),
+  );
+
+  $form['membership_settings']['grace_period'] = array(
+    '#type' => 'select',
+    '#title' => t('Grace period'),
+    '#description' => t('Allow a grace period for membership renewals. There will be no lapse in membership terms if a membership is renewed within the grace period.'),
+    '#options' => $grace_options,
+    '#default_value' => in_array($data['grace_period'], array_keys($grace_options)) ? $data['grace_period'] : 'other',
+  );
+
+  $form['membership_settings']['custom_grace_period'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Other grace period'),
+    '#size' => 32,
+    '#description' => t('Enter a grace period including a number and unit (eg. 15 days).'),
+    '#default_value' => $data['grace_period'],
+    '#states' => array(
+      'visible' => array(
+        ':input[name="grace_period"]' => array('value' => 'other'),
+      ),
+      'required' => array(
+        ':input[name="grace_period"]' => array('value' => 'other'),
+      ),
+    ),
+  );
+
   // Add membership term lengths.
   if (!isset($form_state['membership_entity_term']['available_term_lengths'])) {
     $form_state['membership_entity_term']['available_term_lengths'] = $data['available_term_lengths'];
@@ -200,6 +240,11 @@ function membership_entity_term_length_remove($form, &$form_state) {
 function membership_entity_term_settings_form_validate($form, &$form_state) {
   $values = &$form_state['values'];
 
+  // Save grace period.
+  if ($values['grace_period'] == 'other') {
+    form_set_value($form['membership_settings']['grace_period'], $values['custom_grace_period'], $form_state);
+  }
+
   // Save and flatten timezone settings.
   $values['tz_handling'] = $values['term_lengths']['tz_handling'];
   if ($values['tz_handling'] == 'none') {
@@ -372,9 +417,12 @@ function membership_entity_term_form(&$form, &$form_state) {
     );
   }
 
+  // Allow other modules to override the start date.
+  $start = new DateObject($term->start, 'UTC');
+  drupal_alter('membership_entity_term_start_date', $start, $term);
+
   // Convert to appropriate timezone for display.
   $timezone = date_get_timezone($bundle_settings['tz_handling'], $term->timezone);
-  $start = new DateObject($term->start, 'UTC');
   $start->setTimezone(new DateTimeZone($timezone));
 
   $form['membership_term']['start'] = array(
@@ -651,19 +699,9 @@ function membership_entity_term_renew($form, &$form_state, $membership = NULL, $
   // Membership status is now determined by terms.
   unset($form['membership']['status']);
 
-  // Determine the renewal start date.
-  $start = date_now('UTC');
-  $latest_term = end($membership->terms);
-  if (!empty($latest_term) && in_array($latest_term->status, array(MEMBERSHIP_ENTITY_ACTIVE, MEMBERSHIP_ENTITY_PENDING))) {
-    $end = new DateObject($latest_term->end, 'UTC');
-
-    if ($end > $start) {
-      $start = $end;
-    }
-  }
-
   $form['#membership_entity_term'] = $term = membership_entity_term_create(array(
-    'start' => date_format_date($start, 'custom', DATE_FORMAT_DATETIME),
+    'is_renewal' => TRUE,
+    'mid' => $membership->mid,
     'membership_entity_type' => $membership->type,
   ));
 
@@ -695,6 +733,7 @@ function membership_entity_term_renew($form, &$form_state, $membership = NULL, $
   );
 
   // Check for a pending renewal.
+  $latest_term = end($membership->terms);
   if ($latest_term->status == MEMBERSHIP_ENTITY_PENDING) {
     drupal_set_message(t('Your membership term is currently pending. You will not be able to renew until your term is activated. If you feel that you have received this message in error, please contact a site administrator.'), 'warning');
     $form['actions']['submit']['#value'] .= t(' (disabled)');
@@ -721,10 +760,6 @@ function membership_entity_term_renew_submit($form, &$form_state) {
 
   form_state_values_clean($form_state);
   _membership_entity_form_submit_build_entity('membership_entity_term', $term, $form['membership_term'], $form_state);
-
-  // Add the new membership term.
-  $term->mid = $membership->mid;
-
   $status = membership_entity_term_save($term);
 
   // Add the saved term object to $form_state for other modules.

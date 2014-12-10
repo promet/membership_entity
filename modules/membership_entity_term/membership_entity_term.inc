@@ -25,14 +25,24 @@ class MembershipEntityTerm extends Entity {
   public $modifiers;
 
   /**
-   * The UNIX timestamp when this term starts.
+   * The date when this term starts.
    */
   public $start;
 
   /**
-   * The UNIX timestamp when this term ends.
+   * The date when this term ends.
    */
   public $end;
+
+  /**
+   * The Unix timestamp when the membership term was created.
+   */
+  public $created;
+
+  /**
+   * The Unix timestamp when the membership term was most recently saved.
+   */
+  public $changed;
 
   /**
    * Build a new membership entity term.
@@ -75,6 +85,13 @@ class MembershipEntityTerm extends Entity {
     elseif ($this->term == 'lifetime') {
       $this->end = NULL;
     }
+
+    // Update created and changed dates.
+    if (empty($this->created)) {
+      $this->created = REQUEST_TIME;
+    }
+    $this->changed = REQUEST_TIME;
+
     return parent::save();
   }
 

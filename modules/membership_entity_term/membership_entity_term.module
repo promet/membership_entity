@@ -364,10 +364,38 @@ function membership_entity_term_menu_local_tasks_alter(&$data, $router_item, $ro
  */
 function membership_entity_term_membership_entity_bundle_settings_defaults() {
   return array(
+    'grace_period' => 'none',
     'tz_handling' => 'site',
     'timezone_db' => 'UTC',
     'available_term_lengths' => array(),
   );
+}
+
+/**
+ * Implements hook_membership_entity_term_start_date_alter().
+ */
+function membership_entity_term_membership_entity_term_start_date_alter(&$start, $term) {
+  // Determine the renewal start date.
+  if (!empty($term->is_renewal)) {
+    $membership = membership_entity_load($term->mid);
+    $bundle_settings = membership_entity_get_bundle_settings($membership->type);
+    $latest_term = end($membership->terms);
+
+    if (!empty($latest_term)) {
+      $grace = new DateObject($latest_term->end, 'UTC');
+
+      // Check for grace period.
+      if (preg_match(MEMBERSHIP_ENTITY_TERM_LENGTH_REGEX, $bundle_settings['grace_period'])) {
+        $grace = _membership_entity_term_modify_date($grace, $bundle_settings['grace_period']);
+      }
+
+      // If the renewal is within the grace period there is no lapse in
+      // membership terms. The new term starts when the old term ended.
+      if ($grace > $start) {
+        $start = new DateObject($latest_term->end, 'UTC');
+      }
+    }
+  }
 }
 
 /**
