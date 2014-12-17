@@ -4,6 +4,7 @@ package = Memberships
 core = 7.x
 
 dependencies[] = ctools
+dependencies[] = date
 dependencies[] = date_api
 dependencies[] = date_views
 dependencies[] = entity
