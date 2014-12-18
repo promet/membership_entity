@@ -426,7 +426,7 @@ function membership_entity_term_form(&$form, &$form_state) {
   $start->setTimezone(new DateTimeZone($timezone));
 
   $form['membership_term']['start'] = array(
-    '#type' => module_exists('date_popup') ? 'date_popup' : 'date_select',
+    '#type' => 'date_select',
     '#title' => t('Term start date'),
     '#description' => t('Select the new membership term start date. The term end date will be calculated automatically based on the start date, term length, and any modifiers.'),
     '#date_format' => DATE_FORMAT_DATETIME,
@@ -438,6 +438,11 @@ function membership_entity_term_form(&$form, &$form_state) {
     '#date_label_position' => 'above',
     '#access' => user_access('administer membership terms'),
   );
+
+  // The date popup widget doesn't work correctly when #access is FALSE.
+  if (module_exists('date_popup') && $form['membership_term']['start']['#access']) {
+    $form['membership_term']['start']['#type'] = 'date_popup';
+  }
 
   if ($bundle_settings['tz_handling'] == 'date') {
     $form['membership_term']['timezone'] = array(
