@@ -234,7 +234,7 @@ function membership_entity_term_access($op, $entity, $account = NULL) {
       return membership_entity_access('renew', $entity);
 
     default:
-      // Inherit other perimissions from the membership.
+      // Inherit other permissions from the membership.
       $membership = membership_entity_load($entity->mid);
       return membership_entity_access($op, $membership, $account);
   }

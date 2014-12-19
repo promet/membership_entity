@@ -666,7 +666,7 @@ function membership_entity_form_user_admin_settings_alter(&$form, &$form_state, 
     '#type' => 'checkbox',
     '#title' => t('Require a membership when a visitor creates an account.'),
     '#default_value' => variable_get('membership_entity_required', FALSE),
-    '#description' => t('New users will be required to create a membership during registration. With this setting enbaled, users must complete the join form to create an account.'),
+    '#description' => t('New users will be required to create a membership during registration. With this setting enabled, users must complete the join form to create an account.'),
     '#weight' => 10,
   );
 
@@ -941,23 +941,6 @@ function membership_entity_membership_entity_member_id_info() {
     );
   }
   return $info;
-}
-
-/**
- * Implements hook_form_FORM_ID_alter() for user_login().
- */
-function membership_entity_form_user_login_alter(&$form, &$form_state, $form_id) {
-  if ($form['#action'] == '/user/join') {
-    $form['#submit'][] = 'membership_entity_join_login_submit';
-  }
-}
-
-/**
- * Submit handler for the login form on the join page.
- */
-function membership_entity_join_login_submit($form, &$form_state) {
-  // Redirect to the join page.
-  $form_state['redirect'] = 'user/join';
 }
 
 /**

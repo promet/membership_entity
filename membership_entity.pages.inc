@@ -311,7 +311,7 @@ function membership_entity_join_form($form, &$form_state, $bundle = 'membership'
     }
   }
 
-  // Design descision: Do not allow secondary members during a new join.
+  // Design decision: Do not allow secondary members during a new join.
   // Secondary members may be added after the primary member is verified via
   // email or payment.
   if (isset($form['membership']['secondary_members'])) {
@@ -382,14 +382,6 @@ function membership_entity_join_form($form, &$form_state, $bundle = 'membership'
   }
 
   return $form;
-}
-
-/**
- * Submit handler to redirect to membership join pages.
- */
-function membership_entity_user_login_submit($form, &$form_state) {
-  // @TODO Do we still need this???
-  $form_state['redirect'] = $form_state['values']['redirect']['destination'];
 }
 
 /**
