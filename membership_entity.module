@@ -333,7 +333,7 @@ function membership_entity_menu_alter(&$items) {
  * Check if a membership is required.
  */
 function membership_entity_register_access() {
-  return !variable_get('membership_entity_required', TRUE) && user_register_access();
+  return !variable_get('membership_entity_required', FALSE) && user_register_access();
 }
 
 /**
