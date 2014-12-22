@@ -136,7 +136,7 @@ function membership_entity_devel_create_memberships($values) {
       break;
     }
     if (empty($values['multiple_types'])) {
-      // Only one membershp type per user.
+      // Only one membership type per user.
       unset($users[$uid]);
     }
     $used_users[$type][$uid] = $uid;

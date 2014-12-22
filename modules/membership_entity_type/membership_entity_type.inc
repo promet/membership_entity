@@ -67,7 +67,7 @@ class MembershipEntityType extends Entity {
    */
   public function adminUri() {
     $type_url_str = str_replace('_', '-', $this->type);
-    return array('path' => 'admin/membershps/add/' . $type_url_str);
+    return array('path' => 'admin/memberships/add/' . $type_url_str);
   }
 
   /**
