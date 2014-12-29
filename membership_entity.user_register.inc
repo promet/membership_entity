@@ -15,17 +15,24 @@
  * @see membership_entity_join_form().
  */
 function membership_entity_user_account_form(&$form, &$form_state) {
-  $form['user']['name'] = array(
+  // Account information.
+  $form['user']['account'] = array(
+    '#type' => 'container',
+    '#weight' => -10,
+    // Add account elements to $form_state['values']['user'].
+    '#parents' => array('user'),
+  );
+
+  $form['user']['account']['name'] = array(
     '#type' => 'textfield',
     '#title' => t('Username'),
     '#maxlength' => USERNAME_MAX_LENGTH,
     '#description' => t('Spaces are allowed; punctuation is not allowed except for periods, hyphens, apostrophes, and underscores.'),
     '#required' => TRUE,
     '#attributes' => array('class' => array('username')),
-    '#weight' => -10,
   );
 
-  $form['user']['mail'] = array(
+  $form['user']['account']['mail'] = array(
     '#type' => 'textfield',
     '#title' => t('E-mail address'),
     '#maxlength' => EMAIL_MAX_LENGTH,
@@ -36,7 +43,7 @@ function membership_entity_user_account_form(&$form, &$form_state) {
   // Display password field only when user is allowed to assign a password
   // during registration.
   if (!variable_get('user_email_verification', TRUE)) {
-    $form['user']['pass'] = array(
+    $form['user']['account']['pass'] = array(
       '#type' => 'password_confirm',
       '#size' => 25,
       '#description' => t('Provide a password for the new account in both fields.'),
@@ -44,7 +51,7 @@ function membership_entity_user_account_form(&$form, &$form_state) {
     );
   }
 
-  $form['user']['status'] = array(
+  $form['user']['account']['status'] = array(
     '#type' => 'value',
     '#value' => variable_get('user_register', USER_REGISTER_VISITORS_ADMINISTRATIVE_APPROVAL) == USER_REGISTER_VISITORS,
   );

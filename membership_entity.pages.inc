@@ -334,9 +334,10 @@ function membership_entity_join_form($form, &$form_state, $bundle = 'membership'
 
     $form['user'] = array(
       '#type' => 'container',
-      '#weight' => -99,
       '#parents' => array('user'),
       '#tree' => TRUE,
+      '#pre_render' => array('_membership_entity_extra_fields_pre_render'),
+      '#weight' => -10,
       '#attributes' => array(
         'class' => array(
           'user-info-from-cookie',
@@ -356,7 +357,7 @@ function membership_entity_join_form($form, &$form_state, $bundle = 'membership'
       '#markup' => t('Click <a href="@url">here to log in</a> if you already have an account.', array(
         '@url' => url('user/login', array('query' => drupal_get_destination())),
       )),
-      '#weight' => -99.
+      '#weight' => -9999.
     );
 
     // Start with the default user account fields.

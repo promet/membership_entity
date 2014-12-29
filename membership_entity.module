@@ -627,6 +627,11 @@ function membership_entity_field_extra_fields() {
   if (!module_exists('membership_entity_type')) {
     $fields['membership_entity']['membership'] = array(
       'form' => array(
+        'user' => array(
+          'label' => t('User Information'),
+          'description' => t('User account fields on the join form.'),
+          'weight' => -10,
+        ),
         'membership' => array(
           'label' => t('Membership Information'),
           'description' => t('Member ID, primary and secondary members, status, etc.'),
@@ -637,13 +642,6 @@ function membership_entity_field_extra_fields() {
   }
 
   $fields['user']['user'] = array(
-    'form' => array(
-      'membership_entity' => array(
-        'label' => t('Membership options'),
-        'description' => t('Membership options on the registration page.'),
-        'weight' => 9999,
-      ),
-    ),
     'display' => array(
       'memberships' => array(
         'label' => t('Memberships'),
