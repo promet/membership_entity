@@ -77,7 +77,7 @@ function membership_entity_user_account_form_validate($form, &$form_state) {
   // Trim whitespace from mail, to prevent confusing 'e-mail not valid'
   // warnings often caused by cutting and pasting.
   $mail = trim($values['mail']);
-  form_set_value($form['user']['mail'], $mail, $form_state);
+  form_set_value($form['user']['account']['mail'], $mail, $form_state);
 
   // Validate the e-mail address.
   if ($error = user_validate_mail($values['mail'])) {
