@@ -1004,7 +1004,7 @@ function form_type_membership_entity_member_select_value($element, $input, &$for
     foreach ($element['#default_value'] as $delta => $uid) {
       // Expand the raw uid into username.
       $value[$delta] = array(
-        'value' => check_plain(db_query_range('SELECT name FROM {users} WHERE uid = :uid', 0, 1, array(':uid' => $uid))->fetchField()),
+        'value' => db_query_range('SELECT name FROM {users} WHERE uid = :uid', 0, 1, array(':uid' => $uid))->fetchField(),
         '_weight' => $delta,
       );
     }
@@ -1181,8 +1181,7 @@ function membership_entity_uid_value($element, $input = FALSE, $form_state = arr
   if ($input === FALSE && !empty($element['#default_value'])) {
     // Expand the raw uid into username.
     $uid = $element['#default_value'];
-    $result = db_query('SELECT name FROM {users} WHERE uid = :uid LIMIT 1', array(':uid' => $uid))->fetchField();
-    return check_plain($result);
+    return db_query('SELECT name FROM {users} WHERE uid = :uid LIMIT 1', array(':uid' => $uid))->fetchField();
   }
 }
 
