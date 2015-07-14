@@ -339,6 +339,11 @@ function membership_entity_type_field_extra_fields() {
 
 /**
  * Create a new membership entity type with default values.
+
+ * @param array $values
+ *   An associative array of settings to override the defaults.
+ *
+ * @return MembershipEntityType The new (unsaved) membership type object.
  */
 function membership_entity_type_create($values = array()) {
   return entity_create('membership_entity_type', $values);
@@ -346,6 +351,13 @@ function membership_entity_type_create($values = array()) {
 
 /**
  * Load a membership type object.
+ *
+ * @param int|string $id
+ *   The type id or machine name.
+ * @param boolean $reset
+ *   TRUE to rebuild cached data.
+ *
+ * @return MembershipEntityType The loaded membership type object.
  */
 function membership_entity_type_load($id = NULL, $reset = FALSE) {
   $types = membership_entity_type_load_multiple(array($id), array(), $reset);

@@ -16,3 +16,6 @@ files[] = membership_entity_type.info.inc
 
 ; Custom views handler.
 files[] = views/membership_entity_type.views.inc
+
+; Tests
+files[] = membership_entity_type.test

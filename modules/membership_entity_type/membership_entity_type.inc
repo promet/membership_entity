@@ -9,6 +9,13 @@
  * Defines a membership type.
  */
 class MembershipEntityType extends Entity {
+  public $id;
+  public $label;
+  public $type;
+  public $description;
+  public $weight;
+  public $data;
+
   /**
    * Default constructor for membership types.
    *
