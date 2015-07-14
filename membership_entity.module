@@ -185,12 +185,12 @@ function membership_entity_membership_entity_access($op, $membership = NULL, $ac
     if (!empty($results) && in_array($membership->mid, array_keys($results))) {
       // Can secondary members edit the membership?
       $bundle_settings = membership_entity_get_bundle_settings($type_name);
-      if ($op == 'edit' && $bundle_settings['all_edit'] && user_access("$type edit own membership", $user)) {
+      if ($op == 'edit' && $bundle_settings['all_edit'] && user_access("$type_name edit own membership", $user)) {
         return TRUE;
       }
 
       // Can secondary members view the membership?
-      if ($op == 'view' && user_access("$type view own membership", $user)) {
+      if ($op == 'view' && user_access("$type_name view own membership", $user)) {
         return TRUE;
       }
     }
@@ -901,6 +901,8 @@ function membership_entity_get_member_id($id = NULL) {
 
 /**
  * Helper to retrieve a member id plugin instance.
+ *
+ * @return MembershipEntityMemberIdInterface
  */
 function _membership_entity_member_id_get_instance($id, $settings = array()) {
   $instances = &drupal_static(__FUNCTION__);
@@ -1256,6 +1258,12 @@ function membership_entity_create_from_stdclass(stdClass $object) {
 
 /**
  * Create a new membership entity with default values.
+ *
+ * @param array $values
+ *  An associate array of default values for the membership.
+ *
+ * @return MembershipEntity The new (unsaved) membership object with default
+ *   values.
  */
 function membership_entity_create($values = array()) {
   return entity_create('membership_entity', $values);

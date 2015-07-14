@@ -28,3 +28,6 @@ files[] = views/views_handler_field_membership_link.inc
 
 ; Migrate handlers.
 files[] = membership_entity.migrate.inc
+
+; Tests
+files[] = membership_entity.test
