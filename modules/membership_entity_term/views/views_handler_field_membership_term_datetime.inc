@@ -48,7 +48,7 @@ class views_handler_field_membership_term_datetime extends views_handler_field_d
   function render($values) {
     // Load the membership object and settings.
     if ($mid = $this->get_value($values, 'mid')) {
-      $type = db_query("SELECT type FROM membership_entity WHERE mid = :mid", array(':mid' => $mid))->fetchColumn();
+      $type = db_query("SELECT type FROM {membership_entity} WHERE mid = :mid", array(':mid' => $mid))->fetchColumn();
       $bundle_settings = membership_entity_get_bundle_settings($type);
 
       // Force timezone to respect membership type settings.

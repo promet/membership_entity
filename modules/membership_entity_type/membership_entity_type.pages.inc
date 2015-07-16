@@ -38,7 +38,7 @@ function membership_entity_type_membership_add_page($context = 'join') {
  */
 function membership_entity_type_renew_page() {
   // Get a list of membership types for the current user.
-  $results = db_query('SELECT mid, type FROM membership_entity WHERE uid = :uid', array(
+  $results = db_query('SELECT mid, type FROM {membership_entity} WHERE uid = :uid', array(
     ':uid' => $GLOBALS['user']->uid,
   ))->fetchAllKeyed();
 
