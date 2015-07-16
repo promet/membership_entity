@@ -10,6 +10,11 @@
  */
 class MembershipEntityTerm extends Entity {
   /**
+   * The primary term identifier.
+   */
+  public $id;
+
+  /**
    * The membership identifier.
    */
   public $mid;

@@ -28,3 +28,6 @@ files[] = views/views_handler_relationship_term_groupwise_max.inc
 
 ; Migrate handlers.
 files[] = membership_entity_term.migrate.inc
+
+; Tests
+files[] = membership_entity_term.test

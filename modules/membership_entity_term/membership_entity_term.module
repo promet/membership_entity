@@ -685,6 +685,11 @@ function membership_entity_term_create_from_stdclass(stdClass $object) {
 
 /**
  * Create a new membership entity term with default values.
+ *
+ * @param array $values
+ *   An assciative array of values to override the defaults.
+ *
+ * @return MembershipEntityTerm The (unsaved) membership term object.
  */
 function membership_entity_term_create($values = array()) {
   return entity_create('membership_entity_term', $values);
