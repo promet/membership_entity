@@ -77,7 +77,8 @@ class MembershipEntityController extends EntityAPIController {
    *
    * @return MembershipEntity[]
    *   An array of all memberships for the given user account, keyed by
-   *   bundle. Or a single membership object if $bundle is provided.
+   *   bundle. If $bundle is provided, a single membership object if it exists,
+   *   or FLASE otherwise.
    */
   public function loadByUser($account, $bundle = NULL) {
     // Support uid or entire user object.
@@ -94,7 +95,12 @@ class MembershipEntityController extends EntityAPIController {
       $bundles[] = $membership->type;
     }
     $return = array_combine($bundles, $memberships);
-    return !empty($bundle) ? $return[$bundle] : $return;
+
+    if (!empty($bundle)) {
+      return isset($return[$bundle]) ? $return[$bundle] : FALSE;
+    }
+
+    return $return;
   }
 
   /**
