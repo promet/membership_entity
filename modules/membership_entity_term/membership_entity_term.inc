@@ -57,6 +57,23 @@ class MembershipEntityTerm extends Entity {
   }
 
   /**
+   * Returns the Membership Entity.
+   */
+  public function membership() {
+    return membership_entity_load($this->mid);
+  }
+
+  /**
+   * Sets the Membership Entity.
+   *
+   * @param $membership
+   *   The Membership Entity object or the Membership Entity id (mid).
+   */
+  public function setMembership($membership) {
+    $this->mid = is_object($membership) ? $membership->mid : $membership;
+  }
+
+  /**
    * Returns the full url to the membership term.
    */
   public function url() {
