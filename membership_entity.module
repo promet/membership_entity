@@ -43,7 +43,6 @@ function membership_entity_entity_info() {
     'entity class' => 'MembershipEntity',
     'controller class' => 'MembershipEntityController',
     'base table' => 'membership_entity',
-    'revision table' => 'membership_entity_revision',
     'label callback' => 'entity_class_label',
     'uri callback' => 'entity_class_uri',
     'access callback' => 'membership_entity_access',
@@ -52,7 +51,6 @@ function membership_entity_entity_info() {
       'id' => 'mid' ,
       'bundle' => 'type',
       'label' => 'member_id',
-      'revision' => 'revision_id',
     ),
     'bundle keys' => array(
       'bundle' => 'type',
@@ -83,6 +81,14 @@ function membership_entity_entity_info() {
   );
 
   return $info;
+}
+
+/**
+ * Implements hook_entity_info_alter().
+ */
+function membership_entity_entity_info_alter(&$entity_info) {
+  $info['membership_entity']['revision table'] = 'membership_entity_revision';
+  $info['membership_entity']['entity keys']['revision'] = 'revision_id';
 }
 
 /**

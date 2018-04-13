@@ -179,23 +179,31 @@ function membership_entity_uninstall() {
 }
 
 /**
- * Update table and create revisions for all membership entities.
+ * Add revision_id to membership_entity table and create membership_entity_revision table.
  */
 function membership_entity_update_7001() {
   $schema = membership_entity_schema();
 
-  // Create the a field for default revision.
-  db_add_field(
-    'membership_entity',
-    'revision_id',
-    $schema['membership_entity']['fields']['revision_id']
-  );
+  // Create the a field for the default revision.
+  if (!db_field_exists('membership_entity', 'revision_id')) {
+    db_add_field(
+      'membership_entity',
+      'revision_id',
+      $schema['membership_entity']['fields']['revision_id']
+    );
+  }
 
   // Create the revisions table.
-  db_create_table('membership_entity_revision', $schema['membership_entity_revision']);
+  if (!db_table_exists('membership_entity_revision')) {
+    db_create_table('membership_entity_revision', $schema['membership_entity_revision']);
+  }
+}
 
-  // Create one revision for each existing membership.
-  $memberships = membership_entity_load_multiple();
+/**
+ * Create revisions for all existing membership entities.
+ */
+function membership_entity_update_7002() {
+  $memberships = db_query('SELECT * FROM membership_entity')->fetchAll();
   foreach ($memberships as $membership) {
     $revision_id = db_insert('membership_entity_revision')
       ->fields(array(
