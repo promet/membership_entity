@@ -83,4 +83,13 @@ class MembershipEntityType extends Entity {
   public function defaultUri() {
     return array('path' => 'admin/memberships/types/manage/' . $this->type);
   }
+
+  
+  /**
+   * Overrides Entity::save().
+   */
+  public function save() {
+    $this->is_new_revision = TRUE;
+    return parent::save();
+  }
 }

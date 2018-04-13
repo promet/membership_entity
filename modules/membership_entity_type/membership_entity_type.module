@@ -80,6 +80,10 @@ function membership_entity_type_entity_info_alter(&$entity_info) {
       ),
     );
   }
+
+  // Add revision capabilities to this entity.
+  $info['membership_entity_type']['revision table'] = 'membership_entity_type_revision';
+  $info['membership_entity_type']['entity keys']['revision'] = 'revision_id';
 }
 
 /**
@@ -391,6 +395,35 @@ function membership_entity_type_delete($id) {
 function membership_entity_type_delete_multiple($ids) {
   entity_delete_multiple('membership_entity_type', $ids);
 }
+
+/**
+ * Loads an entity revision.
+ */
+function membership_entity_type_revision_load($revision_id) {
+  return entity_revision_load('membership_entity_type', $revision_id);
+}
+
+/**
+ * Deletes an entity revision.
+ */
+function membership_entity_type_revision_delete($revision_id) {
+  return entity_revision_delete('membership_entity_type', $revision_id);
+}
+
+/**
+ * Checks whether the given entity is the default revision.
+ */
+function membership_entity_type_revision_is_default($entity) {
+  return entity_revision_is_default('membership_entity_type', $entity);
+}
+
+/**
+ * Sets a given entity revision as default revision.
+ */
+function membership_entity_type_revision_set_default($entity) {
+  entity_revision_set_default('membership_entity_type', $entity);
+}
+
 
 /**
  * Returns a list of membership type names.
