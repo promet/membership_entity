@@ -102,11 +102,38 @@ class MembershipEntity extends Entity {
    * Overrides Entity::save().
    */
   public function save() {
-    if (empty($this->created)) {
-      $this->created = REQUEST_TIME;
-    }
     $this->changed = REQUEST_TIME;
-    $this->is_new_revision = TRUE;
+
+    // If this is a new entity.
+    if (!isset($this->mid)) {
+      $this->is_new_revision = TRUE;
+      $this->changed = REQUEST_TIME;
+      $this->created = REQUEST_TIME;
+      return parent::save();
+    }
+
+    // Load unchanged entity data.
+    if (!isset($this->original)) {
+      $original = entity_load_unchanged('membership_entity', $this->mid);
+    } else {
+      $original = $this->original;
+      unset($this->original);
+    }
+
+    // The entity_type property cannot be changed in the UI, so we ignore 
+    // it when comparing current and unchanged states.
+    if (isset($this->entity_type)) {
+      $original->entity_type = $this->entity_type;
+    }
+
+    // Compare new and old objects to check if any change was made.
+    if (md5(json_encode($this)) !== md5(json_encode($original))) {
+      // Flag to add a new revision.
+      $this->is_new_revision = TRUE;
+    }
+
+    // EntityAPIController will load original again if left unset.
+    $this->original = $original;
     return parent::save();
   }
 }
