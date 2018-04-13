@@ -106,6 +106,7 @@ class MembershipEntity extends Entity {
       $this->created = REQUEST_TIME;
     }
     $this->changed = REQUEST_TIME;
+    $this->is_new_revision = TRUE;
     return parent::save();
   }
 }

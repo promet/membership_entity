@@ -43,6 +43,7 @@ function membership_entity_entity_info() {
     'entity class' => 'MembershipEntity',
     'controller class' => 'MembershipEntityController',
     'base table' => 'membership_entity',
+    'revision table' => 'membership_entity_revision',
     'label callback' => 'entity_class_label',
     'uri callback' => 'entity_class_uri',
     'access callback' => 'membership_entity_access',
@@ -51,6 +52,7 @@ function membership_entity_entity_info() {
       'id' => 'mid' ,
       'bundle' => 'type',
       'label' => 'member_id',
+      'revision' => 'revision_id',
     ),
     'bundle keys' => array(
       'bundle' => 'type',
@@ -1335,6 +1337,34 @@ function membership_entity_delete($mid) {
  */
 function membership_entity_delete_multiple($mids) {
   entity_delete_multiple('membership_entity', $mids);
+}
+
+/**
+ * Loads an entity revision.
+ */
+function membership_entity_revision_load($revision_id) {
+  return entity_revision_load('membership_entity', $revision_id);
+}
+
+/**
+ * Deletes an entity revision.
+ */
+function membership_entity_revision_delete($revision_id) {
+  return entity_revision_delete('membership_entity', $revision_id);
+}
+
+/**
+ * Checks whether the given entity is the default revision.
+ */
+function membership_entity_revision_is_default($entity) {
+  return entity_revision_is_default('membership_entity', $entity);
+}
+
+/**
+ * Sets a given entity revision as default revision.
+ */
+function membership_entity_revision_set_default($entity) {
+  entity_revision_set_default('membership_entity', $entity);
 }
 
 /**
