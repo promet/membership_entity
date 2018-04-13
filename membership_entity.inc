@@ -107,7 +107,6 @@ class MembershipEntity extends Entity {
     // If this is a new entity.
     if (!isset($this->mid)) {
       $this->is_new_revision = TRUE;
-      $this->changed = REQUEST_TIME;
       $this->created = REQUEST_TIME;
       return parent::save();
     }
