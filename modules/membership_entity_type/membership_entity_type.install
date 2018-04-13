@@ -193,7 +193,7 @@ function membership_entity_type_update_7002() {
       ->execute();
 
     db_update('membership_entity_type')
-      ->condition('mid', $type->mid)
+      ->condition('id', $type->id)
       ->fields(array(
         'revision_id' => $revision_id,
       ))
