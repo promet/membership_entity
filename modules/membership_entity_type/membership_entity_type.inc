@@ -83,4 +83,32 @@ class MembershipEntityType extends Entity {
   public function defaultUri() {
     return array('path' => 'admin/memberships/types/manage/' . $this->type);
   }
+
+  
+  /**
+   * Overrides Entity::save().
+   */
+  public function save() {
+    // If this is a new entity.
+    if (!isset($this->id)) {
+      $this->is_new_revision = TRUE;
+      return parent::save();
+    }
+
+    // Load unchanged entity data.
+    if (!isset($this->original)) {
+      $original = entity_load_unchanged('membership_entity_type', $this->id);
+    } else {
+      $original = $this->original;
+      unset($this->original);
+    }
+    // Compare new and old objects to check if any change was made.
+    if (md5(json_encode($this)) !== md5(json_encode($original))) {
+      // Flag to add a new revision.
+      $this->is_new_revision = TRUE;
+    }
+    // EntityAPIController will load original again if left unset.
+    $this->original = $original;
+    return parent::save();
+  }
 }

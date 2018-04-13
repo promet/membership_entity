@@ -46,6 +46,13 @@ function membership_entity_type_schema() {
         'type' => 'serial',
         'not null' => TRUE,
       ),
+      'revision_id' => array(
+        'description' => 'The default membership entity type revision id',
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => FALSE,
+        'default' => NULL,
+      ),
       'type' => array(
         'description' => 'The machine-readable name of this membership entity type.',
         'type' => 'varchar',
@@ -103,6 +110,25 @@ function membership_entity_type_schema() {
     'primary key' => array('id'),
   );
 
+  $schema['membership_entity_type_revision'] = $schema['membership_entity_type'];
+  $schema['membership_entity_type_revision']['fields']['revision_id'] = array(
+    'type' => 'serial',
+    'not null' => TRUE,
+    'description' => 'Primary Key: Unique membership entity type revision ID.',
+  );
+  $schema['membership_entity_type_revision']['fields']['id'] = array(
+    'type' => 'int',
+    'unsigned' => TRUE,
+    'not null' => FALSE,
+    'default' => NULL,
+    'description' => 'The ID of the attached membership entity type.',
+  );
+  $schema['membership_entity_type_revision']['primary key'] = array('revision_id');
+  $schema['membership_entity_type_revision']['unique keys'] = array(
+    'revision_id' => array('revision_id'),
+  );
+  
+
   return $schema;
 }
 
@@ -121,4 +147,56 @@ function membership_entity_type_install() {
     'data' => variable_get('membership_entity_settings', array()),
   ));
   $type->save();
+}
+
+/**
+ * Add revision_id to membership_entity table and create membership_entity_revision table.
+ */
+function membership_entity_type_update_7001() {
+  $schema = membership_entity_type_schema();
+
+  // Create the a field for the default revision.
+  if (!db_field_exists('membership_entity_type', 'revision_id')) {
+    db_add_field(
+      'membership_entity_type',
+      'revision_id',
+      $schema['membership_entity_type']['fields']['revision_id']
+    );
+  }
+
+  // Create the revisions table.
+  if (!db_table_exists('membership_entity_type_revision')) {
+    db_create_table(
+      'membership_entity_type_revision',
+      $schema['membership_entity_type_revision']
+    );
+  }
+}
+
+/**
+ * Create revisions for all existing membership entity types.
+ */
+function membership_entity_type_update_7002() {
+  $memberships_types = db_query('SELECT * FROM membership_entity_type')->fetchAll();
+  foreach ($memberships_types as $type) {
+    $revision_id = db_insert('membership_entity_type_revision')
+      ->fields(array(
+        'id' => $type->id,
+        'type' => $type->type,
+        'label' => $type->label,
+        'weight' => $type->weight,
+        'description' => $type->description,
+        'data' => $type->data,
+        'status' => $type->status,
+        'module' => $type->module,
+      ))
+      ->execute();
+
+    db_update('membership_entity_type')
+      ->condition('mid', $type->mid)
+      ->fields(array(
+        'revision_id' => $revision_id,
+      ))
+      ->execute();
+  }
 }
