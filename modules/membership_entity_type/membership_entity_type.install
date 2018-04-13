@@ -46,6 +46,13 @@ function membership_entity_type_schema() {
         'type' => 'serial',
         'not null' => TRUE,
       ),
+      'revision_id' => array(
+        'description' => 'The default membership entity type revision id',
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => FALSE,
+        'default' => NULL,
+      ),
       'type' => array(
         'description' => 'The machine-readable name of this membership entity type.',
         'type' => 'varchar',
@@ -146,7 +153,7 @@ function membership_entity_type_install() {
  * Add revision_id to membership_entity table and create membership_entity_revision table.
  */
 function membership_entity_type_update_7001() {
-  $schema = membership_entity_schema();
+  $schema = membership_entity_type_schema();
 
   // Create the a field for the default revision.
   if (!db_field_exists('membership_entity_type', 'revision_id')) {

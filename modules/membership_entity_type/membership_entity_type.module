@@ -23,6 +23,7 @@ function membership_entity_type_entity_info() {
     'entity class' => 'MembershipEntityType',
     'controller class' => 'MembershipEntityTypeController',
     'base table' => 'membership_entity_type',
+    'revision table' => 'membership_entity_type_revision',
     'uri callback' => 'entity_class_uri',
     // Design decision: Membership types are fieldable to allow other modules
     // to programatically add fields at the membership type level but no field
@@ -34,6 +35,7 @@ function membership_entity_type_entity_info() {
       'id' => 'id',
       'name' => 'type',
       'label' => 'label',
+      'revision' => 'revision_id',
     ),
     'bundles' => array(
       'membership_entity_type' => array(
@@ -81,9 +83,9 @@ function membership_entity_type_entity_info_alter(&$entity_info) {
     );
   }
 
-  // Add revision capabilities to this entity.
-  $info['membership_entity_type']['revision table'] = 'membership_entity_type_revision';
-  $info['membership_entity_type']['entity keys']['revision'] = 'revision_id';
+  // Add revision capabilities to membership_entity_type entity.
+  $entity_info['membership_entity_type']['revision table'] = 'membership_entity_type_revision';
+  $entity_info['membership_entity_type']['entity keys']['revision'] = 'revision_id';
 }
 
 /**
