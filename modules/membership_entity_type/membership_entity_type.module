@@ -82,11 +82,6 @@ function membership_entity_type_entity_info_alter(&$entity_info) {
       ),
     );
   }
-
-  if (empty($entity_info['membership_entity']['schema_fields_sql']['revision table'])) {
-    $entity_info['membership_entity']['schema_fields_sql']['revision table'] =
-      drupal_schema_fields_sql('membership_entity_type_revision');
-  }
 }
 
 /**
