@@ -83,9 +83,10 @@ function membership_entity_type_entity_info_alter(&$entity_info) {
     );
   }
 
-  // Add revision capabilities to membership_entity_type entity.
-  $entity_info['membership_entity_type']['revision table'] = 'membership_entity_type_revision';
-  $entity_info['membership_entity_type']['entity keys']['revision'] = 'revision_id';
+  if (empty($entity_info['membership_entity']['schema_fields_sql']['revision table'])) {
+    $entity_info['membership_entity']['schema_fields_sql']['revision table'] =
+      drupal_schema_fields_sql('membership_entity_type_revision');
+  }
 }
 
 /**
