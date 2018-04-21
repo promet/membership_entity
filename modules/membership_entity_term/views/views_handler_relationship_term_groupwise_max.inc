@@ -8,11 +8,12 @@
 /**
  * Relationship handler that allows a groupwise maximum of the linked term.
  */
-class views_handler_relationship_term_groupwise_max extends views_handler_relationship_groupwise_max {
+class views_handler_relationship_term_groupwise_max extends views_handler_relationship_groupwise_max { // @codingStandardsIgnoreLine, Views override compliant
+
   /**
    * Defines default values for options.
    */
-  function option_definition() {
+  function option_definition() { // @codingStandardsIgnoreLine, Views override compliant
     $options = parent::option_definition();
     $options['subquery_status'] = array('default' => array());
     $options['subquery_offset'] = array('default' => 0);
@@ -22,7 +23,7 @@ class views_handler_relationship_term_groupwise_max extends views_handler_relati
   /**
    * Extends the relationship's basic options.
    */
-  function options_form(&$form, &$form_state) {
+  function options_form(&$form, &$form_state) { // @codingStandardsIgnoreLine, Views override compliant
     parent::options_form($form, $form_state);
 
     // Form type checkboxes may not use 0 as an options key. We'll use -1
@@ -58,12 +59,16 @@ class views_handler_relationship_term_groupwise_max extends views_handler_relati
    *
    * This is mostly a copy of parent::left_query except adding a status
    * condition and allowing multiple representative relationships.
+   *
+   * @todo: could we use a call to parent::left_query, and modify from there?
+   * Also needs to be refactored to reduce cyclometric complexity, turn some of
+   * The conditionals into private methods on the class.
    */
-  function left_query($options) {
+  function left_query($options) { // @codingStandardsIgnoreLine, Views override compliant
     // Either load another view, or create one on the fly.
     if ($options['subquery_view']) {
       $temp_view = views_get_view($options['subquery_view']);
-      // Remove all fields from default display
+      // Remove all fields from default display.
       unset($temp_view->display['default']->display_options['fields']);
     }
     else {
@@ -84,8 +89,8 @@ class views_handler_relationship_term_groupwise_max extends views_handler_relati
     }
 
     // Get the namespace string.
-    $temp_view->namespace = (!empty($options['subquery_namespace'])) ? '_'. $options['subquery_namespace'] : '_INNER';
-    $this->subquery_namespace = (!empty($options['subquery_namespace'])) ? '_'. $options['subquery_namespace'] : 'INNER';
+    $temp_view->namespace = (!empty($options['subquery_namespace'])) ? '_' . $options['subquery_namespace'] : '_INNER';
+    $this->subquery_namespace = (!empty($options['subquery_namespace'])) ? '_' . $options['subquery_namespace'] : 'INNER';
 
     // The value we add here does nothing, but doing this adds the right tables
     // and puts in a WHERE clause with a placeholder we can grab later.
@@ -173,7 +178,7 @@ class views_handler_relationship_term_groupwise_max extends views_handler_relati
     // into a SelectQuery that it does not recognize (because it's outer) just
     // makes it treat it as a string. We use a pattern to match multiple
     // relationships.
-    $outer_pattern  = '/:' . str_replace('.', '_', $this->definition['outer field']) . '\d*/i';
+    $outer_pattern = '/:' . str_replace('.', '_', $this->definition['outer field']) . '\d*/i';
 
     // Handle outer field from a relationship.
     list($outer_table, $outer_field) = explode('.', $this->definition['outer field']);
@@ -185,4 +190,5 @@ class views_handler_relationship_term_groupwise_max extends views_handler_relati
     $subquery_sql = str_replace(array_keys($args), $args, $subquery_sql);
     return $subquery_sql;
   }
+
 }

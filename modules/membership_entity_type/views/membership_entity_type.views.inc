@@ -9,10 +9,11 @@
  * Membership entity type views controller class.
  */
 class MembershipEntityTypeViewsController extends EntityDefaultViewsController {
+
   /**
    * Overrides EntityDefaultViewsController::views_data().
    */
-  public function views_data() {
+  public function views_data() { // @codingStandardsIgnoreLine, EntityDefaultViewsController override compliant
     $info = parent::views_data();
     $data = &$info['membership_entity_type'];
 
@@ -54,4 +55,5 @@ class MembershipEntityTypeViewsController extends EntityDefaultViewsController {
 
     return $info;
   }
+
 }

@@ -9,7 +9,11 @@
  * Destination class implementing migration into memberships terms.
  */
 class MigrateDestinationMembershipEntityTerm extends MigrateDestinationEntity {
-  static public function getKeySchema() {
+
+  /**
+   * {@inheritdoc}
+   */
+  public static function getKeySchema() {
     return array(
       'id' => array(
         'type' => 'int',
@@ -22,6 +26,8 @@ class MigrateDestinationMembershipEntityTerm extends MigrateDestinationEntity {
   /**
    * Basic initialization.
    *
+   * @param optional|string $bundle
+   *   MembershipEntityTerm bundle name to initialize.
    * @param array $options
    *   Options applied to membership terms.
    */
@@ -34,14 +40,15 @@ class MigrateDestinationMembershipEntityTerm extends MigrateDestinationEntity {
    *
    * @param Migration $migration
    *   Optionally, the migration containing this destination.
+   *
    * @return array
    *   Keys: machine names of the fields (to be passed to addFieldMapping)
    *   Values: Human-friendly descriptions of the fields.
    */
-  public function fields($migration = NULL) {
+  public function fields(Migration $migration = NULL) {
     $fields = array();
 
-    // Core membership term properties
+    // Core membership term properties.
     $fields['id'] = t('Membership term: Internal term ID');
     $fields['mid'] = t('Membership term: The membership internal id');
     $fields['status'] = t('Membership term: The membership term status code');
@@ -51,7 +58,7 @@ class MigrateDestinationMembershipEntityTerm extends MigrateDestinationEntity {
     $fields['end'] = t('Membership term: end date datetime');
     $fields['timezone'] = t('Membership term: Start and end date timezone');
 
-    // Add in anything provided by handlers
+    // Add in anything provided by handlers.
     $fields += migrate_handler_invoke_all('Entity', 'fields', $this->entityType, $this->bundle, $migration);
     $fields += migrate_handler_invoke_all('MembershipEntityTerm', 'fields', $this->entityType, $this->bundle, $migration);
 
@@ -61,7 +68,7 @@ class MigrateDestinationMembershipEntityTerm extends MigrateDestinationEntity {
   /**
    * Delete a batch of memberships terms at once.
    *
-   * @param $mids
+   * @param array $ids
    *   Array of membership term IDs to be deleted.
    */
   public function bulkRollback(array $ids) {
@@ -75,23 +82,24 @@ class MigrateDestinationMembershipEntityTerm extends MigrateDestinationEntity {
   /**
    * Import a single membership term.
    *
-   * @param $term
+   * @param object $term
    *   The membership term entity object to build. Prefilled with any fields
    *   mapped in the Migration.
-   * @param $row
+   * @param object $row
    *   Raw source data object - passed through to prepare/complete handlers.
+   *
    * @return array
    *   Array of key fields (mid) of the membership term that was saved.
    *   FALSE on failure.
    */
-  public function import(stdClass $term, stdClass $row) {
+  public function import($term, $row) {
     // Convert $term to an instance of MembershpEntityTerm.
     $term = membership_entity_term_create_from_stdclass($term);
 
     // Updating previously-migrated content?
     $migration = Migration::currentMigration();
     if (isset($row->migrate_map_destid1)) {
-      // Make sure is_new is off
+      // Make sure is_new is off.
       $term->is_new = FALSE;
       if (isset($term->id)) {
         if ($term->id != $row->migrate_map_destid1) {
@@ -144,15 +152,16 @@ class MigrateDestinationMembershipEntityTerm extends MigrateDestinationEntity {
       }
     }
 
-    // Invoke migration prepare handlers
+    // Invoke migration prepare handlers.
     $this->prepare($term, $row);
 
     // Trying to update an existing membership term.
     if ($migration->getSystemOfRecord() == Migration::DESTINATION) {
-      // Incoming data overrides existing data, so only copy non-existent fields
+      // Incoming data overrides existing data, so only copy non-existent
+      // fields.
       foreach ($old_term as $field => $value) {
         if (property_exists($term, $field) && $term->{$field} === NULL) {
-          // Ignore this field
+          // Ignore this field.
           continue;
         }
         elseif (!isset($term->{$field})) {
@@ -195,10 +204,11 @@ class MigrateDestinationMembershipEntityTerm extends MigrateDestinationEntity {
    *
    * @param mixed $value
    *   The incoming date value as a string or timestamp.
+   *
    * @return string
    *   The date in datetime format.
    */
-  static protected function datetime($value) {
+  protected static function datetime($value) {
     if (empty($value)) {
       $value = 'now';
     }
@@ -211,4 +221,5 @@ class MigrateDestinationMembershipEntityTerm extends MigrateDestinationEntity {
     $date = new DateObject($value, new DateTimezone('UTC'));
     return date_format_date($date, 'custom', DATE_FORMAT_DATETIME);
   }
+
 }

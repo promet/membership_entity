@@ -5,11 +5,20 @@
  * Contains the MembershipEntityTokenMemberId class.
  */
 
+/**
+ * MembershipEntityTokenMemberId class.
+ *
+ * @todo: move private functions into class as private methods.  This will
+ * break the API but would be more compliant with coding standards to make
+ * these private methods instead of private functions, and would assure
+ * strict compliance with the module's API.  Implement as part of version 2.0.
+ */
 class MembershipEntityTokenMemberId extends MembershipEntityMemberIdAbstract {
+
   /**
-   * Returns the next available member id.
+   * {@inheritdoc}
    */
-  public function next($membership) {
+  public function next(MembershipEntity $membership) {
     $settings = $this->settings + array(
       'pattern' => '',
       'suffix' => 1,
@@ -61,9 +70,9 @@ class MembershipEntityTokenMemberId extends MembershipEntityMemberIdAbstract {
   }
 
   /**
-   * Builds the settings form for the member id.
+   * {@inheritdoc}
    */
-  public function settingsForm(&$form_state) {
+  public function settingsForm(array &$form_state) {
     $settings = $this->settings + array(
       'pattern' => '',
       'suffix' => 1,
@@ -78,7 +87,7 @@ class MembershipEntityTokenMemberId extends MembershipEntityMemberIdAbstract {
     );
 
     $form['pattern'] = array(
-      '#type'=> 'textfield',
+      '#type' => 'textfield',
       '#title' => t('Member ID Pattern.'),
       '#description' => t('The pattern to use to create the member id. You may enter data from the "Replacement patterns" below.'),
       '#required' => TRUE,
@@ -115,10 +124,10 @@ class MembershipEntityTokenMemberId extends MembershipEntityMemberIdAbstract {
       '#size' => 5,
       '#states' => array(
         'required' => array(
-          'input[name="member_id_settings[suffix]"]' => array('checked' => TRUE)
+          'input[name="member_id_settings[suffix]"]' => array('checked' => TRUE),
         ),
         'visible' => array(
-          'input[name="member_id_settings[suffix]"]' => array('checked' => TRUE)
+          'input[name="member_id_settings[suffix]"]' => array('checked' => TRUE),
         ),
       ),
       '#default_value' => $settings['length'],
@@ -175,7 +184,7 @@ class MembershipEntityTokenMemberId extends MembershipEntityMemberIdAbstract {
   /**
    * Element validate callback to check the Member ID token pattern field.
    *
-   * @see token_element_validate().
+   * @see token_element_validate()
    */
   public function patternElementValidate(&$element, &$form_state) {
     $value = isset($element['#value']) ? $element['#value'] : $element['#default_value'];
@@ -199,31 +208,54 @@ class MembershipEntityTokenMemberId extends MembershipEntityMemberIdAbstract {
     if (isset($element['#token_types'])) {
       $invalid_tokens = token_get_invalid_tokens_by_context($tokens, $element['#token_types']);
       if ($invalid_tokens) {
-        form_error($element, t('The %element-title is using the following invalid tokens: @invalid-tokens.', array('%element-title' => $title, '@invalid-tokens' => implode(', ', $invalid_tokens))));
+        form_error($element, t('The %element-title is using the following invalid tokens: @invalid-tokens.',
+          array(
+            '%element-title' => $title,
+            '@invalid-tokens' => implode(', ', $invalid_tokens),
+          )
+        ));
       }
     }
 
     return $element;
   }
+
 }
 
 /**
- * Token callback to clean a replacement value.
+ * Private: Token callback to clean a replacement value.
+ *
+ * @param array $replacements
+ *   Array of tokens and values to clean.
+ * @param optional|array $data
+ *   Does not appear to be used anywhere in the method call.
+ * @param optional|array $options
+ *   Array of settings to apply to the token value to clean it.
  */
-function _membership_entity_token_member_id_token_callback(&$replacements, $data = array(), $options = array()) {
+function _membership_entity_token_member_id_token_callback(array &$replacements, $data = array(), $options = array()) {
   foreach ($replacements as $token => $value) {
     $replacements[$token] = _membership_entity_token_clean_string($value, $options['settings']);
   }
 }
 
 /**
- * Apply advanced options to a generated member id string.
+ * Private: Apply advanced options to a generated member id string.
+ *
+ * @param string $string
+ *   Original member id string.
+ * @param array $settings
+ *   Array of settings to apply to string.
+ *
+ * @return string
+ *   Sanitized member id string.
+ *
+ * @todo document content of $settings array.
  */
-function _membership_entity_token_clean_string($string, $settings) {
+function _membership_entity_token_clean_string($string, array $settings) {
   // Remove all HTML tags from the string.
   $return = strip_tags(decode_entities($string));
 
-  // Get rid of words that are on the ignore list
+  // Get rid of words that are on the ignore list.
   $ignore_words = $settings['ignore_words'];
   $ignore_words_regex = preg_replace(array('/^[,\s]+|[,\s]+$/', '/[,\s]+/'), array('', '\b|\b'), $ignore_words);
   if ($ignore_words_regex) {
@@ -241,7 +273,7 @@ function _membership_entity_token_clean_string($string, $settings) {
   if ($settings['case'] == 'lower') {
     $return = drupal_strtolower($return);
   }
-  else if ($settings['case'] == 'upper') {
+  elseif ($settings['case'] == 'upper') {
     $return = drupal_strtoupper($return);
   }
 
@@ -254,7 +286,15 @@ function _membership_entity_token_clean_string($string, $settings) {
 }
 
 /**
- * Replace whitespace and punctuation with a separator.
+ * Private: Replace whitespace and punctuation with a separator.
+ *
+ * @param string $string
+ *   Original string to be converted.
+ * @param string $separator
+ *   Separator to apply to string.
+ *
+ * @return string
+ *   Modified string with separator applied.
  */
 function _membership_entity_token_clean_separator($string, $separator) {
   $return = $string;
@@ -262,7 +302,14 @@ function _membership_entity_token_clean_separator($string, $separator) {
     $return = preg_replace('/\s+/', $separator, $return);
 
     // Replace punctuation.
-    $punctuation = array('"', '\'', '`', ',', '.', '-', '_', ':', ';', '|', '{', '[', '}', ']', '+', '=', '*', '&', '%', '^', '$', '#', '@', '!', '~', '(', ')', '?', '<', '>', '/', '\\');
+    $punctuation = array(
+      '"', '\'', '`', ',', '.', '-', '_',
+      ':', ';', '|', '{', '[', '}', ']',
+      '+', '=', '*', '&', '%', '^', '$',
+      '#', '@', '!', '~', '(', ')', '?',
+      '<', '>', '/', '\\',
+    );
+
     $return = str_replace($punctuation, $separator, $return);
 
     // Escape the separator.
@@ -275,4 +322,5 @@ function _membership_entity_token_clean_separator($string, $separator) {
     $return = preg_replace("/$pattern+/", $separator, $return);
   }
   return $return;
+
 }

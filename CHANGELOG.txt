@@ -4,7 +4,8 @@ Adds automated tests.
 Issue #2400557: Syntax error on activating modules
 Join form improvements
 Issue #2375483: Add views relationship handler for secondary members
-Issue #2375479: Add subquery offset option for representative term views relationship handler
+Issue #2375479: Add subquery offset option for representative term views
+                relationship handler.
 Issue #2396395: Misspellings in code causing errors
 Issue #2394935: Missing dependency on membership_entity_term
 Issue #2351663: Anonymous join process split by verification email
@@ -16,7 +17,8 @@ Issue #2350299: Fixed PHP warnings on admin/memberships due to missing end date.
 Issue #2252779: Added Generic Renewal Page.
 No longer depend on pathauto.
 Issue #2318227: Fixed Link to edit Membership term does not respect permissions.
-Issue #2318225: Fixed Users able to view other users' Membership even when permissions forbid it.
-Issue #2315803: Fixed Views relationship Membership: Representative membership term does not respect changes to
-                representative term status.
+Issue #2318225: Fixed Users able to view other users' Membership even when
+                permissions forbid it.
+Issue #2315803: Fixed Views relationship Membership: Representative membership
+                term does not respect changes to representative term status.
 Issue #2313963: Fixed Membership term dates incorrectly handle timezones.

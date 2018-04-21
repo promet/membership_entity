@@ -2,6 +2,8 @@
 
 /**
  * @file
+ * MembershipEntityTerm API Description.
+ *
  * This file contains no working PHP code; it exists to provide additional
  * documentation for doxygen as well as to document hooks in the standard
  * Drupal manner.
@@ -18,7 +20,7 @@
  * @param MembershipEntityTerm $term
  *   The full membership term object.
  */
-function hook_membership_entity_term_start_date_alter(&$start, $term) {
+function hook_membership_entity_term_start_date_alter(DateObject &$start, MembershipEntityTerm $term) {
   // Determine the renewal start date.
   if (!empty($term->is_renewal)) {
     $membership = membership_entity_load($term->mid);
@@ -54,7 +56,7 @@ function hook_membership_entity_term_start_date_alter(&$start, $term) {
  * @param MembershipEntityTerm $term
  *   The full membership term object.
  */
-function hook_membership_entity_term_end_date_alter(&$end, $term) {
+function hook_membership_entity_term_end_date_alter(DateObject &$end, MembershipEntityTerm $term) {
   // Add term modifiers.
   foreach ($term->modifiers as $modifier) {
     $end = _membership_entity_term_modify_date($end, $modifier);

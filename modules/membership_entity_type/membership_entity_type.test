@@ -9,6 +9,7 @@
  * Defines a base class for testing the Membership Entity Type module.
  */
 class MembershipEntityTypeWebTestCase extends MembershipEntityWebTestCase {
+
   /**
    * {@inheritdoc}
    */
@@ -40,10 +41,11 @@ class MembershipEntityTypeWebTestCase extends MembershipEntityWebTestCase {
   /**
    * Create and save a membership type for testing.
    *
-   * @param array $values
+   * @param optional|array $values
    *   An associative array of default values for the membership type.
    *
-   * @return MembershipEntityType The new membership tyep object.
+   * @return MembershipEntityType
+   *   The new membership tyep object.
    */
   public function createMembershipType($values = array()) {
     if (!isset($values['data'])) {
@@ -72,6 +74,7 @@ class MembershipEntityTypeWebTestCase extends MembershipEntityWebTestCase {
  * Test membership type creation functions.
  */
 class MembershipEntityTypeCreateTestCase extends MembershipEntityTypeWebTestCase {
+
   /**
    * {@inheritdoc}
    */

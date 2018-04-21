@@ -9,6 +9,7 @@
  * Entity controller class for membership term entities.
  */
 class MembershipEntityTermController extends EntityAPIController {
+
   /**
    * Overrides EntityAPIController::create().
    */
@@ -50,6 +51,9 @@ class MembershipEntityTermController extends EntityAPIController {
     return $this->load($ids);
   }
 
+  /**
+   * {@inheritdoc}
+   */
   protected function buildQuery($ids, $conditions = array(), $revision_id = FALSE) {
     $query = parent::buildQuery($ids, $conditions, $revision_id);
 
@@ -58,4 +62,5 @@ class MembershipEntityTermController extends EntityAPIController {
     $query->addField('m', 'type', 'membership_entity_type');
     return $query;
   }
+
 }

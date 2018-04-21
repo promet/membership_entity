@@ -12,7 +12,7 @@
 /**
  * Overrides user_account_form() for the join process.
  *
- * @see membership_entity_join_form().
+ * @see membership_entity_join_form()
  */
 function membership_entity_user_account_form(&$form, &$form_state) {
   // Account information.
