@@ -9,10 +9,11 @@
  * Provides views integration for memberships.
  */
 class MembershipEntityViewsController extends EntityDefaultViewsController {
+
   /**
    * Overrides EntityDefaultViewsController::views_data().
    */
-  public function views_data() {
+  public function views_data() { // @codingStandardsIgnoreLine, EntityDefaultViewsController override compliant
     $info = parent::views_data();
     $data = &$info['membership_entity'];
 
@@ -102,4 +103,5 @@ class MembershipEntityViewsController extends EntityDefaultViewsController {
 
     return $info;
   }
+
 }

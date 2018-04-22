@@ -8,11 +8,12 @@
 /**
  * Field handler to show the primary member from the membership.
  */
-class views_handler_field_membership_primary_member extends entity_views_handler_field_entity {
+class views_handler_field_membership_primary_member extends entity_views_handler_field_entity { // @codingStandardsIgnoreLine, Views override compliant
+
   /**
    * {@inheritdoc}
    */
-  public function options_form(&$form, &$form_state) {
+  public function options_form(&$form, &$form_state) { // @codingStandardsIgnoreLine, Views override compliant
     parent::options_form($form, $form_state);
 
     $form['display']['#options'] = array(
@@ -26,4 +27,5 @@ class views_handler_field_membership_primary_member extends entity_views_handler
 
     $form['bypass_access']['#description'] = t('If enabled, access permissions for rendering the user are not checked.');
   }
+
 }

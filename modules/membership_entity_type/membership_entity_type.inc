@@ -9,6 +9,7 @@
  * Defines a membership type.
  */
 class MembershipEntityType extends Entity {
+
   public $id;
   public $label;
   public $type;
@@ -19,7 +20,7 @@ class MembershipEntityType extends Entity {
   /**
    * Default constructor for membership types.
    *
-   * @param array $values
+   * @param optional|array $values
    *   An array of default values.
    */
   public function __construct($values = array()) {
@@ -28,6 +29,12 @@ class MembershipEntityType extends Entity {
 
   /**
    * Returns the full url to the membership type.
+   *
+   * @param optional|string $context
+   *   String containing context action.
+   *
+   * @return string
+   *   URL to action from context, or default URL.
    */
   public function url($context = NULL) {
     $uri = $this->uri($context);
@@ -36,6 +43,12 @@ class MembershipEntityType extends Entity {
 
   /**
    * Returns the Drupal path to the membership type.
+   *
+   * @param optional|string $context
+   *   String containing context action.
+   *
+   * @return string
+   *   URI to action from context, or default URI.
    */
   public function path($context = NULL) {
     $uri = $this->uri($context);
@@ -43,7 +56,7 @@ class MembershipEntityType extends Entity {
   }
 
   /**
-   * Returns a type uri.
+   * {@inheritdoc}
    */
   public function uri($context = NULL) {
     if (isset($this->entityInfo['uri callback']) && $this->entityInfo['uri callback'] == 'entity_class_uri') {
@@ -63,6 +76,9 @@ class MembershipEntityType extends Entity {
 
   /**
    * Return a path the membership type join form.
+   *
+   * @return array
+   *   Array containing the path string, keyed by "path".
    */
   public function joinUri() {
     $type_url_str = str_replace('_', '-', $this->type);
@@ -71,6 +87,9 @@ class MembershipEntityType extends Entity {
 
   /**
    * Return a path the membership type admin create form.
+   *
+   * @return array
+   *   Array containing the path string, keyed by "path".
    */
   public function adminUri() {
     $type_url_str = str_replace('_', '-', $this->type);
@@ -83,7 +102,6 @@ class MembershipEntityType extends Entity {
   public function defaultUri() {
     return array('path' => 'admin/memberships/types/manage/' . $this->type);
   }
-
   
   /**
    * Overrides Entity::save().
@@ -111,4 +129,5 @@ class MembershipEntityType extends Entity {
     $this->original = $original;
     return parent::save();
   }
+
 }

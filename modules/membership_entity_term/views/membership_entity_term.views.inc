@@ -9,10 +9,11 @@
  * Membership entity term views controller class.
  */
 class MembershipEntityTermViewsController extends EntityDefaultViewsController {
+
   /**
    * Overrides EntityDefaultViewsController::views_data().
    */
-  public function views_data() {
+  public function views_data() { // @codingStandardsIgnoreLine, Views override compliant
     $info = parent::views_data();
     $data = &$info['membership_entity_term'];
 
@@ -49,6 +50,7 @@ class MembershipEntityTermViewsController extends EntityDefaultViewsController {
 
     return $info;
   }
+
 }
 
 /**

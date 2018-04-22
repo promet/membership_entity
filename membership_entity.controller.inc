@@ -9,6 +9,7 @@
  * Entity controller class for membership entities.
  */
 class MembershipEntityController extends EntityAPIController {
+
   /**
    * Overrides EntityAPIController::create().
    */
@@ -63,7 +64,7 @@ class MembershipEntityController extends EntityAPIController {
    * @return MembershipEntity
    *   The membership object identified by member id.
    */
-  public function loadByMemberID($member_id) {
+  public function loadByMemberID($member_id) { // @codingStandardsIgnoreLine
     return reset($this->load(FALSE, array('member_id' => $member_id)));
   }
 
@@ -221,7 +222,8 @@ class MembershipEntityController extends EntityAPIController {
       throw $e;
     }
 
-    // Finish deleting the memberships;
+    // Finish deleting the memberships.
     parent::delete($mids, $transaction);
   }
+
 }

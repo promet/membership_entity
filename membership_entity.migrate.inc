@@ -9,7 +9,11 @@
  * Destination class implementing migration into memberships.
  */
 class MigrateDestinationMembershipEntity extends MigrateDestinationEntity {
-  static public function getKeySchema() {
+
+  /**
+   * {@inheritdoc}
+   */
+  public static function getKeySchema() {
     return array(
       'mid' => array(
         'type' => 'int',
@@ -25,7 +29,7 @@ class MigrateDestinationMembershipEntity extends MigrateDestinationEntity {
    * @param string $language
    *   Default language for memberships created via this destination class.
    */
-  static public function options($language) {
+  public static function options($language) {
     return compact('language');
   }
 
@@ -46,14 +50,15 @@ class MigrateDestinationMembershipEntity extends MigrateDestinationEntity {
    *
    * @param Migration $migration
    *   Optionally, the migration containing this destination.
+   *
    * @return array
    *   Keys: machine names of the fields (to be passed to addFieldMapping)
    *   Values: Human-friendly descriptions of the fields.
    */
-  public function fields($migration = NULL) {
+  public function fields(Migration $migration = NULL) {
     $fields = array();
 
-    // Core membership properties
+    // Core membership properties.
     $fields['mid'] = t('Membership: Internal membership ID');
     $fields['type'] = t('Membership: The type of membership');
     $fields['member_id'] = t('Membership: The unique member ID');
@@ -64,7 +69,7 @@ class MigrateDestinationMembershipEntity extends MigrateDestinationEntity {
     $fields['changed'] = t('Membership: modified timestamp');
     $fields['is_new'] = t('Option: Indicates a new membership with the specified mid should be created');
 
-    // Add in anything provided by handlers
+    // Add in anything provided by handlers.
     $fields += migrate_handler_invoke_all('Entity', 'fields', $this->entityType, $this->bundle, $migration);
     $fields += migrate_handler_invoke_all('MembershipEntity', 'fields', $this->entityType, $this->bundle, $migration);
 
@@ -74,7 +79,7 @@ class MigrateDestinationMembershipEntity extends MigrateDestinationEntity {
   /**
    * Delete a batch of memberships at once.
    *
-   * @param $mids
+   * @param array $mids
    *   Array of membership IDs to be deleted.
    */
   public function bulkRollback(array $mids) {
@@ -88,16 +93,17 @@ class MigrateDestinationMembershipEntity extends MigrateDestinationEntity {
   /**
    * Import a single membership.
    *
-   * @param $membership
+   * @param object $membership
    *   The membership entity object to build. Prefilled with any fields mapped
    *   in the Migration.
-   * @param $row
+   * @param object $row
    *   Raw source data object - passed through to prepare/complete handlers.
+   *
    * @return array
    *   Array of key fields (mid) of the membership that was saved.
    *   FALSE on failure.
    */
-  public function import(stdClass $membership, stdClass $row) {
+  public function import($membership, $row) {
     // Migrate flattens single value arrays by default. Make sure
     // secondary_members is always an array.
     if (isset($membership->secondary_members) && !is_array($membership->secondary_members)) {
@@ -110,7 +116,7 @@ class MigrateDestinationMembershipEntity extends MigrateDestinationEntity {
     // Updating previously-migrated content?
     $migration = Migration::currentMigration();
     if (isset($row->migrate_map_destid1)) {
-      // Make sure is_new is off
+      // Make sure is_new is off.
       $membership->is_new = FALSE;
       if (isset($membership->mid)) {
         if ($membership->mid != $row->migrate_map_destid1) {
@@ -163,15 +169,16 @@ class MigrateDestinationMembershipEntity extends MigrateDestinationEntity {
       }
     }
 
-    // Invoke migration prepare handlers
+    // Invoke migration prepare handlers.
     $this->prepare($membership, $row);
 
     // Trying to update an existing membership.
     if ($migration->getSystemOfRecord() == Migration::DESTINATION) {
-      // Incoming data overrides existing data, so only copy non-existent fields
+      // Incoming data overrides existing data, so only copy non-existent
+      // fields.
       foreach ($old_membership as $field => $value) {
         if (property_exists($membership, $field) && $membership->$field === NULL) {
-          // Ignore this field
+          // Ignore this field.
           continue;
         }
         elseif (!isset($membership->$field)) {
@@ -208,4 +215,5 @@ class MigrateDestinationMembershipEntity extends MigrateDestinationEntity {
     $this->complete($membership, $row);
     return $return;
   }
+
 }

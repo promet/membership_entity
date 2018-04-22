@@ -2,6 +2,8 @@
 
 /**
  * @file
+ * Membership Entity API Documentation.
+ *
  * This file contains no working PHP code; it exists to provide additional
  * documentation for doxygen as well as to document hooks in the standard
  * Drupal manner.
@@ -12,7 +14,7 @@
  *
  * @param string $op
  *   The membership operation.
- * @param MembershipEntity $membership
+ * @param optional|MembershipEntity $membership
  *   The membership object. NULL if $op is 'join'.
  * @param object $account
  *   The loaded user account object. Defaults to logged in user.

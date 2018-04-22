@@ -9,8 +9,9 @@
  * Entity controller class for membership types.
  */
 class MembershipEntityTypeController extends EntityAPIControllerExportable {
+
   /**
-   * Overrides EntityAPIControllerExportable::create().
+   * {@inheritdoc}
    */
   public function create(array $values = array()) {
     $values += array(
@@ -31,7 +32,7 @@ class MembershipEntityTypeController extends EntityAPIControllerExportable {
   }
 
   /**
-   * Overrides EntityAPIControllerExportable::save().
+   * {@inheritdoc}
    */
   public function save($type, DatabaseTransaction $transaction = NULL) {
     $status = parent::save($type, $transaction);
@@ -42,4 +43,5 @@ class MembershipEntityTypeController extends EntityAPIControllerExportable {
 
     return $status;
   }
+
 }

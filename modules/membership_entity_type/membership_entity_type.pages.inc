@@ -10,6 +10,9 @@
  *
  * @param string $context
  *   The context for adding a membership. Join or admin.
+ *
+ * @return string
+ *   Themed output as an HTML string.
  */
 function membership_entity_type_membership_add_page($context = 'join') {
   // Load membership types.
@@ -35,6 +38,9 @@ function membership_entity_type_membership_add_page($context = 'join') {
 
 /**
  * Page callback: Displays renew links for available membership types.
+ *
+ * @return array
+ *   Output array ready for theming.
  */
 function membership_entity_type_renew_page() {
   // Get a list of membership types for the current user.
@@ -80,9 +86,15 @@ function membership_entity_type_renew_page() {
     $output['table']['#rows'][] = array(
       array('data' => $membership->member_id),
       array('data' => membership_entity_type_get_name($membership)),
-      array('data' => l(t('Renew'), 'user/renew/' . $type_url_string, array(
-        'attributes' => array('class' => array('button')),
-      ))),
+      array(
+        'data' => l(t('Renew'), 'user/renew/' . $type_url_string,
+          array(
+            'attributes' => array(
+              'class' => array('button'),
+            ),
+          ),
+        ),
+      ),
     );
   }
 
@@ -91,8 +103,14 @@ function membership_entity_type_renew_page() {
 
 /**
  * Returns HTML for a list of available membership types.
+ *
+ * @param array $variables
+ *   Theme layer Drupal variables array.
+ *
+ * @return string
+ *   HTML output for theme layer.
  */
-function theme_membership_entity_type_add_list($variables) {
+function theme_membership_entity_type_add_list(array $variables) {
   $types = $variables['types'];
   $context = $variables['context'];
   $membership_entity_term = module_exists('membership_entity_term');
@@ -101,17 +119,21 @@ function theme_membership_entity_type_add_list($variables) {
   if (!empty($types)) {
     $rows = array(
       'type' => array(array()),
-      'description' => array(array(
-        'data' => t('Description'),
-        'header' => TRUE,
-      )),
+      'description' => array(
+        array(
+          'data' => t('Description'),
+          'header' => TRUE,
+        ),
+      ),
     );
 
     if ($membership_entity_term) {
-      $rows['terms'] = array(array(
-        'data' => t('Term Options'),
-        'header' => TRUE,
-      ));
+      $rows['terms'] = array(
+        array(
+          'data' => t('Term Options'),
+          'header' => TRUE,
+        ),
+      );
     }
 
     $rows['join'] = array(array());
@@ -122,15 +144,23 @@ function theme_membership_entity_type_add_list($variables) {
     $rows['description'][] = array('data' => check_plain($type->description));
 
     if ($membership_entity_term) {
-      $rows['terms'][] = array('data' => theme('item_list', array(
-        'items' => array_map('check_plain', $type->data['available_term_lengths']),
-        'type' => 'ul',
-      )));
+      $rows['terms'][] = array(
+        'data' => theme('item_list',
+          array(
+            'items' => array_map('check_plain', $type->data['available_term_lengths']),
+            'type' => 'ul',
+          ),
+        ),
+      );
     }
 
-    $rows['join'][] = array('data' => l(t('Select'), $type->path($context), array(
-      'attributes' => array('class' => array('button')),
-    )));
+    $rows['join'][] = array(
+      'data' => l(t('Select'), $type->path($context), array(
+        'attributes' => array(
+          'class' => array('button'),
+        ),
+      )),
+    );
   }
 
   return theme('table', array(

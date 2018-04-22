@@ -8,7 +8,8 @@
 /**
  * Field handler to provide a list of secondary members.
  */
-class views_handler_field_membership_secondary_member extends views_handler_field_prerender_list {
+class views_handler_field_membership_secondary_member extends views_handler_field_prerender_list { // @codingStandardsIgnoreLine, Views override compliant
+
   /**
    * {@inheritdoc}
    */
@@ -20,7 +21,7 @@ class views_handler_field_membership_secondary_member extends views_handler_fiel
   /**
    * {@inheritdoc}
    */
-  public function option_definition() {
+  public function option_definition() { // @codingStandardsIgnoreLine, Views override compliant
     $options = parent::option_definition();
     $options['display'] = array('default' => 'label');
     $options['link_to_user'] = array('default' => TRUE, 'bool' => TRUE);
@@ -30,7 +31,7 @@ class views_handler_field_membership_secondary_member extends views_handler_fiel
   /**
    * {@inheritdoc}
    */
-  public function options_form(&$form, &$form_state) {
+  public function options_form(&$form, &$form_state) { // @codingStandardsIgnoreLine, Views override compliant
     parent::options_form($form, $form_state);
 
     $form['type']['#options'] += array(
@@ -68,7 +69,7 @@ class views_handler_field_membership_secondary_member extends views_handler_fiel
   /**
    * {@inheritdoc}
    */
-  public function pre_render(&$values) {
+  public function pre_render(&$values) { // @codingStandardsIgnoreLine, Views override compliant
     if (empty($values)) {
       return;
     }
@@ -91,14 +92,14 @@ class views_handler_field_membership_secondary_member extends views_handler_fiel
   /**
    * {@inheritdoc}
    */
-  public function render_item($count, $item) {
+  public function render_item($count, $item) { // @codingStandardsIgnoreLine, Views override compliant
     return $item['uid'];
   }
 
   /**
    * {@inheritdoc}
    */
-  public function render_items($values) {
+  public function render_items($values) { // @codingStandardsIgnoreLine, Views override compliant
     if (empty($values)) {
       return;
     }
@@ -134,7 +135,7 @@ class views_handler_field_membership_secondary_member extends views_handler_fiel
   /**
    * {@inheritdoc}
    */
-  public function render_link($value) {
+  public function render_link($value) { // @codingStandardsIgnoreLine, Views override compliant
     $account = user_load($value);
     if ($this->options['display'] == 'label') {
       $value = format_username($account);
@@ -146,4 +147,5 @@ class views_handler_field_membership_secondary_member extends views_handler_fiel
     }
     return $render;
   }
+
 }

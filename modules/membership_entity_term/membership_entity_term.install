@@ -220,10 +220,12 @@ function membership_entity_term_update_7004(&$sandbox) {
     }
 
     db_update('membership_entity_term')
-      ->fields(array(
-        'created' => $term->created,
-        'changed' => $term->changed,
-        ))
+      ->fields(
+        array(
+          'created' => $term->created,
+          'changed' => $term->changed,
+        )
+      )
       ->condition('id', $term->id)
       ->execute();
 
