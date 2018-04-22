@@ -179,7 +179,10 @@ function membership_entity_uninstall() {
 }
 
 /**
- * Add revision_id to membership_entity table and create membership_entity_revision table.
+ * Add revisions capability.
+ *
+ * Add revision_id to membership_entity table and create
+ * membership_entity_revision table.
  */
 function membership_entity_update_7001() {
   $schema = membership_entity_schema();

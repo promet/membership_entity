@@ -201,7 +201,10 @@ function membership_entity_type_install() {
 }
 
 /**
- * Add revision_id to membership_entity table and create membership_entity_revision table.
+ * Add Revisions capability.
+ *
+ * Add revision_id to membership_entity table and create
+ * membership_entity_revision table.
  */
 function membership_entity_type_update_7001() {
   // Copied from membership_entity_schema() because the schema should not

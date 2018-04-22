@@ -116,7 +116,8 @@ class MembershipEntityType extends Entity {
     // Load unchanged entity data.
     if (!isset($this->original)) {
       $original = entity_load_unchanged('membership_entity_type', $this->id);
-    } else {
+    }
+    else {
       $original = $this->original;
       unset($this->original);
     }
