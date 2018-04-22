@@ -355,7 +355,7 @@ function membership_entity_join_form($form, &$form_state, $bundle = 'membership'
       '#markup' => t('Click <a href="@url">here to log in</a> if you already have an account.', array(
         '@url' => url('user/login', array('query' => drupal_get_destination())),
       )),
-      '#weight' => -9999.
+      '#weight' => -9999,
     );
 
     // Start with the default user account fields.
@@ -530,7 +530,7 @@ function membership_entity_user_join_register_validate($form, &$form_state) {
 /**
  * Submit handler for the join form registration.
  *
- * @see user_register_submit().
+ * @see user_register_submit()
  */
 function membership_entity_user_join_register_submit($form, &$form_state) {
   $values = &$form_state['values']['user'];
@@ -569,10 +569,10 @@ function membership_entity_user_join_register_submit($form, &$form_state) {
   // No e-mail verification required; log in user immediately.
   if (!variable_get('user_email_verification', TRUE) && $account->status) {
     _user_mail_notify('register_no_approval_required', $account);
-    $form_state ['uid'] = $account->uid;
+    $form_state['uid'] = $account->uid;
     user_login_submit(array(), $form_state);
     drupal_set_message(t('Registration successful. You are now logged in.'));
-    $form_state ['redirect'] = '';
+    $form_state['redirect'] = '';
   }
   // No administrator approval required.
   elseif ($account->status) {
@@ -677,7 +677,7 @@ function membership_entity_multiple_delete_confirm_submit($form, &$form_state) {
  * Open the register form in a new modal window.
  *
  * @param string $js
- *   ctools javascript status (nojs or ajax)
+ *   The ctools javascript status (nojs or ajax)
  * @param string $return_id
  *   The form element HTML id to fill with the new user id.
  */

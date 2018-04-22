@@ -204,15 +204,16 @@ function membership_entity_term_permission() {
 /**
  * Access callback for a membership term.
  *
- * @param $op
+ * @param string $op
  *   The operation being performed. (eg. edit, delete, renew)
- * @param $entity
+ * @param object $entity
  *   The entity object to check access. Depends on $op.
- *     - if $op is 'renew', $entity is the membership object
- *     - otherwise $entity is the term object
- * @param (optional) $account
- *   The user accout to check access for. Defaults to the logged in user.
- * @return boolean
+ *     - if $op is 'renew', $entity is the membership object.
+ *     - otherwise $entity is the term object.
+ * @param optional|object $account
+ *   The user account to check access for. Defaults to the logged in user.
+ *
+ * @return bool
  *   True if the user access to perform $op.
  */
 function membership_entity_term_access($op, $entity, $account = NULL) {
@@ -311,7 +312,8 @@ function membership_entity_term_menu() {
  * Implements hook_menu_alter().
  */
 function membership_entity_term_menu_alter(&$items) {
-  // Adjust the Field UI tabs on admin/memberships/types/manage/[membership-type].
+  // Adjust the Field UI tabs on
+  // admin/memberships/types/manage/[membership-type].
   if (module_exists('membership_entity_type')) {
     $items['admin/memberships/types/manage/%membership_entity_term_type/terms/fields']['title'] = 'Term fields';
     $items['admin/memberships/types/manage/%membership_entity_term_type/terms/fields']['weight'] = 3;
@@ -377,6 +379,12 @@ function membership_entity_term_membership_entity_term_start_date_alter(&$start,
 
 /**
  * Menu load callback for Field UI paths.
+ *
+ * @param string $name
+ *   MembershipEntityType name.
+ *
+ * @return string
+ *   MemershipEntityType bundle.
  */
 function membership_entity_term_type_load($name) {
   if ($type = membership_entity_get_bundles(strtr($name, array('-' => '_')))) {
@@ -430,6 +438,9 @@ function membership_entity_term_membership_entity_term_delete($term) {
 
 /**
  * Helper for membership term insert/update hooks.
+ *
+ * @param object $term
+ *   MembershipTerm object.
  */
 function _membership_entity_term_insert_update($term) {
   $membership = membership_entity_load($term->mid);
@@ -468,7 +479,8 @@ function membership_entity_term_membership_entity_load($memberships) {
  * Implements hook_field_info_alter().
  */
 function membership_entity_term_field_info_alter(&$info) {
-  // Add the 'membership_entity_term_renew_form' instance setting to all field types.
+  // Add the 'membership_entity_term_renew_form' instance setting to all field
+  // types.
   foreach ($info as $field_type => $field_type_info) {
     $info[$field_type]['instance_settings']['membership_entity_term_renew_form'] = FALSE;
   }
@@ -659,7 +671,7 @@ function membership_entity_term_views_api() {
 function membership_entity_term_preprocess_views_view(&$vars) {
   $view = $vars['view'];
   if ($view->name == 'membership_entity_terms') {
-    drupal_add_css(drupal_get_path('module', 'membership_entity_term') .'/css/membership_entity_term.css');
+    drupal_add_css(drupal_get_path('module', 'membership_entity_term') . '/css/membership_entity_term.css');
   }
 }
 
@@ -669,13 +681,14 @@ function membership_entity_term_preprocess_views_view(&$vars) {
  * Shallow copies all properties of $object to a new
  * MembershipEntityTerm instance.
  *
- * @param stdClass $object
+ * @param object $object
  *   The object to convert.
  *
- * @return MembershipEntityTerm A new instance of MembershipEntityTerm with all
- *   properties copied from $object.
+ * @return MembershipEntityTerm
+ *   A new instance of MembershipEntityTerm with all properties copied from
+ *   $object.
  */
-function membership_entity_term_create_from_stdclass(stdClass $object) {
+function membership_entity_term_create_from_stdclass($object) {
   $term = membership_entity_term_create();
   foreach (get_object_vars($object) as $key => $value) {
     $term->{$key} = $value;
@@ -686,10 +699,11 @@ function membership_entity_term_create_from_stdclass(stdClass $object) {
 /**
  * Create a new membership entity term with default values.
  *
- * @param array $values
+ * @param optional|array $values
  *   An assciative array of values to override the defaults.
  *
- * @return MembershipEntityTerm The (unsaved) membership term object.
+ * @return MembershipEntityTerm
+ *   The (unsaved) membership term object.
  */
 function membership_entity_term_create($values = array()) {
   return entity_create('membership_entity_term', $values);
@@ -769,6 +783,7 @@ function membership_entity_term_get_expiration_date(MembershipEntity $membership
  *
  * @param MembershipEntity|int $mid
  *   A membership object or mid.
+ *
  * @return MembershipEntityTerm
  *   The loaded membership term object or FALSE if there is no current term.
  */
@@ -778,7 +793,8 @@ function membership_entity_term_get_current($mid) {
     $mid = $mid->mid;
   }
 
-  if ($id = db_query('SELECT id FROM {membership_entity_term} t WHERE mid = :mid AND (start <= :now AND end >= :now) LIMIT 1', array(
+  if ($id = db_query('SELECT id FROM {membership_entity_term} t WHERE mid = :mid AND (start <= :now AND end >= :now) LIMIT 1',
+    array(
       ':mid' => $mid,
       ':now' => date_format_date(date_now('UTC'), 'custom', DATE_FORMAT_DATETIME),
     ))->fetchField()) {
@@ -827,7 +843,7 @@ function membership_entity_term_save($term) {
  * @return bool
  *   TRUE if the term is active or expired.
  */
-function _membership_entity_term_array_filter_expiration_status($term) {
+function _membership_entity_term_array_filter_expiration_status(MembershipEntityTerm $term) {
   return ($term->status == MEMBERSHIP_ENTITY_ACTIVE || $term->status == MEMBERSHIP_ENTITY_EXPIRED);
 }
 
@@ -838,14 +854,13 @@ function _membership_entity_term_array_filter_expiration_status($term) {
  *
  * @param MembershipEntityTerm $a
  *   The first membership entity term to sort against.
- *
  * @param MembershipEntityTerm $b
  *   The second membership entity term to sort against.
  *
  * @return MembershipEntityTerm[]
  *   An array of sorted terms by start date.
  */
-function _membership_entity_term_sort_by_start_date($a, $b) {
+function _membership_entity_term_sort_by_start_date(MembershipEntityTerm $a, MembershipEntityTerm $b) {
   $c = isset($a->start) ? $a->start : '';
   $d = isset($b->start) ? $b->start : '';
 
@@ -862,14 +877,13 @@ function _membership_entity_term_sort_by_start_date($a, $b) {
  *
  * @param MembershipEntityTerm $a
  *   The first term object to sort against.
- *
  * @param MembershipEntityTerm $b
  *   The second term object to sort against.
  *
  * @return MembershipEntityTerm[]
  *   An array of sorted terms by end date.
  */
-function _membership_entity_term_sort_by_end_date($a, $b) {
+function _membership_entity_term_sort_by_end_date(MembershipEntityTerm $a, MembershipEntityTerm $b) {
   // Lifetime terms trump all.
   if ($a->term == 'lifetime') {
     return 1;
@@ -891,7 +905,8 @@ function _membership_entity_term_sort_by_end_date($a, $b) {
 /**
  * Sort terms by weight value.
  *
- * Callback for usort() within theme_membership_entity_term_available_term_lengths_element().
+ * Callback for usort() within
+ * theme_membership_entity_term_available_term_lengths_element().
  */
 function _membership_entity_term_sort_items_by_weight($a, $b) {
   $a_weight = (is_array($a) && isset($a['weight']['#value']) ? $a['weight']['#value'] : 0);
@@ -907,7 +922,6 @@ function _membership_entity_term_sort_items_by_weight($a, $b) {
  *
  * @param DateTime $date
  *   The date object to modify.
- *
  * @param string $modifier
  *   The relative date modifier.
  *

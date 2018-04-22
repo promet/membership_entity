@@ -136,7 +136,7 @@ function membership_entity_permission() {
  * @return bool
  *   TRUE if the user has access for the given operation.
  */
-function membership_entity_access($op, $membership = NULL, $account = NULL) {
+function membership_entity_access($op, MembershipEntity $membership = NULL, $account = NULL) {
   if (user_access('administer memberships', $account)) {
     return TRUE;
   }
@@ -490,7 +490,7 @@ function membership_entity_view($membership, $view_mode = 'full', $langcode = NU
       'label' => array(
         '#theme_wrappers' => array('container'),
         '#attributes' => array('class' => array('membership-entity-label')),
-        '#markup' => t('Primary Member:') . '&nbsp',
+        '#markup' => t('Primary Member:!nbsp', array('!nbsp' => '&nbsp')),
       ),
       'link' => array(
         '#type' => 'link',
@@ -735,7 +735,7 @@ function _membership_entity_extra_fields_pre_render($elements) {
 /**
  * Custom Field API validate handler.
  *
- * entity_form_field_validate() assumes the entity form elements are at the
+ * The entity_form_field_validate() assumes the entity form elements are at the
  * top level of the $form_state['values'] without regard to $form['#parents'].
  * This seems stupid. We'll just have to do it ourselves.
  */
@@ -752,7 +752,7 @@ function _membership_entity_form_field_validate($entity_type, $form, &$form_stat
 /**
  * Copies values to enitty properties.
  *
- * entity_form_submit_build_entity() assumes the entity form elements are at
+ * The entity_form_submit_build_entity() assumes the entity form elements are at
  * the top level of the $form_state['values'] without regard to
  * $form['#parents']. This seems stupid. We'll just have to do it ourselves.
  */
@@ -769,7 +769,8 @@ function _membership_entity_form_submit_build_entity($entity_type, $entity, $for
       $entity->$key = $value;
     }
 
-    // Invoke all specified builders for copying form values to entity properties.
+    // Invoke all specified builders for copying form values to entity
+    // properties.
     if (isset($form['#entity_builders'])) {
       foreach ($form['#entity_builders'] as $function) {
         $function($entity_type, $entity, $form, $form_state);
@@ -816,6 +817,7 @@ function membership_entity_get_bundles($bundle = NULL) {
  *
  * @param string $bundle
  *   The membership bundle to load settings.
+ *
  * @return array
  *   An array of bundle settings or FALSE if not configured.
  */
@@ -855,10 +857,11 @@ function membership_entity_membership_entity_bundle_settings_defaults() {
  *
  * @param MembershipEntity $membership
  *   The membership object to create a new member id. Used for tokens.
+ *
  * @return string
  *   The next available member id for the membership.
  */
-function membership_entity_next_member_id($membership) {
+function membership_entity_next_member_id(MembershipEntity $membership) {
   $data = membership_entity_get_bundle_settings($membership->type);
   return _membership_entity_member_id_get_instance($data['member_id_format'], $data['member_id_settings'])
     ->next($membership);
@@ -903,6 +906,7 @@ function membership_entity_get_member_id($id = NULL) {
  * Helper to retrieve a member id plugin instance.
  *
  * @return MembershipEntityMemberIdInterface
+ *   MembershipEntityMemberIDInterface object instance.
  */
 function _membership_entity_member_id_get_instance($id, $settings = array()) {
   $instances = &drupal_static(__FUNCTION__);
@@ -1242,13 +1246,13 @@ function membership_entity_views_api() {
  * Shallow copies all properties of $object to a new
  * MembershipEntity instance.
  *
- * @param stdClass $object
- *   The object to convert.
+ * @param object $object
+ *   The stdClass object to convert.
  *
- * @return MembershipEntity A new instance of MembershipEntity with all
- *   properties copied from $object.
+ * @return MembershipEntity
+ *   A new instance of MembershipEntity with all properties copied from $object.
  */
-function membership_entity_create_from_stdclass(stdClass $object) {
+function membership_entity_create_from_stdclass($object) {
   $membership = membership_entity_create();
   foreach (get_object_vars($object) as $key => $value) {
     $membership->{$key} = $value;
@@ -1259,11 +1263,11 @@ function membership_entity_create_from_stdclass(stdClass $object) {
 /**
  * Create a new membership entity with default values.
  *
- * @param array $values
- *  An associate array of default values for the membership.
+ * @param optioonal|array $values
+ *   An associate array of default values for the membership.
  *
- * @return MembershipEntity The new (unsaved) membership object with default
- *   values.
+ * @return MembershipEntity
+ *   The new (unsaved) membership object with default values.
  */
 function membership_entity_create($values = array()) {
   return entity_create('membership_entity', $values);
@@ -1318,13 +1322,19 @@ function membership_entity_membership_entity_presave($membership) {
 
 /**
  * Save a membership entity.
+ *
+ * @param MembershipEntity $membership
+ *   MembershipEntity to save.
  */
-function membership_entity_save(&$membership) {
+function membership_entity_save(MembershipEntity &$membership) {
   return entity_save('membership_entity', $membership);
 }
 
 /**
  * Delete a membership entity.
+ *
+ * @param int $mid
+ *   MembershipEntity ID to delete.
  */
 function membership_entity_delete($mid) {
   membership_entity_delete_multiple(array($mid));
@@ -1332,15 +1342,21 @@ function membership_entity_delete($mid) {
 
 /**
  * Delete multiple membership entities.
+ *
+ * @param array $mids
+ *   Array of MembershipEntity IDs to delete.
  */
-function membership_entity_delete_multiple($mids) {
+function membership_entity_delete_multiple(array $mids) {
   entity_delete_multiple('membership_entity', $mids);
 }
 
 /**
- * Add/Remove roles managed by the membership.
+ * Private: Add/Remove roles managed by the membership.
+ *
+ * @param array $roles
+ *   Key value array of roles keyed by role ID.
  */
-function _membership_entity_update_roles($roles) {
+function _membership_entity_update_roles(array $roles) {
   $accounts = user_load_multiple(array_keys($roles));
 
   foreach ($accounts as $uid => $account) {

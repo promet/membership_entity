@@ -9,20 +9,34 @@
  * Membership type UI controller.
  */
 class MembershipEntityTypeUIController extends EntityDefaultUIController {
+
   /**
    * {@inheritdoc}
    */
-  public function hook_menu() {
+  public function hook_menu() { // @codingStandardsIgnoreLine, EntityDefaultUIController override compliant
     $items = parent::hook_menu();
     $items[$this->path]['description'] = 'Manage membership types and fields.';
     return $items;
   }
+
 }
 
 /**
  * Creates the membership entity type edit form.
+ *
+ * @param array $form
+ *   Form API form array.
+ * @param array $form_state
+ *   Form API form state array.
+ * @param string $type
+ *   Membership Entity bundle type.
+ * @param optional|string $op
+ *   Operation being performed in form.
+ *
+ * @return array
+ *   Modified Form API form array.
  */
-function membership_entity_type_form($form, &$form_state, $type, $op = 'edit') {
+function membership_entity_type_form(array $form, array &$form_state, $type, $op = 'edit') {
   if ($op == 'clone') {
     $type->label .= ' (cloned)';
     $type->type .= '_clone';

@@ -9,6 +9,7 @@
  * Defines a base class for testing the Membership Entity Term module.
  */
 class MembershipEntityTermWebTestCase extends MembershipEntityWebTestCase {
+
   /**
    * {@inheritdoc}
    */
@@ -44,10 +45,11 @@ class MembershipEntityTermWebTestCase extends MembershipEntityWebTestCase {
   /**
    * Create and save a membership term for testing.
    *
-   * @param array $values
+   * @param optional|array $values
    *   An associative array of default values for the membership type.
    *
-   * @return MembershipEntityType The new membership tyep object.
+   * @return MembershipEntityType
+   *   The new membership type object.
    */
   public function createMembershipTerm($values = array()) {
     $term = membership_entity_term_create($values);
@@ -61,6 +63,7 @@ class MembershipEntityTermWebTestCase extends MembershipEntityWebTestCase {
  * Test creating a membership term.
  */
 class MembershipEntityTermCreateTestCase extends MembershipEntityTermWebTestCase {
+
   /**
    * {@inheritdoc}
    */
@@ -123,6 +126,7 @@ class MembershipEntityTermCreateTestCase extends MembershipEntityTermWebTestCase
  * Test term length calculations.
  */
 class MembershipEntityTermLengthTestCase extends MembershipEntityTermWebTestCase {
+
   /**
    * {@inheritdoc}
    */
@@ -139,10 +143,26 @@ class MembershipEntityTermLengthTestCase extends MembershipEntityTermWebTestCase
    */
   public function testMembershipEntityTermLengths() {
     $tests = array(
-      'simple yearly' => array('1 year', '2015-01-01 00:00:00', '2016-01-01 00:00:00'),
-      'simple monthly' => array('1 month', '2015-01-01 00:00:00', '2015-02-01 00:00:00'),
-      'end of month' => array('1 month', '2015-01-31 00:00:00', '2015-02-28 00:00:00'),
-      'leap year' => array('1 year', '2012-02-29 00:00:00', '2013-02-28 00:00:00'),
+      'simple yearly' => array(
+        '1 year',
+        '2015-01-01 00:00:00',
+        '2016-01-01 00:00:00',
+      ),
+      'simple monthly' => array(
+        '1 month',
+        '2015-01-01 00:00:00',
+        '2015-02-01 00:00:00',
+      ),
+      'end of month' => array(
+        '1 month',
+        '2015-01-31 00:00:00',
+        '2015-02-28 00:00:00',
+      ),
+      'leap year' => array(
+        '1 year',
+        '2012-02-29 00:00:00',
+        '2013-02-28 00:00:00',
+      ),
       'lifetime' => array('lifetime', '2015-01-01 00:00:00', NULL),
     );
 
@@ -163,10 +183,34 @@ class MembershipEntityTermLengthTestCase extends MembershipEntityTermWebTestCase
    */
   public function testMembershipEntityTermModifiers() {
     $tests = array(
-      'extra year' => array('1 year', '+1 year', '2015-01-01 00:00:00', '2017-01-01 00:00:00'),
-      'extra 3 months' => array('1 year', '+3 months', '2015-01-01 00:00:00', '2016-04-01 00:00:00'),
-      'negative' => array('1 year', '-1 month', '2015-01-01 00:00:00', '2015-12-01 00:00:00'),
-      'multiple' => array('1 year', array('+1 year', '+2 months', '+1 day'), '2015-01-01 00:00:00', '2017-03-02 00:00:00'),
+      'extra year' => array(
+        '1 year',
+        '+1 year',
+        '2015-01-01 00:00:00',
+        '2017-01-01 00:00:00',
+      ),
+      'extra 3 months' => array(
+        '1 year',
+        '+3 months',
+        '2015-01-01 00:00:00',
+        '2016-04-01 00:00:00',
+      ),
+      'negative' => array(
+        '1 year',
+        '-1 month',
+        '2015-01-01 00:00:00',
+        '2015-12-01 00:00:00',
+      ),
+      'multiple' => array(
+        '1 year',
+        array(
+          '+1 year',
+          '+2 months',
+          '+1 day',
+        ),
+        '2015-01-01 00:00:00',
+        '2017-03-02 00:00:00',
+      ),
     );
 
     $member = $this->drupalCreateUser(array('membership join'));
@@ -189,6 +233,7 @@ class MembershipEntityTermLengthTestCase extends MembershipEntityTermWebTestCase
  * Test membership term edit forms.
  */
 class MembershipEntityTermEditTestCase extends MembershipEntityTermWebTestCase {
+
   /**
    * {@inheritdoc}
    */
@@ -246,7 +291,6 @@ class MembershipEntityTermEditTestCase extends MembershipEntityTermWebTestCase {
     );
     $this->drupalPost($edit_path, $edit, 'Save');
 
-
     $this->assertText('The membership term has been updated.', 'Membership term updated by admin from the edit form.');
     $this->assertText('2 years', 'Term length saved from edit form.');
     $this->assertText('02/15/2015 - 01:30', 'Term start date saved from edit form.');
@@ -259,6 +303,7 @@ class MembershipEntityTermEditTestCase extends MembershipEntityTermWebTestCase {
  * Test membership renewal forms.
  */
 class MembershipEntityTermRenewTestCase extends MembershipEntityTermWebTestCase {
+
   /**
    * {@inheritdoc}
    */
@@ -381,6 +426,7 @@ class MembershipEntityTermRenewTestCase extends MembershipEntityTermWebTestCase 
  * Test membership term access control.
  */
 class MembershipEntityTermAccessTestCase extends MembershipEntityTermWebTestCase {
+
   /**
    * {@inheritdoc}
    */
@@ -416,11 +462,14 @@ class MembershipEntityTermAccessTestCase extends MembershipEntityTermWebTestCase
   /**
    * Test membership_entity_tern_access() function.
    */
-  function testMembershipEntityTermAccess() {
+  public function testMembershipEntityTermAccess() {
     // User with 'administer membership terms' permission can do everything.
     $admin = $this->drupalCreateUser(array('administer membership terms'));
     $membership1 = $this->createMembership(array('uid' => $admin->uid));
-    $term1 = $this->createMembershipTerm(array('mid' => $membership1->mid, 'start' => format_date(REQUEST_TIME, 'custom', DATE_FORMAT_DATETIME)));
+    $term1 = $this->createMembershipTerm(array(
+      'mid' => $membership1->mid,
+      'start' => format_date(REQUEST_TIME, 'custom', DATE_FORMAT_DATETIME),
+    ));
     $this->assertMembershipEntityTermAccess(array('edit' => TRUE, 'delete' => TRUE), $term1, $admin);
     $this->assertMembershipEntityTermAccess(array('renew' => TRUE), $membership1, $admin);
 
@@ -429,12 +478,17 @@ class MembershipEntityTermAccessTestCase extends MembershipEntityTermWebTestCase
     $member1 = $this->drupalCreateUser($permissions);
     $member2 = $this->drupalCreateUser($permissions);
     $membership2 = $this->createMembership(array('uid' => $member1->uid));
-    $this->createMembershipTerm(array('mid' => $membership2->mid, 'start' => format_date(REQUEST_TIME, 'custom', DATE_FORMAT_DATETIME)));
+    $this->createMembershipTerm(array(
+      'mid' => $membership2->mid,
+      'start' => format_date(REQUEST_TIME, 'custom', DATE_FORMAT_DATETIME),
+    ));
     $membership3 = $this->createMembership(array('uid' => $member2->uid));
-    $this->createMembershipTerm(array('mid' => $membership3->mid, 'start' => format_date(REQUEST_TIME, 'custom', DATE_FORMAT_DATETIME)));
+    $this->createMembershipTerm(array(
+      'mid' => $membership3->mid,
+      'start' => format_date(REQUEST_TIME, 'custom', DATE_FORMAT_DATETIME),
+    ));
     $this->assertMembershipEntityTermAccess(array('renew' => TRUE), $membership2, $member1);
     $this->assertMembershipEntityTermAccess(array('remew' => FALSE), $membership3, $member1);
   }
 
 }
-
