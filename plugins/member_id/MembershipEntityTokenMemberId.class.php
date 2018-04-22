@@ -85,10 +85,8 @@ class MembershipEntityTokenMemberId extends MembershipEntityMemberIdAbstract {
       '#default_value' => $settings['pattern'],
       '#size' => 65,
       '#maxlength' => 1280,
-      '#element_validate' => array('token_element_validate'),
-      '#after_build' => array('token_element_validate'),
+      '#element_validate' => array(array($this, 'patternElementValidate')),
       '#token_types' => array('membership_entity'),
-      '#min_tokens' => 1,
     );
 
     $form['token_help'] = array(
@@ -172,6 +170,40 @@ class MembershipEntityTokenMemberId extends MembershipEntityMemberIdAbstract {
     );
 
     return $form;
+  }
+
+  /**
+   * Element validate callback to check the Member ID token pattern field.
+   *
+   * @see token_element_validate().
+   */
+  public function patternElementValidate(&$element, &$form_state) {
+    $value = isset($element['#value']) ? $element['#value'] : $element['#default_value'];
+
+    if (!drupal_strlen($value)) {
+      // Empty value needs no further validation since the element should depend
+      // on using the '#required' FAPI property.
+      return $element;
+    }
+
+    $tokens = token_scan($value);
+    $title = empty($element['#title']) ? $element['#parents'][0] : $element['#title'];
+
+    // At least one token should be included for uniqueness if the incrementing
+    // suffix option is not selected.
+    if (empty($form_state['values']['member_id_settings']['suffix']) && count($tokens) < 1) {
+      form_error($element, t('The %element-title must have at least one token or select to option to use an incrementing numeric suffix.', array('%element-title' => $title)));
+    }
+
+    // Check if the field defines specific token types.
+    if (isset($element['#token_types'])) {
+      $invalid_tokens = token_get_invalid_tokens_by_context($tokens, $element['#token_types']);
+      if ($invalid_tokens) {
+        form_error($element, t('The %element-title is using the following invalid tokens: @invalid-tokens.', array('%element-title' => $title, '@invalid-tokens' => implode(', ', $invalid_tokens))));
+      }
+    }
+
+    return $element;
   }
 }
 
