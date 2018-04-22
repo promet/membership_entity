@@ -9,8 +9,9 @@
  * Provides metadata for membership terms.
  */
 class MembershipEntityTermMetadataController extends EntityDefaultMetadataController {
+
   /**
-   * Overrides EntityDefaultMetadataController::entityPropertyInfo().
+   * {@inheritdoc}
    */
   public function entityPropertyInfo() {
     $info = parent::entityPropertyInfo();
@@ -71,4 +72,5 @@ class MembershipEntityTermMetadataController extends EntityDefaultMetadataContro
 
     return $info;
   }
+
 }

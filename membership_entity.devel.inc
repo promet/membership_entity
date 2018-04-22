@@ -57,7 +57,18 @@ function membership_entity_devel_generate_memberships_form($form, &$form_state) 
   }
 
   $options = array(1 => t('Now'));
-  foreach (array(86400, 604800, 2592000, 31536000, 63072000, 94608000, 126144000, 157680000, 315360000, 473040000) as $interval) {
+  foreach (array(
+    86400,
+    604800,
+    2592000,
+    31536000,
+    63072000,
+    94608000,
+    126144000,
+    157680000,
+    315360000,
+    473040000,
+  ) as $interval) {
     $options[$interval] = format_interval($interval, 1) . ' ' . t('ago');
   }
 
@@ -98,7 +109,7 @@ function membership_entity_devel_generate_memberships_form_submit($form, &$form_
  *   - multiple_type: Whether or not to allow a user to belong to multiple
  *     membership types.
  */
-function membership_entity_devel_create_memberships($values) {
+function membership_entity_devel_create_memberships(array $values) {
   // Load some devel generate helpers.
   module_load_include('inc', 'devel_generate');
   module_load_include('inc', 'devel_generate', 'devel_generate.fields');
@@ -152,7 +163,7 @@ function membership_entity_devel_create_memberships($values) {
     ));
     $membership->member_id = membership_entity_next_member_id($membership);
 
-    // Populate all core fields on behalf of field.module
+    // Populate all core fields on behalf of field.module.
     devel_generate_fields($membership, 'membership_entity', $membership->type);
     $membership->save();
 

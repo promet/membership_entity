@@ -11,41 +11,57 @@
 class MembershipEntityTerm extends Entity {
   /**
    * The primary term identifier.
+   *
+   * @var int
    */
   public $id;
 
   /**
    * The membership identifier.
+   *
+   * @var int
    */
   public $mid;
 
   /**
    * The human readable term length. eg. 1 year.
+   *
+   * @var string
    */
   public $term;
 
   /**
    * An array term length modifiers. eg. +1 month.
+   *
+   * @var array
    */
   public $modifiers;
 
   /**
    * The date when this term starts.
+   *
+   * @var string
    */
   public $start;
 
   /**
    * The date when this term ends.
+   *
+   * @var string
    */
   public $end;
 
   /**
    * The Unix timestamp when the membership term was created.
+   *
+   * @var int
    */
   public $created;
 
   /**
    * The Unix timestamp when the membership term was most recently saved.
+   *
+   * @var int
    */
   public $changed;
 
@@ -66,7 +82,7 @@ class MembershipEntityTerm extends Entity {
   /**
    * Sets the Membership Entity.
    *
-   * @param $membership
+   * @param mixed $membership
    *   The Membership Entity object or the Membership Entity id (mid).
    */
   public function setMembership($membership) {
@@ -135,4 +151,5 @@ class MembershipEntityTerm extends Entity {
 
     $this->end = date_format_date($end, 'custom', DATE_FORMAT_DATETIME);
   }
+
 }

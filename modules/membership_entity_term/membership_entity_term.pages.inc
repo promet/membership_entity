@@ -69,7 +69,7 @@ function _membership_entity_term_settings_form(&$form, &$form_state, $data) {
     '#type' => 'select',
     '#title' => t('Timezone handling'),
     '#description' => t('Select the timezone handling method for term dates. See <a href="@url">time zone handling</a> for details.', array(
-      '@url' => url('https://www.drupal.org/node/1455578', array('external' => TRUE))
+      '@url' => url('https://www.drupal.org/node/1455578', array('external' => TRUE)),
     )),
     '#default_value' => $data['tz_handling'],
     '#options' => date_timezone_handling_options(),
@@ -303,7 +303,8 @@ function membership_entity_term_create_form(&$form, &$form_state) {
     membership_entity_term_form($form, $form_state);
     $form['#validate'][] = 'membership_entity_term_form_validate';
 
-    // Hide fields where the 'membership_entity_join_form' setting is turned off.
+    // Hide fields where the 'membership_entity_join_form' setting is turned
+    // off.
     foreach (field_info_instances('membership_entity_term', $term->membership_entity_type) as $field_name => $instance) {
       if (empty($instance['settings']['membership_entity_join_form'])) {
         $form['membership_term'][$field_name]['#access'] = FALSE;
@@ -582,7 +583,7 @@ function membership_entity_term_form(&$form, &$form_state) {
 /**
  * Validate the membership entity term form.
  *
- * @see membership_entity_form_term().
+ * @see membership_entity_form_term()
  */
 function membership_entity_term_form_validate($form, &$form_state) {
   $values = &$form_state['values']['membership_term'];
@@ -723,7 +724,7 @@ function membership_entity_term_renew($form, &$form_state, $membership, $bundle 
   $latest_term = end($membership->terms);
   if ($latest_term->status == MEMBERSHIP_ENTITY_PENDING) {
     drupal_set_message(t('Your membership term is currently pending. You will not be able to renew until your term is activated. If you feel that you have received this message in error, please contact a site administrator.'), 'warning');
-    $form['actions']['submit']['#value'] .= t(' (disabled)');
+    $form['actions']['submit']['#value'] . = " " . t('(disabled)');
     $form['actions']['submit']['#attributes']['disabled'] = 'disabled';
     $form['actions']['submit']['#validate'] = array('membership_entity_term_form_disabled_validate');
   }
@@ -779,7 +780,7 @@ function membership_entity_term_edit_form_delete($form, &$form_state) {
 }
 
 /**
- * Dispaly a confirmation page before delteing a membership term.
+ * Display a confirmation page before delteing a membership term.
  */
 function membership_entity_term_delete_confirm($form, &$form_state, $membership, $term) {
   $form_state['membership'] = $membership;

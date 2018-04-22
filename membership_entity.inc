@@ -11,31 +11,43 @@
 class MembershipEntity extends Entity {
   /**
    * The primary identifier for a membership.
+   *
+   * @var int
    */
   public $mid;
 
   /**
    * A user enterable unique member id.
+   *
+   * @var int
    */
-  public $member_id;
+  public $member_id; // @codingStandardsIgnoreLine
 
   /**
    * The type (bundle) of membership.
+   *
+   * @var string
    */
   public $type;
 
   /**
    * The primary member.
+   *
+   * @var int
    */
   public $uid;
 
   /**
    * An array of secondary members.
+   *
+   * @var array
    */
-  public $secondary_members;
+  public $secondary_members; // @codingStandardsIgnoreLine
 
   /**
    * Integer code indicating the membership status.
+   *
+   * @var int
    *
    * @see membership_entity_get_status_list().
    */
@@ -43,11 +55,15 @@ class MembershipEntity extends Entity {
 
   /**
    * The Unix timestamp when the membership was created.
+   *
+   * @var int
    */
   public $created;
 
   /**
    * The Unix timestamp when the membership was most recently saved.
+   *
+   * @var int
    */
   public $changed;
 
@@ -109,4 +125,5 @@ class MembershipEntity extends Entity {
     $this->is_new_revision = TRUE;
     return parent::save();
   }
+
 }

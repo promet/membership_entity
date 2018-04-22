@@ -149,7 +149,11 @@ function membership_entity_type_menu() {
       'title' => $type->label,
       'title callback' => 'check_plain',
       'page callback' => 'drupal_get_form',
-      'page arguments' => array('membership_entity_edit_form', NULL, $type->type),
+      'page arguments' => array(
+        'membership_entity_edit_form',
+        NULL,
+        $type->type,
+      ),
       'access arguments' => array('administer memberships'),
       'description' => $type->description,
       'file' => 'membership_entity.pages.inc',
@@ -289,6 +293,9 @@ function membership_entity_type_theme($existing, $type, $theme, $path) {
  *
  * @param string $machine_name
  *   Get information about a specific type. NULL to return all types.
+ *
+ * @return array
+ *   Array of MembershipEntityTypes, keyed by machine name.
  */
 function membership_entity_type_get_types($machine_name = NULL) {
   $types = &drupal_static(__FUNCTION__, array());
@@ -341,11 +348,12 @@ function membership_entity_type_field_extra_fields() {
 
 /**
  * Create a new membership entity type with default values.
-
- * @param array $values
+ *
+ * @param optional|array $values
  *   An associative array of settings to override the defaults.
  *
- * @return MembershipEntityType The new (unsaved) membership type object.
+ * @return MembershipEntityType
+ *   The new (unsaved) membership type object.
  */
 function membership_entity_type_create($values = array()) {
   return entity_create('membership_entity_type', $values);
@@ -356,10 +364,11 @@ function membership_entity_type_create($values = array()) {
  *
  * @param int|string $id
  *   The type id or machine name.
- * @param boolean $reset
+ * @param bool $reset
  *   TRUE to rebuild cached data.
  *
- * @return MembershipEntityType The loaded membership type object.
+ * @return MembershipEntityType
+ *   The loaded membership type object.
  */
 function membership_entity_type_load($id = NULL, $reset = FALSE) {
   $types = membership_entity_type_load_multiple(array($id), array(), $reset);
@@ -368,6 +377,17 @@ function membership_entity_type_load($id = NULL, $reset = FALSE) {
 
 /**
  * Loads multiple membership type objects.
+ *
+ * @param mixed $ids
+ *   Array of MembershipEntityType ids, or FALSE.
+ * @param optional|array $conditions
+ *   Optional array of conditions used to filter returned entities.
+ * @param bool $reset
+ *   Whether to reset the internal cache for the requested entity type.
+ *
+ * @return array
+ *   An array of entity objects indexed by their ids, or an empty array if no
+ *   results are found.
  */
 function membership_entity_type_load_multiple($ids = FALSE, $conditions = array(), $reset = FALSE) {
   return entity_load('membership_entity_type', $ids, $conditions, $reset);
@@ -375,13 +395,24 @@ function membership_entity_type_load_multiple($ids = FALSE, $conditions = array(
 
 /**
  * Save a membership entity type.
+ *
+ * @param MembershipEntityType $type
+ *   MembershipEntityType object to save.
+ *
+ * @return int|false
+ *   For entity types provided by the CRUD API, SAVED_NEW or SAVED_UPDATED is
+ *   returned depending on the operation performed. If there is no information
+ *   how to save the entity, FALSE is returned.
  */
-function membership_entity_type_save(&$type) {
+function membership_entity_type_save(MembershipEntityType &$type) {
   return entity_save('membership_entity_type', $type);
 }
 
 /**
  * Delete a membership entity type.
+ *
+ * @param int $id
+ *   MembershipEntityType id to delete.
  */
 function membership_entity_type_delete($id) {
   membership_entity_type_delete_multiple(array($id));
@@ -389,8 +420,11 @@ function membership_entity_type_delete($id) {
 
 /**
  * Delete multiple membership entities.
+ *
+ * @param array $ids
+ *   Array of MembershipEntity ids to delete.
  */
-function membership_entity_type_delete_multiple($ids) {
+function membership_entity_type_delete_multiple(array $ids) {
   entity_delete_multiple('membership_entity_type', $ids);
 }
 
@@ -425,6 +459,9 @@ function membership_entity_type_revision_set_default($entity) {
 
 /**
  * Returns a list of membership type names.
+ *
+ * @return array
+ *   Array containing list of membership types, keyed by machine name.
  */
 function membership_entity_type_get_names() {
   $types = membership_entity_type_get_types();
@@ -440,16 +477,26 @@ function membership_entity_type_get_names() {
  *
  * @param MembershipEntity $membership
  *   The membership object to get the type name.
+ *
+ * @return string
+ *   MembershipEntity type , or empty string.
  */
-function membership_entity_type_get_name($membership) {
+function membership_entity_type_get_name(MembershipEntity $membership) {
   $names = membership_entity_type_get_names();
   return isset($names[$membership->type]) ? $names[$membership->type] : '';
 }
 
 /**
  * Title callback for a membership type.
+ *
+ * @param MembershipEntityType $type
+ *   Membership Entity Type object.
+ *
+ * @return string
+ *   String containing the MembershipEntityType (bundle) used for the admin
+ *   Interface title.
  */
-function membership_entity_type_page_title($type) {
+function membership_entity_type_page_title(MembershipEntityType $type) {
   return $type->label;
 }
 

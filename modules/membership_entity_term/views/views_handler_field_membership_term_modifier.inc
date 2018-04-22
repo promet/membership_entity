@@ -8,11 +8,12 @@
 /**
  * Field handler to provide a list of term modifiers.
  */
-class views_handler_field_membership_term_modifier extends views_handler_field_serialized {
+class views_handler_field_membership_term_modifier extends views_handler_field_serialized { // @codingStandardsIgnoreLine, Views override compliant
+
   /**
    * {@inheritdoc}
    */
-  function option_definition() {
+  public function option_definition() { // @codingStandardsIgnoreLine, Views override compliant
     $options = parent::option_definition();
     $options['format'] = array('default' => 'list');
     $options['list_type'] = array('default' => 'separator');
@@ -23,7 +24,7 @@ class views_handler_field_membership_term_modifier extends views_handler_field_s
   /**
    * {@inheritdoc}
    */
-  function options_form(&$form, &$form_state) {
+  public function options_form(&$form, &$form_state) { // @codingStandardsIgnoreLine, Views override compliant
     parent::options_form($form, $form_state);
 
     $form['format']['#options'] = array_merge(array('list' => t('As a list')), $form['format']['#options']);
@@ -54,7 +55,7 @@ class views_handler_field_membership_term_modifier extends views_handler_field_s
   /**
    * {@inheritdoc}
    */
-  function render($values) {
+  public function render($values) {
     if ($this->options['format'] != 'list') {
       return parent::render($values);
     }
@@ -73,4 +74,5 @@ class views_handler_field_membership_term_modifier extends views_handler_field_s
       }
     }
   }
+
 }
