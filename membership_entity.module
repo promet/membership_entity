@@ -1353,7 +1353,6 @@ function membership_entity_delete_multiple(array $mids) {
 }
 
 /**
-<<<<<<< HEAD
  * Loads an entity revision.
  */
 function membership_entity_revision_load($revision_id) {

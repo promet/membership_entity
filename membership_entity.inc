@@ -130,12 +130,13 @@ class MembershipEntity extends Entity {
     // Load unchanged entity data.
     if (!isset($this->original)) {
       $original = entity_load_unchanged('membership_entity', $this->mid);
-    } else {
+    }
+    else {
       $original = $this->original;
       unset($this->original);
     }
 
-    // The entity_type property cannot be changed in the UI, so we ignore 
+    // The entity_type property cannot be changed in the UI, so we ignore
     // it when comparing current and unchanged states.
     if (isset($this->entity_type)) {
       $original->entity_type = $this->entity_type;

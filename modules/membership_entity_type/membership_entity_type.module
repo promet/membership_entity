@@ -460,7 +460,6 @@ function membership_entity_type_revision_set_default($entity) {
   entity_revision_set_default('membership_entity_type', $entity);
 }
 
-
 /**
  * Returns a list of membership type names.
  *
