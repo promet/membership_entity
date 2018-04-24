@@ -92,7 +92,7 @@ function membership_entity_type_renew_page() {
             'attributes' => array(
               'class' => array('button'),
             ),
-          ),
+          )
         ),
       ),
     );
