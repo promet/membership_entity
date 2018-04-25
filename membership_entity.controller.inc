@@ -65,7 +65,8 @@ class MembershipEntityController extends EntityAPIController {
    *   The membership object identified by member id.
    */
   public function loadByMemberID($member_id) { // @codingStandardsIgnoreLine
-    return reset($this->load(FALSE, array('member_id' => $member_id)));
+    $members = $this->load(FALSE, array('member_id' => $member_id));
+    return reset($members);
   }
 
   /**

@@ -90,7 +90,7 @@ class views_handler_field_membership_link extends views_handler_field_entity { /
    * @return string
    *   HTML for the membership link.
    */
-  public function render_link(Entity $entity, array $values) { // @codingStandardsIgnoreLine, Views override compliant
+  public function render_link(Entity $entity, $values) { // @codingStandardsIgnoreLine, Views override compliant
     if (entity_access($this->op, $this->entity_type, $entity)) {
       $this->options['alter']['make_link'] = TRUE;
       $uri = entity_uri($this->entity_type, $entity);

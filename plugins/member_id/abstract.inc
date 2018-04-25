@@ -95,12 +95,12 @@ class MembershipEntityMemberIdBroken extends MembershipEntityMemberIdAbstract {
   /**
    * {@inheritdoc}
    */
-  public function next($membership) {}
+  public function next(MembershipEntity $membership) {}
 
   /**
    * {@inheritdoc}
    */
-  public function settingsForm(&$form_state) {
+  public function settingsForm(array &$form_state) {
     $form['member_id_broken'] = array(
       '#markup' => t('The selected member_id handler is broken.'),
     );

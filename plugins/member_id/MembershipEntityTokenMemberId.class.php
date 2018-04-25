@@ -186,7 +186,7 @@ class MembershipEntityTokenMemberId extends MembershipEntityMemberIdAbstract {
    *
    * @see token_element_validate()
    */
-  public function patternElementValidate(&$element, &$form_state) {
+  public function patternElementValidate(array &$element, array &$form_state) {
     $value = isset($element['#value']) ? $element['#value'] : $element['#default_value'];
 
     if (!drupal_strlen($value)) {
