@@ -452,7 +452,7 @@ function _membership_entity_term_insert_update($term) {
   }
   else {
     $latest = end($membership->terms);
-    $membership->status = $latest->status;
+    $membership->status = $latest ? $latest->status : MEMBERSHIP_ENTITY_PENDING;
     $membership->save();
   }
 }
