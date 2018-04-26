@@ -30,8 +30,8 @@ class MembershipEntityTypeWebTestCase extends MembershipEntityWebTestCase {
         'length' => 5,
       ),
       'cardinality' => 1,
-      'primary_role' => $this->member_role,
-      'secondary_role' => $this->secondary_role,
+      'primary_role' => $this->memberRole,
+      'secondary_role' => $this->secondaryRole,
       'show_on_profile' => 1,
       'all_edit' => 0,
     );
@@ -126,7 +126,7 @@ class MembershipEntityTypeCreateTestCase extends MembershipEntityTypeWebTestCase
       'member_id_format' => 'membership_entity_numeric_member_id',
       'member_id_settings[length]' => 10,
       'cardinality' => FIELD_CARDINALITY_UNLIMITED,
-      'primary_role' => $this->member_role,
+      'primary_role' => $this->memberRole,
       'secondary_role' => 'primary',
     );
     $this->drupalPost('admin/memberships/types/add', $edit, 'Save configuration');
