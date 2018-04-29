@@ -451,7 +451,7 @@ function _membership_entity_term_insert_update($term) {
     $membership->status = $current->status;
     $membership->save();
   }
-  else {
+  elseif (!empty($membership->terms)) {
     $latest = end($membership->terms);
     $membership->status = $latest->status;
     $membership->save();
