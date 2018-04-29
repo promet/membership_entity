@@ -2,7 +2,7 @@
 
 /**
  * @file
- * Containse the MembershipEntityTermController class.
+ * Contains the MembershipEntityTermController class.
  */
 
 /**

@@ -488,7 +488,7 @@ class MembershipEntityTermAccessTestCase extends MembershipEntityTermWebTestCase
       'start' => format_date(REQUEST_TIME, 'custom', DATE_FORMAT_DATETIME),
     ));
     $this->assertMembershipEntityTermAccess(array('renew' => TRUE), $membership2, $member1);
-    $this->assertMembershipEntityTermAccess(array('remew' => FALSE), $membership3, $member1);
+    $this->assertMembershipEntityTermAccess(array('renew' => FALSE), $membership3, $member1);
   }
 
 }

@@ -93,7 +93,7 @@ class MigrateDestinationMembershipEntityTerm extends MigrateDestinationEntity {
    *   FALSE on failure.
    */
   public function import($term, $row) {
-    // Convert $term to an instance of MembershpEntityTerm.
+    // Convert $term to an instance of MembershipEntityTerm.
     $term = membership_entity_term_create_from_stdclass($term);
 
     // Updating previously-migrated content?

@@ -150,7 +150,7 @@ function membership_entity_term_cron_queue_info() {
 }
 
 /**
- * Worker callback to process membership expirations.
+ * Worker callback to process membership expiration.
  */
 function membership_entity_term_expire_worker($data) {
   if ($term = membership_entity_term_load($data)) {
@@ -384,12 +384,13 @@ function membership_entity_term_membership_entity_term_start_date_alter(&$start,
  *   MembershipEntityType name.
  *
  * @return string
- *   MemershipEntityType bundle.
+ *   MembershipEntityType bundle or FALSE on error.
  */
 function membership_entity_term_type_load($name) {
   if ($type = membership_entity_get_bundles(strtr($name, array('-' => '_')))) {
     return $type->type;
   }
+  return FALSE;
 }
 
 /**
@@ -700,7 +701,7 @@ function membership_entity_term_create_from_stdclass($object) {
  * Create a new membership entity term with default values.
  *
  * @param optional|array $values
- *   An assciative array of values to override the defaults.
+ *   An associative array of values to override the defaults.
  *
  * @return MembershipEntityTerm
  *   The (unsaved) membership term object.
@@ -761,7 +762,7 @@ function membership_entity_term_get_join_date(MembershipEntity $membership) {
  *   the membership or the latest term is a lifetime term.
  */
 function membership_entity_term_get_expiration_date(MembershipEntity $membership) {
-  // Find and return the lastest active term end date.
+  // Find and return the latest active term end date.
   if (!empty($membership->terms)) {
     $terms = array_filter($membership->terms, '_membership_entity_term_array_filter_expiration_status');
     if (empty($terms)) {
@@ -850,7 +851,7 @@ function _membership_entity_term_array_filter_expiration_status(MembershipEntity
 /**
  * Sort by term start date.
  *
- * Callback for usort() witin membership_entity_term_get_join_date().
+ * Callback for usort() within membership_entity_term_get_join_date().
  *
  * @param MembershipEntityTerm $a
  *   The first membership entity term to sort against.
@@ -917,7 +918,7 @@ function _membership_entity_term_sort_items_by_weight($a, $b) {
 /**
  * Helper to correctly handle relative modifiers to a date object.
  *
- * PHP date handling does not correctly support month opperations for months
+ * PHP date handling does not correctly support month operations for months
  * with a different number of days or leap years.
  *
  * @param DateTime $date
@@ -1039,7 +1040,7 @@ function theme_membership_entity_term_modifiers_element($variables) {
   return theme('table', array(
     'header' => $header,
     'rows' => $rows,
-    'attributes' => array('id' => 'term-modifers'),
+    'attributes' => array('id' => 'term-modifiers'),
   ));
 }
 

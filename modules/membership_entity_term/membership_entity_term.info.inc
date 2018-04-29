@@ -17,7 +17,7 @@ class MembershipEntityTermMetadataController extends EntityDefaultMetadataContro
     $info = parent::entityPropertyInfo();
     $properties = &$info[$this->type]['properties'];
 
-    // Remove unnessesary fields.
+    // Remove unnecessary fields.
     unset($properties['url']);
     unset($properties['membership_entity_type']);
 

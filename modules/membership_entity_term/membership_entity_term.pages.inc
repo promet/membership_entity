@@ -489,7 +489,7 @@ function membership_entity_term_form(&$form, &$form_state) {
   $form['membership_term']['modifiers'] = array(
     '#type' => 'fieldset',
     '#title' => t('Term Modifiers'),
-    '#description' => t('Modifiers are used to extend or reduce the term length by a set amout of time. eg. +1 month.'),
+    '#description' => t('Modifiers are used to extend or reduce the term length by a set amount of time. eg. +1 month.'),
     '#collapsible' => TRUE,
     '#collapsed' => FALSE,
     '#access' => user_access('administer membership terms'),
@@ -548,7 +548,7 @@ function membership_entity_term_form(&$form, &$form_state) {
     '#type' => 'textfield',
     '#title' => t('Other modifier'),
     '#size' => 32,
-    '#description' => t('Enter a term modifer as a sign (+-), number, and unit (eg. +1 month).'),
+    '#description' => t('Enter a term modifier as a sign (+-), number, and unit (eg. +1 month).'),
     '#states' => array(
       'visible' => array(
         ':input[name="membership_term[modifiers][options]"]' => array('value' => 'other'),
@@ -724,7 +724,7 @@ function membership_entity_term_renew($form, &$form_state, $membership, $bundle 
   $latest_term = end($membership->terms);
   if ($latest_term->status == MEMBERSHIP_ENTITY_PENDING) {
     drupal_set_message(t('Your membership term is currently pending. You will not be able to renew until your term is activated. If you feel that you have received this message in error, please contact a site administrator.'), 'warning');
-    $form['actions']['submit']['#value'] . = " " . t('(disabled)');
+    $form['actions']['submit']['#value'] .= " " . t('(disabled)');
     $form['actions']['submit']['#attributes']['disabled'] = 'disabled';
     $form['actions']['submit']['#validate'] = array('membership_entity_term_form_disabled_validate');
   }
@@ -780,7 +780,7 @@ function membership_entity_term_edit_form_delete($form, &$form_state) {
 }
 
 /**
- * Display a confirmation page before delteing a membership term.
+ * Display a confirmation page before deleting a membership term.
  */
 function membership_entity_term_delete_confirm($form, &$form_state, $membership, $term) {
   $form_state['membership'] = $membership;

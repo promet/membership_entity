@@ -62,7 +62,7 @@ class views_handler_relationship_term_groupwise_max extends views_handler_relati
    *
    * @todo: could we use a call to parent::left_query, and modify from there?
    * Also needs to be refactored to reduce cyclometric complexity, turn some of
-   * The conditionals into private methods on the class.
+   * the conditionals into private methods on the class.
    */
   function left_query($options) { // @codingStandardsIgnoreLine, Views override compliant
     // Either load another view, or create one on the fly.
