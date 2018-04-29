@@ -9,8 +9,8 @@
  * Defines a base class for testing the Membership Entity module.
  */
 class MembershipEntityWebTestCase extends DrupalWebTestCase {
-  protected $member_role;
-  protected $secondary_role;
+  protected $memberRole;
+  protected $secondaryRole;
 
   /**
    * {@inheritdoc}
@@ -29,8 +29,8 @@ class MembershipEntityWebTestCase extends DrupalWebTestCase {
     parent::setUp($modules);
 
     // Create membership roles.
-    $this->member_role = $this->drupalCreateRole(array(), 'Member');
-    $this->secondary_role = $this->drupalCreateRole(array(), 'Secondary Member');
+    $this->memberRole = $this->drupalCreateRole(array(), 'Member');
+    $this->secondaryRole = $this->drupalCreateRole(array(), 'Secondary Member');
 
     // Add default membership settings.
     variable_set('membership_entity_settings', array(
@@ -39,8 +39,8 @@ class MembershipEntityWebTestCase extends DrupalWebTestCase {
         'length' => 5,
       ),
       'cardinality' => 1,
-      'primary_role' => $this->member_role,
-      'secondary_role' => $this->secondary_role,
+      'primary_role' => $this->memberRole,
+      'secondary_role' => $this->secondaryRole,
       'show_on_profile' => 1,
       'all_edit' => 0,
     ));
@@ -49,10 +49,11 @@ class MembershipEntityWebTestCase extends DrupalWebTestCase {
   /**
    * Create and save a membership for testing.
    *
-   * @param array $values
+   * @param optional|array $values
    *   An associative array of default values for the membership.
    *
-   * @return MembershipEntity The new membership object.
+   * @return MembershipEntity
+   *   The new membership object.
    */
   public function createMembership($values = array()) {
     $membership = membership_entity_create($values);
@@ -120,7 +121,7 @@ class MembershipEntityCreateTestCase extends MembershipEntityWebTestCase {
     $this->assertText('Membership 00001 has been created.', 'Simple membership created by admin.');
 
     $member = user_load($this->member->uid);
-    if (isset($member->roles[$this->member_role])) {
+    if (isset($member->roles[$this->memberRole])) {
       $this->pass('Member role granted for membership created by admin.');
     }
     else {
@@ -154,7 +155,7 @@ class MembershipEntityCreateTestCase extends MembershipEntityWebTestCase {
     $this->assertText('Membership 00001 has been created.', 'Simple membership created by admin.');
 
     $member = user_load($this->member->uid);
-    if (isset($member->roles[$this->member_role])) {
+    if (isset($member->roles[$this->memberRole])) {
       $this->pass('Member role granted for membership created by admin.');
     }
     else {
@@ -163,7 +164,7 @@ class MembershipEntityCreateTestCase extends MembershipEntityWebTestCase {
 
     foreach (array($secondary1, $secondary2) as $secondary) {
       $secondary_member = user_load($secondary->uid);
-      if (isset($secondary_member->roles[$this->secondary_role])) {
+      if (isset($secondary_member->roles[$this->secondaryRole])) {
         $this->pass('Secondary Member role granted for membership created by admin.');
       }
       else {
@@ -182,6 +183,7 @@ class MembershipEntityCreateTestCase extends MembershipEntityWebTestCase {
  * Test membership join forms.
  */
 class MembershipEntityJoinTestCase extends MembershipEntityWebTestCase {
+
   /**
    * {@inheritdoc}
    */
@@ -234,7 +236,7 @@ class MembershipEntityJoinTestCase extends MembershipEntityWebTestCase {
     $this->assertText('Your membership has been created.', 'Membership created for anonymous user from the join form.');
 
     $member = user_load_by_name($username);
-    $this->assertNotNull($member->roles[$this->member_role], 'Member role granted for anonymous user from the join form.');
+    $this->assertNotNull($member->roles[$this->memberRole], 'Member role granted for anonymous user from the join form.');
 
     $membership = membership_entity_load_by_member_id('00001');
     $this->assertTrue($membership, 'Membership found in database.');
@@ -251,7 +253,7 @@ class MembershipEntityJoinTestCase extends MembershipEntityWebTestCase {
     $this->assertText('Your membership has been created.', 'Membership created for authenticated user from the join form.');
 
     $member = user_load($member->uid);
-    $this->assertNotNull($member->roles[$this->member_role], 'Member role granted for authenticated user from the join form.');
+    $this->assertNotNull($member->roles[$this->memberRole], 'Member role granted for authenticated user from the join form.');
 
     $membership = membership_entity_load_by_member_id('00001');
     $this->assertTrue($membership, 'Membership found in database.');
@@ -265,7 +267,7 @@ class MembershipEntityJoinTestCase extends MembershipEntityWebTestCase {
 class MembershipEntityEditTestCase extends MembershipEntityWebTestCase {
   private $admin;
   private $member;
-  private $secondary_member;
+  private $secondaryMember;
 
   /**
    * {@inheritdoc}
@@ -287,7 +289,7 @@ class MembershipEntityEditTestCase extends MembershipEntityWebTestCase {
     // Create some users.
     $this->admin = $this->drupalCreateUser(array('administer memberships'));
     $this->member = $this->drupalCreateUser(array('membership join'));
-    $this->secondary_member = $this->drupalCreateUser(array('membership join'));
+    $this->secondaryMember = $this->drupalCreateUser(array('membership join'));
 
     // Grant view and edit permissions for member roles.
     foreach (array('Member', 'Secondary Member') as $role_name) {
@@ -353,6 +355,7 @@ class MembershipEntityEditTestCase extends MembershipEntityWebTestCase {
  * Test membership access control.
  */
 class MembershipEntityAccessTestCase extends MembershipEntityWebTestCase {
+
   /**
    * {@inheritdoc}
    */
@@ -388,7 +391,7 @@ class MembershipEntityAccessTestCase extends MembershipEntityWebTestCase {
   /**
    * Test membership_entity_access function.
    */
-  function testMembershipEntityAccess() {
+  public function testMembershipEntityAccess() {
     // User without 'membership join' permission cannot access the join page.
     $user1 = $this->drupalCreateUser();
     $this->assertMembershipEntityAccess(array('join' => FALSE), 'membership', $user1);
@@ -397,16 +400,33 @@ class MembershipEntityAccessTestCase extends MembershipEntityWebTestCase {
     $admin = $this->drupalCreateUser(array('administer memberships'));
     $this->assertMembershipEntityAccess(array('join' => TRUE), 'membership', $admin);
     $membership1 = $this->createMembership(array('uid' => $user1->uid));
-    $this->assertMembershipEntityAccess(array('view' => TRUE, 'edit' => TRUE, 'delete' => TRUE), $membership1, $admin);
+    $this->assertMembershipEntityAccess(array(
+      'view' => TRUE,
+      'edit' => TRUE,
+      'delete' => TRUE,
+    ), $membership1, $admin);
 
     // Member can view, edit, and delete own membership but not any membership.
-    $permissions = array('membership join', 'membership view own membership', 'membership edit own membership', 'membership delete own membership');
+    $permissions = array(
+      'membership join',
+      'membership view own membership',
+      'membership edit own membership',
+      'membership delete own membership',
+    );
     $member1 = $this->drupalCreateUser($permissions);
     $member2 = $this->drupalCreateUser($permissions);
     $membership2 = $this->createMembership(array('uid' => $member1->uid));
     $membership3 = $this->createMembership(array('uid' => $member2->uid));
-    $this->assertMembershipEntityAccess(array('view' => TRUE, 'edit' => TRUE, 'delete' => TRUE), $membership2, $member1);
-    $this->assertMembershipEntityAccess(array('view' => FALSE, 'edit' => FALSE, 'delete' => FALSE), $membership3, $member1);
+    $this->assertMembershipEntityAccess(array(
+      'view' => TRUE,
+      'edit' => TRUE,
+      'delete' => TRUE,
+    ), $membership2, $member1);
+    $this->assertMembershipEntityAccess(array(
+      'view' => FALSE,
+      'edit' => FALSE,
+      'delete' => FALSE,
+    ), $membership3, $member1);
 
     // Secondary member can view but not edit own membership by default.
     $member2 = $this->drupalCreateUser($permissions);

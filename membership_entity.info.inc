@@ -9,6 +9,7 @@
  * Provides metadata for memberships.
  */
 class MembershipEntityMetadataController extends EntityDefaultMetadataController {
+
   /**
    * Overrides EntityDefaultMetadataController::entityPropertyInfo().
    */
@@ -69,4 +70,5 @@ class MembershipEntityMetadataController extends EntityDefaultMetadataController
     unset($properties['url']);
     return $info;
   }
+
 }

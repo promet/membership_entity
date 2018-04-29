@@ -5,11 +5,15 @@
  * Contains the MembershipEntityNumericMemberId class.
  */
 
+/**
+ * MembershipEntityNumbericMemberId class.
+ */
 class MembershipEntityNumericMemberId extends MembershipEntityMemberIdAbstract {
+
   /**
-   * Returns the next available member id.
+   * {@inheritdoc}
    */
-  public function next($membership) {
+  public function next(MembershipEntity $membership) {
     $settings = $this->settings;
     $length = !empty($settings['length']) ? $settings['length'] : 5;
     $member_id = variable_get('membership_entity_next_member_id', 0);
@@ -18,7 +22,7 @@ class MembershipEntityNumericMemberId extends MembershipEntityMemberIdAbstract {
   }
 
   /**
-   * Builds the settings form for the member id.
+   * {@inheritdoc}
    */
   public function settingsForm(&$form_state) {
     $settings = $this->settings;
@@ -35,7 +39,7 @@ class MembershipEntityNumericMemberId extends MembershipEntityMemberIdAbstract {
   }
 
   /**
-   * Validate the settings form.
+   * {@inheritdoc}
    */
   public function validateSettings(&$element, &$form_state) {
     $schema = drupal_get_schema('membership_entity');
@@ -45,4 +49,5 @@ class MembershipEntityNumericMemberId extends MembershipEntityMemberIdAbstract {
       )));
     }
   }
+
 }

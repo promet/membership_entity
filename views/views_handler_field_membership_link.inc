@@ -8,8 +8,20 @@
 /**
  * Field handler to show a link to the membership.
  */
-class views_handler_field_membership_link extends views_handler_field_entity {
-  public $entity_info;
+class views_handler_field_membership_link extends views_handler_field_entity { // @codingStandardsIgnoreLine, Views override compliant
+
+  /**
+   * Store Entity Information array returned by entity_get_info().
+   *
+   * @var array
+   */
+  public $entityInfo;
+
+  /**
+   * Operation beig performed.
+   *
+   * @var array
+   */
   public $op;
 
   /**
@@ -17,18 +29,18 @@ class views_handler_field_membership_link extends views_handler_field_entity {
    */
   public function init(&$view, &$options) {
     parent::init($view, $options);
-    $this->entity_info = entity_get_info($this->entity_type);
+    $this->entityInfo = entity_get_info($this->entity_type);
     $this->op = $this->definition['op'];
 
     // Add the primary key field.
-    $key = $this->entity_info['entity keys']['id'];
+    $key = $this->entityInfo['entity keys']['id'];
     $this->additional_fields[$key] = $key;
   }
 
   /**
    * {@inheritdoc}
    */
-  public function option_definition() {
+  public function option_definition() { // @codingStandardsIgnoreLine, Views override compliant
     $options = parent::option_definition();
     $options['text'] = array('default' => $this->op, 'translatable' => TRUE);
     return $options;
@@ -37,7 +49,7 @@ class views_handler_field_membership_link extends views_handler_field_entity {
   /**
    * {@inheritdoc}
    */
-  public function options_form(&$form, &$form_state) {
+  public function options_form(&$form, &$form_state) { // @codingStandardsIgnoreLine, Views override compliant
     $form['text'] = array(
       '#type' => 'textfield',
       '#title' => t('Text to display'),
@@ -61,7 +73,7 @@ class views_handler_field_membership_link extends views_handler_field_entity {
   /**
    * {@inheritdoc}
    */
-  public function render($values) {
+  public function render($values) { // @codingStandardsIgnoreLine, Views override compliant
     if ($entity = $this->get_value($values)) {
       return $this->render_link($entity, $values);
     }
@@ -78,7 +90,7 @@ class views_handler_field_membership_link extends views_handler_field_entity {
    * @return string
    *   HTML for the membership link.
    */
-  public function render_link($entity, $values) {
+  public function render_link(Entity $entity, array $values) { // @codingStandardsIgnoreLine, Views override compliant
     if (entity_access($this->op, $this->entity_type, $entity)) {
       $this->options['alter']['make_link'] = TRUE;
       $uri = entity_uri($this->entity_type, $entity);
@@ -91,4 +103,5 @@ class views_handler_field_membership_link extends views_handler_field_entity {
       return $text;
     }
   }
+
 }
