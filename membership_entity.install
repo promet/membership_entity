@@ -15,7 +15,7 @@ function membership_entity_requirements($phase) {
   if ($phase == 'runtime' && !module_exists('membership_entity_type')) {
     $data = membership_entity_get_bundle_settings();
     if (empty($data['status'])) {
-      $requirements['membership_entity_settings'] += array(
+      $requirements['membership_entity_settings'] = array(
         'title' => $t('Membership Settings'),
         'value' => $t('Missing configuration'),
         'description' => $t('The membership entity module is missing configuration settings. Please visit the <a href="!url">settings page</a> to configure the module.', array(
