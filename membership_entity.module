@@ -128,7 +128,7 @@ function membership_entity_permission() {
  *
  * @param string $op
  *   The membership operations.
- * @param MembershipEntity $membership
+ * @param MembershipEntity|string $membership
  *   The membership object or type name if $op == 'join'.
  * @param object $account
  *   The user account to check access. Defaults to logged in user.
@@ -136,7 +136,7 @@ function membership_entity_permission() {
  * @return bool
  *   TRUE if the user has access for the given operation.
  */
-function membership_entity_access($op, MembershipEntity $membership = NULL, $account = NULL) {
+function membership_entity_access($op, $membership = NULL, $account = NULL) {
   if (user_access('administer memberships', $account)) {
     return TRUE;
   }
