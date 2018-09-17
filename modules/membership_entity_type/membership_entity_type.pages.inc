@@ -149,7 +149,7 @@ function theme_membership_entity_type_add_list(array $variables) {
           array(
             'items' => array_map('check_plain', $type->data['available_term_lengths']),
             'type' => 'ul',
-          ),
+          )
         ),
       );
     }

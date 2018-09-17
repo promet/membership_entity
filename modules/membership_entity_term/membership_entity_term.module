@@ -358,7 +358,7 @@ function membership_entity_term_membership_entity_term_start_date_alter(&$start,
   if (!empty($term->is_renewal)) {
     $membership = membership_entity_load($term->mid);
     $bundle_settings = membership_entity_get_bundle_settings($membership->type);
-    $latest_term = end($membership->terms);
+    $latest_term = membership_entity_term_get_latest($membership);
 
     if (!empty($latest_term)) {
       $grace = new DateObject($latest_term->end, 'UTC');
@@ -375,6 +375,37 @@ function membership_entity_term_membership_entity_term_start_date_alter(&$start,
       }
     }
   }
+}
+
+/**
+ * Get the latest active term of a membership.
+ *
+ * @param int or MembershipEntity
+ *   MembershipEntity object or membership id.
+ *
+ * @return MembershipEntityTerm
+ *   Latest term of a membership.
+ */
+function membership_entity_term_get_latest($membership) {
+  if (is_numeric($membership)) {
+    $membership = membership_entity_load($membership);
+  }
+  $latest_term = NULL;
+  if (isset($membership->terms)) {
+    foreach ($membership->terms as $term) {
+      if ($term->status == MEMBERSHIP_ENTITY_ACTIVE) {
+        if ($latest_term) {
+          if (strtotime($latest_term->end) < strtotime($term->end)) {
+            $latest_term = $term;
+          }
+        }
+        else {
+          $latest_term = $term;
+        }
+      }
+    }
+  }
+  return $latest_term;
 }
 
 /**
@@ -452,7 +483,7 @@ function _membership_entity_term_insert_update($term) {
   }
   else {
     $latest = end($membership->terms);
-    $membership->status = $latest->status;
+    $membership->status = $latest ? $latest->status : MEMBERSHIP_ENTITY_PENDING;
     $membership->save();
   }
 }
