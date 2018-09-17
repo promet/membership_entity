@@ -722,7 +722,8 @@ function membership_entity_term_renew($form, &$form_state, $membership, $bundle 
 
   // Check for a pending renewal.
   $latest_term = end($membership->terms);
-  if ($latest_term->status == MEMBERSHIP_ENTITY_PENDING) {
+
+  if ($latest_term && $latest_term->status == MEMBERSHIP_ENTITY_PENDING) {
     drupal_set_message(t('Your membership term is currently pending. You will not be able to renew until your term is activated. If you feel that you have received this message in error, please contact a site administrator.'), 'warning');
     $form['actions']['submit']['#value'] .= " " . t('(disabled)');
     $form['actions']['submit']['#attributes']['disabled'] = 'disabled';
