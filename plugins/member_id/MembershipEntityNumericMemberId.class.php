@@ -16,9 +16,22 @@ class MembershipEntityNumericMemberId extends MembershipEntityMemberIdAbstract {
   public function next(MembershipEntity $membership) {
     $settings = $this->settings;
     $length = !empty($settings['length']) ? $settings['length'] : 5;
-    $member_id = variable_get('membership_entity_next_member_id', 0);
-    variable_set('membership_entity_next_member_id', ++$member_id);
+    $member_id = $this->uniqId();
     return str_pad($member_id, $length, '0', STR_PAD_LEFT);
+  }
+
+  /**
+   * Create an unique id.
+   */
+  protected function uniqId($lenght = 13) {
+    if (function_exists("random_bytes")) {
+      $bytes = random_bytes(ceil($lenght / 2));
+    } elseif (function_exists("openssl_random_pseudo_bytes")) {
+      $bytes = openssl_random_pseudo_bytes(ceil($lenght / 2));
+    } else {
+      return substr(uniqid(), 0, $lenght);
+    }
+    return substr(bin2hex($bytes), 0, $lenght);
   }
 
   /**
