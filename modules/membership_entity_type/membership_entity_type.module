@@ -23,6 +23,7 @@ function membership_entity_type_entity_info() {
     'entity class' => 'MembershipEntityType',
     'controller class' => 'MembershipEntityTypeController',
     'base table' => 'membership_entity_type',
+    'revision table' => 'membership_entity_type_revision',
     'uri callback' => 'entity_class_uri',
     // Design decision: Membership types are fieldable to allow other modules
     // to programatically add fields at the membership type level but no field
@@ -34,6 +35,7 @@ function membership_entity_type_entity_info() {
       'id' => 'id',
       'name' => 'type',
       'label' => 'label',
+      'revision' => 'revision_id',
     ),
     'bundles' => array(
       'membership_entity_type' => array(
@@ -80,6 +82,10 @@ function membership_entity_type_entity_info_alter(&$entity_info) {
       ),
     );
   }
+
+  // Add revision capabilities to membership_entity_type entity.
+  $entity_info['membership_entity_type']['revision table'] = 'membership_entity_type_revision';
+  $entity_info['membership_entity_type']['entity keys']['revision'] = 'revision_id';
 }
 
 /**
@@ -424,6 +430,34 @@ function membership_entity_type_delete($id) {
  */
 function membership_entity_type_delete_multiple(array $ids) {
   entity_delete_multiple('membership_entity_type', $ids);
+}
+
+/**
+ * Loads an entity revision.
+ */
+function membership_entity_type_revision_load($revision_id) {
+  return entity_revision_load('membership_entity_type', $revision_id);
+}
+
+/**
+ * Deletes an entity revision.
+ */
+function membership_entity_type_revision_delete($revision_id) {
+  return entity_revision_delete('membership_entity_type', $revision_id);
+}
+
+/**
+ * Checks whether the given entity is the default revision.
+ */
+function membership_entity_type_revision_is_default($entity) {
+  return entity_revision_is_default('membership_entity_type', $entity);
+}
+
+/**
+ * Sets a given entity revision as default revision.
+ */
+function membership_entity_type_revision_set_default($entity) {
+  entity_revision_set_default('membership_entity_type', $entity);
 }
 
 /**

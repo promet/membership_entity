@@ -49,6 +49,13 @@ function membership_entity_schema() {
         'not null' => TRUE,
         'default' => '',
       ),
+      'revision_id' => array(
+        'description' => 'The default membership entity revision id',
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => FALSE,
+        'default' => NULL,
+      ),
       'type' => array(
         'description' => 'The type (bundle) of this membership.',
         'type' => 'varchar',
@@ -138,6 +145,68 @@ function membership_entity_schema() {
     ),
   );
 
+  // Membership revision table.
+  $schema['membership_entity_revision'] = array(
+    'description' => 'The base table for membership revisions.',
+    'fields' => array(
+      'revision_id' => array(
+        'type' => 'serial',
+        'not null' => TRUE,
+        'description' => 'Primary Key: Unique membership entity revision ID.',
+      ),
+      'mid' => array(
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => FALSE,
+        'default' => NULL,
+        'description' => 'The ID of the attached membership entity.',
+      ),
+      'member_id' => array(
+        'description' => 'A user enterable unique member id.',
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+        'default' => '',
+      ),
+      'type' => array(
+        'description' => 'The type (bundle) of this membership.',
+        'type' => 'varchar',
+        'length' => 32,
+        'not null' => TRUE,
+        'default' => '',
+      ),
+      'uid' => array(
+        'description' => 'The user id of the primary member.',
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'status' => array(
+        'description' => 'Integer code indicating the membership status.',
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 1,
+      ),
+      'created' => array(
+        'description' => 'The Unix timestamp when the membership was created.',
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'changed' => array(
+        'description' => 'The Unix timestamp when the membership was most recently saved.',
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+    ),
+    'unique keys' => array(
+      'revision_id' => array('revision_id'),
+    ),
+    'primary key' => array('revision_id'),
+  );
+
   return $schema;
 }
 
@@ -149,4 +218,125 @@ function membership_entity_uninstall() {
   variable_del('membership_entity_settings');
   variable_del('membership_entity_next_member_id');
   variable_del('membership_entity_user_register_required');
+}
+
+/**
+ * Add revisions capability.
+ *
+ * Add revision_id to membership_entity table and create
+ * membership_entity_revision table.
+ */
+function membership_entity_update_7001() {
+  // Copied from membership_entity_schema() because the schema should not
+  // be directly used during hook_update_N.
+  $schema['membership_entity_revision'] = array(
+    'description' => 'The base table for memberships.',
+    'fields' => array(
+      'revision_id' => array(
+        'type' => 'serial',
+        'not null' => TRUE,
+        'description' => 'Primary Key: Unique membership entity revision ID.',
+      ),
+      'mid' => array(
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => FALSE,
+        'default' => NULL,
+        'description' => 'The ID of the attached membership entity.',
+      ),
+      'member_id' => array(
+        'description' => 'A user enterable unique member id.',
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+        'default' => '',
+      ),
+      'type' => array(
+        'description' => 'The type (bundle) of this membership.',
+        'type' => 'varchar',
+        'length' => 32,
+        'not null' => TRUE,
+        'default' => '',
+      ),
+      'uid' => array(
+        'description' => 'The user id of the primary member.',
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'status' => array(
+        'description' => 'Integer code indicating the membership status.',
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 1,
+      ),
+      'created' => array(
+        'description' => 'The Unix timestamp when the membership was created.',
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'changed' => array(
+        'description' => 'The Unix timestamp when the membership was most recently saved.',
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+    ),
+    'unique keys' => array(
+      'revision_id' => array('revision_id'),
+    ),
+    'primary key' => array('revision_id'),
+  );
+
+  // Create the revisions table.
+  if (!db_table_exists('membership_entity_revision')) {
+    db_create_table('membership_entity_revision', $schema['membership_entity_revision']);
+  }
+
+  // Create the a field for the default revision.
+  if (!db_field_exists('membership_entity', 'revision_id')) {
+    db_add_field(
+      'membership_entity',
+      'revision_id',
+      array(
+        'description' => 'The default membership entity revision id',
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => FALSE,
+        'default' => NULL,
+      )
+    );
+  }
+
+  // Refresh schema caches.
+  $schema = drupal_get_schema(NULL, TRUE);
+}
+
+/**
+ * Create revisions for all existing membership entities.
+ */
+function membership_entity_update_7002() {
+  $memberships = db_query('SELECT * FROM membership_entity')->fetchAll();
+  foreach ($memberships as $membership) {
+    $revision_id = db_insert('membership_entity_revision')
+      ->fields(array(
+        'mid' => $membership->mid,
+        'member_id' => $membership->member_id,
+        'type' => $membership->type,
+        'uid' => $membership->uid,
+        'status' => $membership->status,
+        'created' => $membership->created,
+        'changed' => $membership->changed,
+      ))
+      ->execute();
+
+    db_update('membership_entity')
+      ->condition('mid', $membership->mid)
+      ->fields(array(
+        'revision_id' => $revision_id,
+      ))
+      ->execute();
+  }
 }
