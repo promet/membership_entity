@@ -110,22 +110,74 @@ function membership_entity_type_schema() {
     'primary key' => array('id'),
   );
 
-  $schema['membership_entity_type_revision'] = $schema['membership_entity_type'];
-  $schema['membership_entity_type_revision']['fields']['revision_id'] = array(
-    'type' => 'serial',
-    'not null' => TRUE,
-    'description' => 'Primary Key: Unique membership entity type revision ID.',
-  );
-  $schema['membership_entity_type_revision']['fields']['id'] = array(
-    'type' => 'int',
-    'unsigned' => TRUE,
-    'not null' => FALSE,
-    'default' => NULL,
-    'description' => 'The ID of the attached membership entity type.',
-  );
-  $schema['membership_entity_type_revision']['primary key'] = array('revision_id');
-  $schema['membership_entity_type_revision']['unique keys'] = array(
-    'revision_id' => array('revision_id'),
+  // Membership type revision table.
+  $schema['membership_entity_type_revision'] = array(
+    'description' => 'Stores revisions for membership types (bundles).',
+    'fields' => array(
+      'revision_id' => array(
+        'type' => 'serial',
+        'not null' => TRUE,
+        'description' => 'Primary Key: Unique membership entity type revision ID.',
+      ),
+      'id' => array(
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => FALSE,
+        'default' => NULL,
+        'description' => 'The ID of the attached membership entity type.',
+      ),
+      'type' => array(
+        'description' => 'The machine-readable name of this membership entity type.',
+        'type' => 'varchar',
+        'length' => 32,
+        'not null' => TRUE,
+      ),
+      'label' => array(
+        'description' => 'The human-readable name of this membership entity type.',
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+        'default' => '',
+        'translatable' => TRUE,
+      ),
+      'weight' => array(
+        'description' => 'The weight of this membership entity type in relation to others.',
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'description' => array(
+        'description' => 'A brief description of this type.',
+        'type' => 'text',
+        'not null' => FALSE,
+        'size' => 'medium',
+        'translatable' => TRUE,
+      ),
+      'data' => array(
+        'description' => 'A serialized array of additional settings.',
+        'type' => 'text',
+        'not null' => FALSE,
+        'size' => 'big',
+        'serialize' => TRUE,
+      ),
+      'status' => array(
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0x01,
+        'size' => 'tiny',
+        'description' => 'The exportable status of the entity.',
+      ),
+      'module' => array(
+        'description' => 'The name of the providing module if the entity has been defined in code.',
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => FALSE,
+      ),
+    ),
+    'unique keys' => array(
+      'revision_id' => array('revision_id'),
+    ),
+    'primary key' => array('revision_id'),
   );
 
   return $schema;
@@ -149,22 +201,79 @@ function membership_entity_type_install() {
 }
 
 /**
- * Add revision_id to membership_entity table.
- *
- * Add revision_id to membership_entity table and create
- * membership_entity_revision table.
+ * Add revision_id to membership_entity table and create membership_entity_revision table.
  */
 function membership_entity_type_update_7001() {
-  $schema = membership_entity_type_schema();
-
-  // Create the a field for the default revision.
-  if (!db_field_exists('membership_entity_type', 'revision_id')) {
-    db_add_field(
-      'membership_entity_type',
-      'revision_id',
-      $schema['membership_entity_type']['fields']['revision_id']
-    );
-  }
+  // Copied from membership_entity_schema() because the schema should not
+  // be directly used during hook_update_N.
+  $schema['membership_entity_type_revision'] = array(
+    'description' => 'Stores revisions for membership types (bundles).',
+    'fields' => array(
+      'revision_id' => array(
+        'type' => 'serial',
+        'not null' => TRUE,
+        'description' => 'Primary Key: Unique membership entity type revision ID.',
+      ),
+      'id' => array(
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => FALSE,
+        'default' => NULL,
+        'description' => 'The ID of the attached membership entity type.',
+      ),
+      'type' => array(
+        'description' => 'The machine-readable name of this membership entity type.',
+        'type' => 'varchar',
+        'length' => 32,
+        'not null' => TRUE,
+      ),
+      'label' => array(
+        'description' => 'The human-readable name of this membership entity type.',
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+        'default' => '',
+        'translatable' => TRUE,
+      ),
+      'weight' => array(
+        'description' => 'The weight of this membership entity type in relation to others.',
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'description' => array(
+        'description' => 'A brief description of this type.',
+        'type' => 'text',
+        'not null' => FALSE,
+        'size' => 'medium',
+        'translatable' => TRUE,
+      ),
+      'data' => array(
+        'description' => 'A serialized array of additional settings.',
+        'type' => 'text',
+        'not null' => FALSE,
+        'size' => 'big',
+        'serialize' => TRUE,
+      ),
+      'status' => array(
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0x01,
+        'size' => 'tiny',
+        'description' => 'The exportable status of the entity.',
+      ),
+      'module' => array(
+        'description' => 'The name of the providing module if the entity has been defined in code.',
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => FALSE,
+      ),
+    ),
+    'unique keys' => array(
+      'revision_id' => array('revision_id'),
+    ),
+    'primary key' => array('revision_id'),
+  );
 
   // Create the revisions table.
   if (!db_table_exists('membership_entity_type_revision')) {
@@ -173,6 +282,24 @@ function membership_entity_type_update_7001() {
       $schema['membership_entity_type_revision']
     );
   }
+
+  // Create the a field for the default revision.
+  if (!db_field_exists('membership_entity_type', 'revision_id')) {
+    db_add_field(
+      'membership_entity_type',
+      'revision_id',
+      array(
+        'description' => 'The default membership entity type revision id',
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => FALSE,
+        'default' => NULL,
+      )
+    );
+  }
+
+  // Refresh schema caches.
+  $schema = drupal_get_schema(NULL, TRUE);
 }
 
 /**

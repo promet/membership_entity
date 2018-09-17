@@ -82,10 +82,6 @@ function membership_entity_type_entity_info_alter(&$entity_info) {
       ),
     );
   }
-
-  // Add revision capabilities to membership_entity_type entity.
-  $entity_info['membership_entity_type']['revision table'] = 'membership_entity_type_revision';
-  $entity_info['membership_entity_type']['entity keys']['revision'] = 'revision_id';
 }
 
 /**
