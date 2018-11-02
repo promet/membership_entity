@@ -353,7 +353,7 @@ function membership_entity_join_form($form, &$form_state, $bundle = 'membership'
       '#prefix' => '<p>',
       '#suffix' => '</p>',
       '#markup' => t('Click <a href="@url">here to log in</a> if you already have an account.', array(
-        '@url' => url('user/login', array('query' => drupal_get_destination())),
+        '@url' => url('user/login'),
       )),
       '#weight' => -9999,
     );

@@ -177,7 +177,8 @@ function membership_entity_type_menu() {
         'description' => $type->description,
         'page callback' => 'membership_entity_term_renew_page',
         'page arguments' => array($type->type),
-        'access callback' => TRUE,
+        'access callback' => 'membership_entity_access',
+        'access arguments' => array('renew', $type->type),
         'file' => 'membership_entity_term.pages.inc',
         'file path' => drupal_get_path('module', 'membership_entity_term'),
       );
@@ -205,7 +206,8 @@ function membership_entity_type_menu_alter(&$items) {
     'user/join' => array(
       'page callback' => 'membership_entity_type_membership_add_page',
       'page arguments' => array('join'),
-      'access callback' => TRUE,
+      'access callback' => 'user_access',
+      'access arguments' => array('membership join'),
       'file' => 'membership_entity_type.pages.inc',
       'module' => 'membership_entity_type',
     ),

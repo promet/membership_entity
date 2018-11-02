@@ -16,15 +16,28 @@ class MembershipEntityNumericMemberId extends MembershipEntityMemberIdAbstract {
   public function next(MembershipEntity $membership) {
     $settings = $this->settings;
     $length = !empty($settings['length']) ? $settings['length'] : 5;
-    $member_id = variable_get('membership_entity_next_member_id', 0);
-    variable_set('membership_entity_next_member_id', ++$member_id);
+    $member_id = $this->uniqueId();
     return str_pad($member_id, $length, '0', STR_PAD_LEFT);
+  }
+
+  /**
+   * Create an unique id.
+   */
+  protected function uniqueId($length = 13) {
+    if (function_exists("random_bytes")) {
+      $bytes = random_bytes(ceil($length / 2));
+    } elseif (function_exists("openssl_random_pseudo_bytes")) {
+      $bytes = openssl_random_pseudo_bytes(ceil($length / 2));
+    } else {
+      return substr(uniqid(), 0, $length);
+    }
+    return substr(bin2hex($bytes), 0, $length);
   }
 
   /**
    * {@inheritdoc}
    */
-  public function settingsForm(&$form_state) {
+  public function settingsForm(array &$form_state) {
     $settings = $this->settings;
     $form['length'] = array(
       '#type' => 'textfield',
@@ -41,7 +54,7 @@ class MembershipEntityNumericMemberId extends MembershipEntityMemberIdAbstract {
   /**
    * {@inheritdoc}
    */
-  public function validateSettings(&$element, &$form_state) {
+  public function validateSettings(array &$element, array &$form_state) {
     $schema = drupal_get_schema('membership_entity');
     if ($element['length']['#value'] > $schema['fields']['member_id']['length']) {
       form_error($element['length'], t('Member ID length cannot exceed %max.', array(

@@ -87,17 +87,16 @@ function membership_entity_entity_info() {
  * Implements hook_permission().
  */
 function membership_entity_permission() {
-  $permissions = array(
-    'administer memberships' => array(
-      'title' => t('Administer memberships'),
-      'restrict access' => TRUE,
-    ),
+  $permissions['administer memberships'] = array(
+    'title' => t('Administer memberships'),
+    'restrict access' => TRUE,
+  );
+  $permissions['membership join'] = array(
+    'title' => t('View the Join page'),
+    'description' => t('Allow access to the join page.')
   );
 
   if (!module_exists('membership_entity_type')) {
-    $permissions['membership join'] = array(
-      'title' => t('Join @site', array('@site' => variable_get('site_name', ''))),
-    );
     $permissions['membership view any membership'] = array(
       'title' => t('View any membership.'),
     );
@@ -824,7 +823,7 @@ function membership_entity_get_bundles($bundle = NULL) {
 function membership_entity_get_bundle_settings($bundle = 'membership') {
   if (module_exists('membership_entity_type')) {
     $type = membership_entity_type_load($bundle);
-    $data = $type->data;
+    $data = isset($type->data) ? $type->data : array();
   }
   else {
     $data = variable_get('membership_entity_settings', array());
@@ -1369,5 +1368,17 @@ function _membership_entity_update_roles(array $roles) {
       unset($account->roles[$rid]);
       user_save($account);
     }
+  }
+}
+
+/**
+ * Implements hook_form_alter().
+ */
+function membership_entity_form_user_login_block_alter(&$form, &$form_state, $form_id) {
+  if (variable_get('membership_entity_required', FALSE) && 
+      variable_get('user_register', USER_REGISTER_VISITORS_ADMINISTRATIVE_APPROVAL)) {
+    $items[] = l(t('Create new account'), 'user/join', array('attributes' => array('title' => t('Create a new user account.'))));
+    $items[] = l(t('Request new password'), 'user/password', array('attributes' => array('title' => t('Request new password via e-mail.'))));
+    $form['links'] = array('#markup' => theme('item_list', array('items' => $items)));
   }
 }
